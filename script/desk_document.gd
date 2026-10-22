@@ -16,24 +16,14 @@ func setup(doc_data: Dictionary, portrait: Texture2D = null, portrait_tint := Co
 	data = doc_data
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_default_cursor_shape = Control.CURSOR_MOVE
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = data.get("color", Color(0.98, 0.96, 0.9))
-	sb.border_color = Color(0.15, 0.1, 0.05)
-	sb.set_border_width_all(3)
-	sb.set_corner_radius_all(4)
-	sb.set_content_margin_all(10)
-	sb.shadow_color = Color(0, 0, 0, 0.35)
-	sb.shadow_size = 6
-	sb.shadow_offset = Vector2(3, 4)
-	add_theme_stylebox_override("panel", sb)
+	add_theme_stylebox_override("panel", PixelTheme.frame(data.get("color", PixelTheme.PAPER)))
 
 	var vb := VBoxContainer.new()
 	vb.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(vb)
 	var title := Label.new()
 	title.text = data.title
-	title.add_theme_color_override("font_color", Color(0.25, 0.12, 0.05))
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_override("font", PixelTheme.FONT_BOLD)
 	title.mouse_filter = Control.MOUSE_FILTER_PASS
 	vb.add_child(title)
 
@@ -47,20 +37,20 @@ func setup(doc_data: Dictionary, portrait: Texture2D = null, portrait_tint := Co
 		pic.modulate = portrait_tint
 		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		pic.custom_minimum_size = Vector2(70, 90)
+		pic.custom_minimum_size = Vector2(36, 44)
 		pic.mouse_filter = Control.MOUSE_FILTER_PASS
 		row.add_child(pic)
 
 	var grid := GridContainer.new()
 	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("h_separation", 6)
+	grid.add_theme_constant_override("v_separation", 1)
 	grid.mouse_filter = Control.MOUSE_FILTER_PASS
 	row.add_child(grid)
 	for f in data.fields:
 		var k := Label.new()
 		k.text = f.label + ":"
-		k.add_theme_color_override("font_color", Color(0.35, 0.3, 0.25))
-		k.add_theme_font_size_override("font_size", 13)
+		k.add_theme_color_override("font_color", PixelTheme.TEXT_MUTED)
 		k.mouse_filter = Control.MOUSE_FILTER_PASS
 		grid.add_child(k)
 		var v := make_field_label(f, data.type)
@@ -73,8 +63,6 @@ static func make_field_label(f: Dictionary, source: String) -> Label:
 	f["source"] = source
 	var v := Label.new()
 	v.text = f.text
-	v.add_theme_color_override("font_color", Color(0.08, 0.06, 0.05))
-	v.add_theme_font_size_override("font_size", 13)
 	v.mouse_filter = Control.MOUSE_FILTER_PASS
 	v.set_meta("field", f)
 	return v

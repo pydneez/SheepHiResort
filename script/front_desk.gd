@@ -4,17 +4,19 @@ extends Control
 ## UI is built in code so the layout lives in one place; swap any Button/Label
 ## for your own art later without touching the game logic.
 
-const LOBBY_TOP := preload("res://assets/lobby_up.png")
-const LOBBY_BOTTOM := preload("res://assets/lobby_bottom.png")
+const LOBBY_TOP := preload("res://assets/pixel/lobby_up.png")
+const LOBBY_BOTTOM := preload("res://assets/pixel/lobby_bottom.png")
 
-# Screen layout (1024x768), measured against the lobby art.
-const SHEEP_SIZE := Vector2(420, 420)
-const SHEEP_STOP := Vector2(302, 50)
-const SHEEP_ENTER_X := -460.0
-const SHEEP_EXIT_X := 1080.0
-const PILE_POS := Vector2(215, 392)          # the paper slot on the counter
-const MONITOR_RECT := Rect2(762, 399, 209, 185)
-const DOC_BOUNDS := Rect2(0, 34, 1024, 734)
+# Screen layout on the 640x360 pixel canvas, measured against the lobby art
+# (the 640x452 background is centred, so 46px are cropped top and bottom).
+const SCREEN := Vector2(640, 360)
+const SHEEP_SIZE := Vector2(192, 192)
+const SHEEP_STOP := Vector2(224, 30)
+const SHEEP_ENTER_X := -200.0
+const SHEEP_EXIT_X := 650.0
+const PILE_POS := Vector2(150, 196)          # the paper slot on the counter
+const MONITOR_RECT := Rect2(467, 189, 123, 109)
+const DOC_BOUNDS := Rect2(0, 14, 640, 346)
 
 enum State { BRIEFING, IDLE, WALKING_IN, AT_DESK, WALKING_OUT, DAY_OVER, GAME_OVER }
 
@@ -77,7 +79,7 @@ func _ready() -> void:
 	randomize()
 	run_seed = randi()
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR  # big art scaled down: avoid nearest-neighbour shimmer
+	theme = PixelTheme.make_theme()
 	_build_scene()
 	start_day(1)
 
@@ -113,7 +115,7 @@ func start_day(d: int) -> void:
 	state = State.BRIEFING
 	var missing := _overnight_report()
 	_refresh_hud()
-	_show_overlay("[center][b]DAY %d[/b]  —  %s[/center]\n\n%s%s\n\nGuests in line: %d\nBoss's quota: %d valid residents\n\n[i]Ring the bell to open the desk.[/i]" % [
+	_show_overlay("[center][b]DAY %d[/b]  -  %s[/center]\n\n%s%s\n\nGuests in line: %d\nBoss's quota: %d valid residents\n\n[i]Ring the bell to open the desk.[/i]" % [
 		day, DayRules.format_date(today), missing, rules.news, queue.size(), rules.quota], "Start shift")
 
 ## Every wolf let in yesterday makes one resident disappear overnight.
@@ -178,7 +180,7 @@ func _on_guest_arrived() -> void:
 		doc.position = guest_rect.position + SHEEP_SIZE * 0.5
 		var t := create_tween()
 		t.tween_interval(0.12 * i)
-		t.tween_property(doc, "position", PILE_POS + Vector2(i * 14, -i * 6), 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		t.tween_property(doc, "position", PILE_POS + Vector2(i * 6, -i * 3), 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		t.parallel().tween_property(doc, "scale", Vector2.ONE * 0.35, 0.45)
 		i += 1
 
@@ -190,7 +192,7 @@ func _on_pile_clicked(_doc: DeskDocument) -> void:
 			continue
 		d.in_pile = false
 		d.move_to_front()
-		var target := Vector2(145 + i * 150, 452 + i * 34)
+		var target := Vector2(86 + i * 80, 220 + i * 14)
 		var t := create_tween()
 		t.tween_property(d, "position", target, 0.25).set_trans(Tween.TRANS_QUAD)
 		t.parallel().tween_property(d, "scale", Vector2.ONE, 0.25)
@@ -242,7 +244,7 @@ func decide(accept: bool) -> void:
 			day_stats.wolves_caught += 1
 		var bonus := 5 if proven else 0
 		_earn(5 + bonus)
-		msg = ("Denied — wolf caught! " if guest.is_wolf else "Denied — bad papers. ") + \
+		msg = ("Denied - wolf caught! " if guest.is_wolf else "Denied - bad papers. ") + \
 			("+$%d (proof bonus!)" % (5 + bonus) if proven else "+$5 (prove the discrepancy for a bonus)")
 	else:
 		# Denied on suspicion, but the guest was innocent.
@@ -315,10 +317,10 @@ func end_day() -> void:
 
 func _ending() -> String:
 	if reputation < 40:
-		return "[b]WEEK OVER — FIRED.[/b]\nThe wolf boss replaces you with someone 'more cooperative'."
+		return "[b]WEEK OVER - FIRED.[/b]\nThe wolf boss replaces you with someone 'more cooperative'."
 	if wolves_admitted == 0:
-		return "[b]WEEK OVER — PERFECT GUARD.[/b]\nNot a single wolf got in. The boss looks... hungry. And disappointed."
-	return "[b]WEEK OVER — YOU KEEP YOUR JOB.[/b]\n%d wolves slipped past you. The residents seem fewer than before..." % wolves_admitted
+		return "[b]WEEK OVER - PERFECT GUARD.[/b]\nNot a single wolf got in. The boss looks... hungry. And disappointed."
+	return "[b]WEEK OVER - YOU KEEP YOUR JOB.[/b]\n%d wolves slipped past you. The residents seem fewer than before..." % wolves_admitted
 
 func _on_overlay_button() -> void:
 	overlay.visible = false
@@ -424,7 +426,7 @@ func _on_scan() -> void:
 		_toast("SCANNER: Genuine sheep. (Papers may still be wrong!)", Color(0.6, 1, 0.6))
 
 # =============================================================================
-# Building the screen
+# Building the screen (640x360 pixel canvas; every widget uses PixelTheme)
 
 func _build_scene() -> void:
 	add_child(_bg(LOBBY_TOP))
@@ -446,8 +448,9 @@ func _build_scene() -> void:
 	mon.position = MONITOR_RECT.position
 	mon.size = MONITOR_RECT.size
 	mon.text = "HOTEL DB\n\nclick to open"
-	mon.add_theme_color_override("font_color", Color(0.1, 0.3, 0.4))
-	mon.add_theme_color_override("font_hover_color", Color(0, 0.1, 0.2))
+	mon.add_theme_color_override("font_color", PixelTheme.SCREEN_DARK)
+	mon.add_theme_color_override("font_hover_color", PixelTheme.INK)
+	mon.add_theme_color_override("font_pressed_color", PixelTheme.INK)
 	mon.focus_mode = Control.FOCUS_NONE
 	mon.pressed.connect(func():
 		computer.visible = not computer.visible
@@ -455,26 +458,22 @@ func _build_scene() -> void:
 	add_child(mon)
 
 	var col := VBoxContainer.new()
-	col.position = Vector2(8, 462)
-	col.custom_minimum_size = Vector2(128, 0)
-	col.add_theme_constant_override("separation", 8)
+	col.position = Vector2(4, 222)
+	col.custom_minimum_size = Vector2(76, 0)
+	col.add_theme_constant_override("separation", 4)
 	add_child(col)
-	bell_btn = _button(col, "RING BELL", Color(0.95, 0.8, 0.3), _on_bell)
-	scan_btn = _button(col, "SCAN", Color(0.8, 0.6, 1.0), _on_scan)
-	accept_btn = _button(col, "ACCEPT", Color(0.45, 0.85, 0.45), decide.bind(true))
-	deny_btn = _button(col, "DENY", Color(0.95, 0.4, 0.35), decide.bind(false))
-	for b in [accept_btn, deny_btn]:
-		b.custom_minimum_size.y = 52
-	deny_btn.tooltip_text = "You can deny on suspicion. Prove a discrepancy first (right-click two items) for a bonus."
+	bell_btn = _button(col, "RING BELL", PixelTheme.GOLD, _on_bell)
+	scan_btn = _button(col, "SCAN", PixelTheme.PURPLE, _on_scan)
+	accept_btn = _button(col, "ACCEPT", PixelTheme.GREEN, decide.bind(true))
+	deny_btn = _button(col, "DENY", PixelTheme.RED, decide.bind(false))
+	deny_btn.tooltip_text = "You can deny on suspicion.\nProve a discrepancy first (right-click two items) for a bonus."
 
 	speech = PanelContainer.new()
-	speech.position = Vector2(640, 70)
-	speech.custom_minimum_size = Vector2(340, 0)
-	speech.add_theme_stylebox_override("panel", _box(Color(1, 1, 1, 0.95), Color(0.1, 0.1, 0.1), 3, 12))
+	speech.position = Vector2(390, 26)
+	speech.add_theme_stylebox_override("panel", PixelTheme.frame(Color.WHITE, 5))
 	speech_label = Label.new()
 	speech_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	speech_label.custom_minimum_size = Vector2(316, 0)
-	speech_label.add_theme_color_override("font_color", Color(0.1, 0.1, 0.1))
+	speech_label.custom_minimum_size = Vector2(180, 0)
 	speech.add_child(speech_label)
 	speech.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(speech)
@@ -487,23 +486,14 @@ func _build_scene() -> void:
 	_build_computer()
 	_build_hud()
 
-	toast = Label.new()
-	toast.position = Vector2(140, 40)
-	toast.size = Vector2(744, 30)
+	toast = _outlined_label(Vector2(0, 18))
+	toast.size = Vector2(640, 10)
 	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	toast.add_theme_font_size_override("font_size", 18)
-	toast.add_theme_color_override("font_outline_color", Color.BLACK)
-	toast.add_theme_constant_override("outline_size", 6)
-	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(toast)
 
-	inspect_hint = Label.new()
-	inspect_hint.position = Vector2(140, 370)
+	inspect_hint = _outlined_label(Vector2(4, 206))
 	inspect_hint.text = HINT_FIRST
-	inspect_hint.add_theme_color_override("font_color", Color(1, 0.85, 0.3))
-	inspect_hint.add_theme_color_override("font_outline_color", Color.BLACK)
-	inspect_hint.add_theme_constant_override("outline_size", 5)
-	inspect_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inspect_hint.add_theme_color_override("font_color", PixelTheme.HIGHLIGHT)
 	add_child(inspect_hint)
 
 	overlay = ColorRect.new()
@@ -511,34 +501,33 @@ func _build_scene() -> void:
 	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(overlay)
 	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel", _box(Color(0.98, 0.95, 0.87), Color(0.3, 0.2, 0.1), 4, 20))
-	panel.position = Vector2(212, 110)
-	panel.custom_minimum_size = Vector2(600, 0)
+	panel.add_theme_stylebox_override("panel", PixelTheme.frame(PixelTheme.PAPER, 10))
+	panel.position = Vector2(120, 24)
+	panel.custom_minimum_size = Vector2(400, 0)
 	overlay.add_child(panel)
 	var vb := VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 14)
+	vb.add_theme_constant_override("separation", 8)
 	panel.add_child(vb)
 	overlay_text = RichTextLabel.new()
 	overlay_text.bbcode_enabled = true
 	overlay_text.fit_content = true
-	overlay_text.custom_minimum_size = Vector2(560, 0)
-	overlay_text.add_theme_color_override("default_color", Color(0.15, 0.1, 0.05))
+	overlay_text.custom_minimum_size = Vector2(380, 0)
 	vb.add_child(overlay_text)
-	overlay_btn = _button(vb, "OK", Color(0.95, 0.8, 0.3), _on_overlay_button)
+	overlay_btn = _button(vb, "OK", PixelTheme.GOLD, _on_overlay_button)
 
 func _build_hud() -> void:
 	var bar := PanelContainer.new()
-	bar.add_theme_stylebox_override("panel", _box(Color(0.12, 0.08, 0.05, 0.88), Color(0, 0, 0, 0), 0, 6))
+	bar.add_theme_stylebox_override("panel", PixelTheme.flat(Color(PixelTheme.WOOD_DARK, 0.92), 3))
 	bar.position = Vector2.ZERO
-	bar.custom_minimum_size = Vector2(1024, 34)
+	bar.custom_minimum_size = Vector2(640, 14)
 	add_child(bar)
 	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 22)
+	hb.add_theme_constant_override("separation", 12)
 	bar.add_child(hb)
 	hud_day = _hud_label(hb)
 	hud_date = _hud_label(hb)
 	hud_date.mouse_filter = Control.MOUSE_FILTER_STOP
-	hud_date.tooltip_text = "Today's date — right-click to compare"
+	hud_date.tooltip_text = "Today's date: right-click to compare"
 	hud_date.gui_input.connect(_on_hud_date_input)
 	hud_clock = _hud_label(hb)
 	hud_money = _hud_label(hb)
@@ -553,53 +542,57 @@ func _on_hud_date_input(event: InputEvent) -> void:
 
 func _build_computer() -> void:
 	computer = PanelContainer.new()
-	computer.add_theme_stylebox_override("panel", _box(Color(0.08, 0.16, 0.2), Color(0.55, 0.6, 0.62), 4, 8))
-	computer.position = Vector2(420, 60)
-	computer.custom_minimum_size = Vector2(590, 380)
+	computer.add_theme_stylebox_override("panel", PixelTheme.frame(PixelTheme.SCREEN, 6))
+	computer.position = Vector2(232, 20)
+	computer.custom_minimum_size = Vector2(400, 196)
 	computer.visible = false
 	add_child(computer)
 	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 4)
 	computer.add_child(vb)
 
 	var title := HBoxContainer.new()
 	vb.add_child(title)
 	var tl := Label.new()
-	tl.text = "SHEEP HI RESORT — RESERVATIONS (drag me)"
+	tl.text = "RESERVATIONS  (drag me)"
+	tl.add_theme_font_override("font", PixelTheme.FONT_BOLD)
 	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tl.add_theme_color_override("font_color", Color(0.6, 1, 0.9))
 	tl.mouse_filter = Control.MOUSE_FILTER_STOP
 	tl.mouse_default_cursor_shape = Control.CURSOR_MOVE
 	tl.gui_input.connect(_drag_window.bind(computer))
 	title.add_child(tl)
 	var close := Button.new()
-	close.text = " X "
+	close.text = "X"
+	close.focus_mode = Control.FOCUS_NONE
+	PixelTheme.tint_button(close, PixelTheme.RED)
 	close.pressed.connect(func(): computer.visible = false)
 	title.add_child(close)
 
 	var body := HBoxContainer.new()
-	body.add_theme_constant_override("separation", 12)
+	body.add_theme_constant_override("separation", 8)
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vb.add_child(body)
 	var left := VBoxContainer.new()
-	left.custom_minimum_size = Vector2(250, 0)
+	left.add_theme_constant_override("separation", 4)
+	left.custom_minimum_size = Vector2(160, 0)
 	body.add_child(left)
 	db_search = LineEdit.new()
-	db_search.placeholder_text = "Search name or ID…"
+	db_search.placeholder_text = "Search name or ID"
 	db_search.text_changed.connect(func(_t): _refresh_database())
 	left.add_child(db_search)
 	db_list = ItemList.new()
 	db_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	db_list.custom_minimum_size = Vector2(0, 300)
+	db_list.custom_minimum_size = Vector2(0, 140)
 	db_list.item_selected.connect(_on_db_selected)
 	left.add_child(db_list)
 
 	var right := VBoxContainer.new()
+	right.add_theme_constant_override("separation", 6)
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body.add_child(right)
 	db_count = Label.new()
-	db_count.add_theme_color_override("font_color", Color(0.6, 1, 0.9))
 	db_count.mouse_filter = Control.MOUSE_FILTER_STOP
-	db_count.tooltip_text = "Inspect this against an ID to check the guest is booked"
+	db_count.tooltip_text = "Right-click this, then right-click an ID,\nto check the guest is booked today"
 	db_count.gui_input.connect(func(e):
 		if is_compare_click(e):
 			var ids := database.map(func(b): return b.id)
@@ -608,8 +601,8 @@ func _build_computer() -> void:
 	right.add_child(db_count)
 	db_detail = GridContainer.new()
 	db_detail.columns = 2
-	db_detail.add_theme_constant_override("h_separation", 12)
-	db_detail.add_theme_constant_override("v_separation", 8)
+	db_detail.add_theme_constant_override("h_separation", 6)
+	db_detail.add_theme_constant_override("v_separation", 3)
 	right.add_child(db_detail)
 
 func _refresh_database() -> void:
@@ -619,9 +612,9 @@ func _refresh_database() -> void:
 	var q := db_search.text.strip_edges().to_lower()
 	for b in database:
 		if q == "" or b.name.to_lower().contains(q) or b.id.to_lower().contains(q):
-			var idx := db_list.add_item("%s  %s" % [b.id, b.name])
+			var idx := db_list.add_item("%s %s" % [b.id, b.name])
 			db_list.set_item_metadata(idx, b)
-	db_count.text = "Today's bookings: %d  [right-click]" % database.size()
+	db_count.text = "Today's bookings: %d" % database.size()
 	for c in db_detail.get_children():
 		c.queue_free()
 
@@ -640,10 +633,9 @@ func _on_db_selected(idx: int) -> void:
 	for f in fields:
 		var k := Label.new()
 		k.text = f.label + ":"
-		k.add_theme_color_override("font_color", Color(0.5, 0.75, 0.7))
+		k.add_theme_color_override("font_color", PixelTheme.TEXT_MUTED)
 		db_detail.add_child(k)
 		var v := DeskDocument.make_field_label(f, "db")
-		v.add_theme_color_override("font_color", Color(0.85, 1, 0.95))
 		v.mouse_filter = Control.MOUSE_FILTER_STOP
 		v.gui_input.connect(func(e):
 			if is_compare_click(e):
@@ -665,12 +657,12 @@ func _build_rules_doc() -> void:
 	if rules.check_voucher: checks.append("Voucher room/nights match")
 	if rules.check_wool: checks.append("Wool matches the guest")
 	fields.append(SheepGenerator._f("Check", "info", "", "\n".join(PackedStringArray(checks))))
-	rules_doc = _spawn_doc({"type": "rules", "title": "RULEBOOK — DAY %d" % day,
-		"color": Color(1.0, 0.9, 0.85), "fields": fields}, null, Color.WHITE, false)
+	rules_doc = _spawn_doc({"type": "rules", "title": "RULEBOOK - DAY %d" % day,
+		"color": PixelTheme.PAPER_PINK, "fields": fields}, null, Color.WHITE, false)
 	# Tuck it into the bottom-right corner once its size is known.
 	await get_tree().process_frame
 	if is_instance_valid(rules_doc):
-		rules_doc.position = Vector2(1024, 768) - rules_doc.size - Vector2(8, 8)
+		rules_doc.position = SCREEN - rules_doc.size - Vector2(4, 4)
 
 func _spawn_doc(def: Dictionary, portrait: Texture2D, tint: Color, track := true) -> DeskDocument:
 	var doc := DeskDocument.new()
@@ -701,7 +693,7 @@ func _refresh_hud() -> void:
 	hud_date.text = "[%s]" % DayRules.format_date(today)
 	hud_money.text = "$%d" % money
 	hud_rep.text = "Reputation %d" % reputation
-	hud_rep.add_theme_color_override("font_color", Color(1, 0.4, 0.4) if reputation < 40 else Color(1, 0.95, 0.85))
+	hud_rep.add_theme_color_override("font_color", PixelTheme.RED.lightened(0.3) if reputation < 40 else PixelTheme.TEXT_LIGHT)
 	hud_res.text = "Residents today %d/%d" % [day_stats.get("residents", 0), rules.quota]
 	_refresh_clock()
 
@@ -733,7 +725,7 @@ func _earn(amount: int) -> void:
 func _add_bob(duration: float) -> void:
 	# Little hop while walking, so a static sprite reads as "walking".
 	var t := create_tween().set_loops(int(duration / 0.32))
-	t.tween_property(guest_rect, "position:y", SHEEP_STOP.y - 10, 0.16)
+	t.tween_property(guest_rect, "position:y", SHEEP_STOP.y - 5, 0.16)
 	t.tween_property(guest_rect, "position:y", SHEEP_STOP.y, 0.16)
 
 ## Both decisions unlock once the papers are opened.
@@ -754,7 +746,8 @@ func _drag_window(event: InputEvent, win: Control) -> void:
 		_win_grab = get_global_mouse_position() - win.global_position
 		win.move_to_front()
 	elif event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_LEFT:
-		win.global_position = (get_global_mouse_position() - _win_grab).clamp(Vector2(0, 34), Vector2(1024, 768) - win.size)
+		win.global_position = (get_global_mouse_position() - _win_grab).round().clamp(
+			DOC_BOUNDS.position, SCREEN - win.size)
 
 func _bg(tex: Texture2D) -> TextureRect:
 	var r := TextureRect.new()
@@ -768,30 +761,24 @@ func _bg(tex: Texture2D) -> TextureRect:
 func _button(parent: Control, text: String, color: Color, cb: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(128, 44)
+	b.custom_minimum_size = Vector2(76, 22)
 	b.focus_mode = Control.FOCUS_NONE  # so Space never re-presses ACCEPT/DENY
-	b.add_theme_stylebox_override("normal", _box(color, Color(0.15, 0.1, 0.05), 3, 6))
-	b.add_theme_stylebox_override("hover", _box(color.lightened(0.15), Color(0.15, 0.1, 0.05), 3, 6))
-	b.add_theme_stylebox_override("pressed", _box(color.darkened(0.25), Color(0.15, 0.1, 0.05), 3, 6))
-	b.add_theme_stylebox_override("disabled", _box(color.darkened(0.5), Color(0.15, 0.1, 0.05, 0.5), 3, 6))
-	b.add_theme_color_override("font_color", Color(0.1, 0.06, 0.03))
-	b.add_theme_color_override("font_hover_color", Color(0.1, 0.06, 0.03))
-	b.add_theme_color_override("font_pressed_color", Color(0.1, 0.06, 0.03))
+	PixelTheme.tint_button(b, color)
 	b.pressed.connect(cb)
 	parent.add_child(b)
 	return b
 
 func _hud_label(parent: Control) -> Label:
 	var l := Label.new()
-	l.add_theme_color_override("font_color", Color(1, 0.95, 0.85))
+	l.add_theme_color_override("font_color", PixelTheme.TEXT_LIGHT)
 	parent.add_child(l)
 	return l
 
-func _box(bg: Color, border: Color, bw: int, margin: int) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = bg
-	s.border_color = border
-	s.set_border_width_all(bw)
-	s.set_corner_radius_all(6)
-	s.set_content_margin_all(margin)
-	return s
+## Text drawn straight over the lobby art needs a dark outline to stay readable.
+func _outlined_label(pos: Vector2) -> Label:
+	var l := Label.new()
+	l.position = pos
+	l.add_theme_color_override("font_outline_color", PixelTheme.INK)
+	l.add_theme_constant_override("outline_size", 2)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l

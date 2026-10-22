@@ -29,12 +29,12 @@ const WOOLS := {
 	"Mint": Color(0.84, 1.0, 0.9),
 }
 const SHEEP_SPRITES := [
-	"res://assets/sheep_character/detective_sheep.png",
-	"res://assets/sheep_character/drift_sheep.png",
-	"res://assets/sheep_character/robin_sheep.png",
-	"res://assets/sheep_character/wiz_sheep.png",
+	"res://assets/pixel/detective_sheep.png",
+	"res://assets/pixel/drift_sheep.png",
+	"res://assets/pixel/robin_sheep.png",
+	"res://assets/pixel/wiz_sheep.png",
 ]
-const WOLF_SPRITE := "res://assets/sheep_character/wolf_sheep.png"
+const WOLF_SPRITE := "res://assets/pixel/wolf_sheep.png"
 ## Visual wolf giveaways. Only "costume" (wolf_sheep.png) can be drawn today;
 ## add "red_eyes", "claws", "tail" here once the layered part art exists.
 const RENDERABLE_TELLS := ["costume"]
@@ -235,17 +235,17 @@ static func build_documents(g: Dictionary, r: Dictionary) -> Array:
 		id_fields.append(_f("Wool", "wool", p.wool))
 	if r.check_id_expiry:
 		id_fields.append(_f("Expires", "expiry", g.id_expiry, DayRules.format_date(g.id_expiry)))
-	docs.append({"type": "id", "title": "SHEEP ID CARD", "color": Color(0.86, 0.93, 1.0), "fields": id_fields})
+	docs.append({"type": "id", "title": "SHEEP ID CARD", "color": PixelTheme.PAPER_BLUE, "fields": id_fields})
 
 	if r.check_health:
 		var h := [_f("Name", "name", p.name), _f("ID", "id", p.id),
 			_f("Vaccines", "vaccines", g.vaccines.keys(), ", ".join(PackedStringArray(g.vaccines.keys())))]
 		for v in g.vaccines:
 			h.append(_f(v + " until", "vaccine_expiry:" + v, g.vaccines[v], DayRules.format_date(g.vaccines[v])))
-		docs.append({"type": "health", "title": "HEALTH CERTIFICATE", "color": Color(0.88, 1.0, 0.88), "fields": h})
+		docs.append({"type": "health", "title": "HEALTH CERTIFICATE", "color": PixelTheme.PAPER_GREEN, "fields": h})
 
 	if r.check_voucher:
-		docs.append({"type": "voucher", "title": "BOOKING VOUCHER", "color": Color(1.0, 0.95, 0.8), "fields": [
+		docs.append({"type": "voucher", "title": "BOOKING VOUCHER", "color": PixelTheme.PAPER_YELLOW, "fields": [
 			_f("Name", "name", p.name), _f("ID", "id", p.id),
 			_f("Room", "room", p.room), _f("Nights", "nights", p.nights)]})
 	return docs
