@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://r5u6v56n7qet"
-path="res://.godot/imported/Lobby.png-44c39a42f6e5a0c4a6e6d9257e1e6e1e.ctex"
+uid="uid://dnhnn8j5npw64"
+path="res://.godot/imported/grade_d.png-1585954f77fae60cc33694628f609716.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Lobby.png"
-dest_files=["res://.godot/imported/Lobby.png-44c39a42f6e5a0c4a6e6d9257e1e6e1e.ctex"]
+source_file="res://assets/grade_d.png"
+dest_files=["res://.godot/imported/grade_d.png-1585954f77fae60cc33694628f609716.ctex"]
 
 [params]
 
