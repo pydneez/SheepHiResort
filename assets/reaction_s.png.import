@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://40mqjxtnkr2u"
-path="res://.godot/imported/lobby_up.png-6ec1e6361dc9807853efc52426507bd2.ctex"
+uid="uid://djtkxyx1v2usl"
+path="res://.godot/imported/reaction_s.png-988e6ab95dce1eefbb31e5d4f520e3b6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/lobby_up.png"
-dest_files=["res://.godot/imported/lobby_up.png-6ec1e6361dc9807853efc52426507bd2.ctex"]
+source_file="res://assets/reaction_s.png"
+dest_files=["res://.godot/imported/reaction_s.png-988e6ab95dce1eefbb31e5d4f520e3b6.ctex"]
 
 [params]
 

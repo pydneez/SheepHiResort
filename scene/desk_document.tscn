@@ -1,0 +1,54 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://script/desk_document.gd" id="1_8anxo"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4h3n5"]
+content_margin_left = 14.0
+content_margin_top = 14.0
+content_margin_right = 14.0
+content_margin_bottom = 14.0
+bg_color = Color(0.98, 0.96, 0.9, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.15, 0.1, 0.05, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_color = Color(0, 0, 0, 0.35)
+shadow_size = 6
+shadow_offset = Vector2(3, 4)
+
+[node name="DeskDocument" type="PanelContainer" unique_id=479505279]
+mouse_default_cursor_shape = 13
+theme_override_styles/panel = SubResource("StyleBoxFlat_4h3n5")
+script = ExtResource("1_8anxo")
+
+[node name="VBox" type="VBoxContainer" parent="." unique_id=1090042102]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBox" unique_id=1199261915]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 1
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.25, 0.12, 0.05, 1)
+text = "DOCUMENT TITLE"
+
+[node name="Row" type="HBoxContainer" parent="VBox" unique_id=1155748001]
+layout_mode = 2
+
+[node name="Photo" type="TextureRect" parent="VBox/Row" unique_id=2079387947]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 120)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Fields" type="GridContainer" parent="VBox/Row" unique_id=1258472268]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 14
+columns = 2

@@ -1,0 +1,127 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://script/day_popup.gd" id="1_o8ltl"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mq676"]
+content_margin_left = 20.0
+content_margin_top = 20.0
+content_margin_right = 20.0
+content_margin_bottom = 20.0
+bg_color = Color(0.98, 0.95, 0.87, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.3, 0.2, 0.1, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ag20f"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.95, 0.8, 0.3, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.15, 0.1, 0.05, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qfmx6"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.7125, 0.6, 0.22500001, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.15, 0.1, 0.05, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mbi8e"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.9575, 0.83, 0.40500003, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.15, 0.1, 0.05, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dhucy"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.475, 0.4, 0.15, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.15, 0.1, 0.05, 0.5)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="DayPopup" type="ColorRect" unique_id=856711715]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.7)
+script = ExtResource("1_o8ltl")
+
+[node name="Panel" type="PanelContainer" parent="." unique_id=1472218470]
+custom_minimum_size = Vector2(800, 0)
+layout_mode = 0
+offset_left = 320.0
+offset_top = 140.0
+offset_right = 320.0
+offset_bottom = 140.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_mq676")
+
+[node name="VBox" type="VBoxContainer" parent="Panel" unique_id=1575686792]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Text" type="RichTextLabel" parent="Panel/VBox" unique_id=526011540]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(760, 0)
+layout_mode = 2
+theme_override_colors/default_color = Color(0.15, 0.1, 0.05, 1)
+bbcode_enabled = true
+text = "[center][b]DAY 1[/b][/center]
+
+The day's briefing or end-of-day text goes here."
+fit_content = true
+
+[node name="ContinueButton" type="Button" parent="Panel/VBox" unique_id=1353221988]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(288, 72)
+layout_mode = 2
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxFlat_ag20f")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_qfmx6")
+theme_override_styles/hover = SubResource("StyleBoxFlat_mbi8e")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_dhucy")
+theme_override_colors/font_color = Color(0.1, 0.06, 0.03, 1)
+theme_override_colors/font_pressed_color = Color(0.1, 0.06, 0.03, 1)
+theme_override_colors/font_hover_color = Color(0.1, 0.06, 0.03, 1)
+text = "OK"
