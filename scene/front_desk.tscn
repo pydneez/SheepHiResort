@@ -1,20 +1,20 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://ba8l7ymtqdpgc"]
 
 [ext_resource type="Theme" path="res://ui/game_theme.tres" id="1_dypvc"]
-[ext_resource type="Script" path="res://script/front_desk.gd" id="2_teqvl"]
-[ext_resource type="Texture2D" path="res://assets/lobby_background.png" id="3_lll3t"]
+[ext_resource type="Script" uid="uid://cngg0h8btpvaa" path="res://script/front_desk.gd" id="2_teqvl"]
+[ext_resource type="Texture2D" uid="uid://cox1hq5alydgt" path="res://assets/lobby_background.png" id="3_lll3t"]
 [ext_resource type="PackedScene" path="res://scene/guest.tscn" id="4_6nch0"]
-[ext_resource type="Texture2D" path="res://assets/lobby_foreground.png" id="5_p5r5t"]
-[ext_resource type="Texture2D" path="res://assets/plate.png" id="6_k61r8"]
-[ext_resource type="Texture2D" path="res://assets/monitor.png" id="7_qkg7q"]
-[ext_resource type="Texture2D" path="res://assets/clock.png" id="8_7dd4j"]
-[ext_resource type="Texture2D" path="res://assets/nameplate_all.png" id="9_m4lll"]
-[ext_resource type="Script" path="res://script/art_button.gd" id="10_n2sf6"]
-[ext_resource type="Texture2D" path="res://assets/bell.png" id="11_ddv1m"]
-[ext_resource type="Texture2D" path="res://assets/accept_button.png" id="12_cyba0"]
-[ext_resource type="Texture2D" path="res://assets/accept_button_pushed.png" id="13_tt0fo"]
-[ext_resource type="Texture2D" path="res://assets/deny_button.png" id="14_0djkw"]
-[ext_resource type="Texture2D" path="res://assets/deny_button_pushed.png" id="15_l6xa7"]
+[ext_resource type="Texture2D" uid="uid://r57bvve2r7tt" path="res://assets/lobby_foreground.png" id="5_p5r5t"]
+[ext_resource type="Texture2D" uid="uid://3umn54qim32s" path="res://assets/plate.png" id="6_k61r8"]
+[ext_resource type="Texture2D" uid="uid://d4i2c32j2qetm" path="res://assets/monitor.png" id="7_qkg7q"]
+[ext_resource type="Texture2D" uid="uid://dhvfwsms7rmqf" path="res://assets/clock.png" id="8_7dd4j"]
+[ext_resource type="Texture2D" uid="uid://cjtik74sarf7y" path="res://assets/nameplate_all.png" id="9_m4lll"]
+[ext_resource type="Script" uid="uid://cpswibs56tjlt" path="res://script/art_button.gd" id="10_n2sf6"]
+[ext_resource type="Texture2D" uid="uid://xyi57lsw8iig" path="res://assets/bell.png" id="11_ddv1m"]
+[ext_resource type="Texture2D" uid="uid://dmhj4fpvtyrep" path="res://assets/accept_button.png" id="12_cyba0"]
+[ext_resource type="Texture2D" uid="uid://byof2hg2gnkgi" path="res://assets/accept_button_pushed.png" id="13_tt0fo"]
+[ext_resource type="Texture2D" uid="uid://1w74vkionie5" path="res://assets/deny_button.png" id="14_0djkw"]
+[ext_resource type="Texture2D" uid="uid://bju5abnwym7as" path="res://assets/deny_button_pushed.png" id="15_l6xa7"]
 [ext_resource type="PackedScene" path="res://scene/speech_bubble.tscn" id="16_8r1ro"]
 [ext_resource type="PackedScene" path="res://scene/computer_window.tscn" id="17_xfqts"]
 [ext_resource type="PackedScene" path="res://scene/day_popup.tscn" id="18_ak4hr"]
@@ -99,7 +99,7 @@ corner_radius_bottom_left = 6
 [node name="FrontDesk" type="Control" unique_id=523943518]
 texture_filter = 2
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 theme = ExtResource("1_dypvc")
@@ -190,8 +190,8 @@ offset_left = 89.0
 offset_top = 81.0
 offset_right = 302.0
 offset_bottom = 140.0
-theme_override_font_sizes/font_size = 40
 theme_override_colors/font_color = Color(1, 0.8, 0.25, 1)
+theme_override_font_sizes/font_size = 40
 text = "08:00"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -257,13 +257,13 @@ offset_top = 850.0
 offset_right = 18.0
 offset_bottom = 850.0
 focus_mode = 0
+theme_override_colors/font_color = Color(0.1, 0.06, 0.03, 1)
+theme_override_colors/font_pressed_color = Color(0.1, 0.06, 0.03, 1)
+theme_override_colors/font_hover_color = Color(0.1, 0.06, 0.03, 1)
 theme_override_styles/normal = SubResource("StyleBoxFlat_ndkyp")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_ocy6k")
 theme_override_styles/hover = SubResource("StyleBoxFlat_nmfns")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_6qn1r")
-theme_override_colors/font_color = Color(0.1, 0.06, 0.03, 1)
-theme_override_colors/font_pressed_color = Color(0.1, 0.06, 0.03, 1)
-theme_override_colors/font_hover_color = Color(0.1, 0.06, 0.03, 1)
 text = "SCAN"
 
 [node name="RulesPaper" type="Button" parent="Lobby" unique_id=452057297]
@@ -288,7 +288,8 @@ offset_bottom = 140.0
 
 [node name="Papers" type="Control" parent="." unique_id=2055691435]
 unique_name_in_owner = true
-anchors_preset = 0
+layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
@@ -355,9 +356,9 @@ layout_mode = 0
 offset_top = 60.0
 offset_right = 1440.0
 offset_bottom = 100.0
-theme_override_font_sizes/font_size = 26
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 26
 horizontal_alignment = 1
 
 [node name="DayPopup" parent="." unique_id=856711715 instance=ExtResource("18_ak4hr")]
@@ -365,9 +366,13 @@ unique_name_in_owner = true
 visible = false
 layout_mode = 1
 anchors_preset = 15
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="WeekSummary" parent="." unique_id=654444243 instance=ExtResource("19_78e58")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
 anchors_preset = 15
+grow_horizontal = 2
+grow_vertical = 2
