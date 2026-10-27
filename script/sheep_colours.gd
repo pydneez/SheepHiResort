@@ -7,12 +7,20 @@ extends Resource
 
 const PATH := "res://data/sheep_colours.tres"
 
+static var _shared: SheepColours
+
 @export var wools: Array[ColourRamp] = []
 @export var skins: Array[ColourRamp] = []
 @export var outfits: Array[OutfitSet] = []
 
 static func load_default() -> SheepColours:
 	return load(PATH)
+
+## The colour lists the game uses, loaded once.
+static func shared() -> SheepColours:
+	if _shared == null:
+		_shared = load_default()
+	return _shared
 
 func wool(wool_name: String) -> ColourRamp:
 	return _find(wools, wool_name)

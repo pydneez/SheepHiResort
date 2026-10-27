@@ -1,7 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://script/guest.gd" id="1_suo5t"]
-[ext_resource type="Texture2D" path="res://assets/sheep_character/detective_sheep.png" id="2_p6hsc"]
+[ext_resource type="PackedScene" path="res://scene/sheep_look.tscn" id="2_look"]
 
 [node name="Guest" type="Control" unique_id=1010616067]
 layout_mode = 3
@@ -12,12 +12,10 @@ pivot_offset = Vector2(270, 540)
 mouse_filter = 2
 script = ExtResource("1_suo5t")
 
-[node name="Body" type="TextureRect" parent="." unique_id=513251340]
+[node name="Look" parent="." instance=ExtResource("2_look")]
 unique_name_in_owner = true
-layout_mode = 0
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 0
-texture = ExtResource("2_p6hsc")
-expand_mode = 1
-stretch_mode = 5
+offset_left = 102.0
+offset_top = 108.0
+offset_right = 438.0
+offset_bottom = 540.0
+scale = Vector2(1.15, 1.15)

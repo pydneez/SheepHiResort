@@ -16,13 +16,16 @@ const ROOT := "res://assets/sheep_parts"
 ## Used while the real folder has no base sheep yet (programmer art).
 const PLACEHOLDER_ROOT := "res://assets/sheep_parts_placeholder"
 const CANVAS := Vector2i(336, 432)
+## The head, cropped for the ID-card photo.
+const HEAD_AREA := Rect2(72, 24, 192, 168)
 ## Back to front. "base" is the wool + skin + detail trio.
 const LAYER_ORDER := ["back", "base", "bottom", "top", "ears", "eyes", "mouth", "headwool", "hat", "front"]
 ## Every sheep has these; the other slots are optional.
 const REQUIRED := ["eyes", "mouth", "headwool"]
-## Slots painted in the 4 greys, and which colour list recolours them.
-## Wolf parts, _fixed parts and _detail files are never recoloured.
-const RECOLOUR := {"bottom": "bottom", "top": "top", "hat": "top", "ears": "skin", "headwool": "wool"}
+## Slots painted in the 4 greys, and which colour recolours them: wool, skin, or
+## the outfit set's top / accent / bottom. Wolf parts, _fixed parts and _detail
+## files are never recoloured.
+const RECOLOUR := {"bottom": "bottom", "top": "top", "hat": "accent", "ears": "skin", "headwool": "wool"}
 
 var root := ""
 ## "01" -> {wool, skin, detail} file paths, plus wolf_skin / wolf_detail when drawn.
@@ -31,6 +34,14 @@ var bases := {}
 var parts := {}
 ## Files or folders that break the naming rules (shown by tests/test_sheep_parts.gd).
 var problems: Array[String] = []
+
+static var _shared: SheepParts
+
+## The catalogue the game uses, scanned once.
+static func shared() -> SheepParts:
+	if _shared == null:
+		_shared = load_default()
+	return _shared
 
 static func load_default() -> SheepParts:
 	var real := SheepParts.new(ROOT)
@@ -41,6 +52,13 @@ static func load_default() -> SheepParts:
 func _init(dir := ROOT) -> void:
 	root = dir
 	_scan()
+
+## One part by its id (e.g. "hat_02"), or {} if there is no such part.
+func part(slot: String, id: String) -> Dictionary:
+	for p in parts.get(slot, []):
+		if p.id == id:
+			return p
+	return {}
 
 ## Parts available for a slot. wolf = true gives the wolf giveaways instead.
 func options(slot: String, wolf := false) -> Array:

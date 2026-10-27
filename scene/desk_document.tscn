@@ -40,12 +40,13 @@ text = "DOCUMENT TITLE"
 [node name="Row" type="HBoxContainer" parent="VBox" unique_id=1155748001]
 layout_mode = 2
 
-[node name="Photo" type="TextureRect" parent="VBox/Row" unique_id=2079387947]
+[node name="Photo" type="Control" parent="VBox/Row" unique_id=2079387947]
 unique_name_in_owner = true
+clip_contents = true
 custom_minimum_size = Vector2(96, 120)
 layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
+size_flags_vertical = 0
+mouse_filter = 1
 
 [node name="Fields" type="GridContainer" parent="VBox/Row" unique_id=1258472268]
 unique_name_in_owner = true

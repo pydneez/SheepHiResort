@@ -10,6 +10,8 @@ const KEY_COLOR := Color(0.35, 0.3, 0.25)
 const VALUE_COLOR := Color(0.08, 0.06, 0.05)
 const FIELD_FONT_SIZE := 18
 
+const LOOK_SCENE := preload("res://scene/sheep_look.tscn")
+
 var data: Dictionary
 var in_pile := false
 var drag_bounds := Rect2()
@@ -17,21 +19,21 @@ var _dragging := false
 var _grab := Vector2.ZERO
 
 @onready var _title: Label = %Title
-@onready var _photo: TextureRect = %Photo
+@onready var _photo: Control = %Photo
 @onready var _fields: GridContainer = %Fields
 
 ## Fill the paper with one document's data. Call after adding it to the tree.
-func setup(doc_data: Dictionary, portrait: Texture2D = null, portrait_tint := Color.WHITE) -> void:
+## portrait_look: the sheep for the photo (ID card only), see SheepLook.
+func setup(doc_data: Dictionary, portrait_look: Dictionary = {}) -> void:
 	data = doc_data
 	# Each document type has its own paper colour; the rest of the look is in the scene.
 	var sb := get_theme_stylebox("panel").duplicate() as StyleBoxFlat
 	sb.bg_color = data.get("color", sb.bg_color)
 	add_theme_stylebox_override("panel", sb)
 	_title.text = data.title
-	# The ID photo shows the wool colour the papers CLAIM.
-	_photo.visible = portrait != null
-	_photo.texture = portrait
-	_photo.modulate = portrait_tint
+	_photo.visible = not portrait_look.is_empty()
+	if _photo.visible:
+		_show_portrait(portrait_look)
 	for f in data.fields:
 		var k := Label.new()
 		k.text = f.label + ":"
@@ -42,6 +44,18 @@ func setup(doc_data: Dictionary, portrait: Texture2D = null, portrait_tint := Co
 		var v := make_field_label(f, data.type)
 		_fields.add_child(v)
 		v.gui_input.connect(_on_field_input.bind(v))
+
+## The ID photo: the sheep's head area, scaled to fill the photo box. It shows
+## the wool colour the papers CLAIM, which may differ from the real guest.
+func _show_portrait(look: Dictionary) -> void:
+	var head := SheepParts.HEAD_AREA
+	var s := minf(_photo.custom_minimum_size.x / head.size.x, _photo.custom_minimum_size.y / head.size.y)
+	var sheep: SheepLook = LOOK_SCENE.instantiate()
+	_photo.add_child(sheep)
+	sheep.pivot_offset = Vector2.ZERO   # scale from the top-left corner for the crop maths
+	sheep.scale = Vector2(s, s)
+	sheep.position = -head.position * s + (_photo.custom_minimum_size - head.size * s) * 0.5
+	sheep.show_look(look)
 
 ## Shared by documents and the computer so every comparable value looks and
 ## behaves the same.

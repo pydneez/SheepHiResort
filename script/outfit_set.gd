@@ -1,9 +1,8 @@
 @tool
 class_name OutfitSet
 extends Resource
-## A group of clothing colours chosen to go together: top (shirt, jacket),
-## accent (vest, trim, second colour) and bottom (trousers, skirt). Hats use the
-## top colour.
+## A group of clothing colours chosen to go together: top (shirts, jackets,
+## vests), accent (hats) and bottom (trousers, skirts).
 
 @export var name := ""
 ## calm: goes with any wool. loud: only on light wool. dark: never on dark wool.
