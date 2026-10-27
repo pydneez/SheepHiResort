@@ -1,0 +1,84 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://script/computer_window.gd" id="1_tkux7"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yl3y4"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+bg_color = Color(0.08, 0.16, 0.2, 1)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+border_color = Color(0.55, 0.6, 0.62, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="ComputerWindow" type="PanelContainer" unique_id=1932729627]
+custom_minimum_size = Vector2(720, 480)
+theme_override_styles/panel = SubResource("StyleBoxFlat_yl3y4")
+script = ExtResource("1_tkux7")
+
+[node name="VBox" type="VBoxContainer" parent="." unique_id=327191929]
+layout_mode = 2
+
+[node name="TitleBar" type="HBoxContainer" parent="VBox" unique_id=1215239448]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBox/TitleBar" unique_id=1855985206]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 0
+mouse_default_cursor_shape = 13
+theme_override_colors/font_color = Color(0.6, 1, 0.9, 1)
+text = "SHEEP HI RESORT — RESERVATIONS (drag me)"
+
+[node name="CloseButton" type="Button" parent="VBox/TitleBar" unique_id=962629403]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+text = " X "
+
+[node name="Body" type="HBoxContainer" parent="VBox" unique_id=1574335097]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="Left" type="VBoxContainer" parent="VBox/Body" unique_id=1060034280]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+
+[node name="Search" type="LineEdit" parent="VBox/Body/Left" unique_id=848830155]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "Search name or ID…"
+
+[node name="BookingList" type="ItemList" parent="VBox/Body/Left" unique_id=1321930961]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 380)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Right" type="VBoxContainer" parent="VBox/Body" unique_id=787582460]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="BookingCount" type="Label" parent="VBox/Body/Right" unique_id=807851638]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Inspect this against an ID to check the guest is booked"
+mouse_filter = 0
+theme_override_colors/font_color = Color(0.6, 1, 0.9, 1)
+text = "Today's bookings: 0  [right-click]"
+
+[node name="Details" type="GridContainer" parent="VBox/Body/Right" unique_id=1069482924]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 8
+columns = 2

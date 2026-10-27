@@ -1,12 +1,373 @@
-[gd_scene format=3 uid="uid://ba8l7ymtqdpgc"]
+[gd_scene format=3]
 
-[ext_resource type="Script" uid="uid://cngg0h8btpvaa" path="res://script/front_desk.gd" id="1_desk"]
+[ext_resource type="Theme" path="res://ui/game_theme.tres" id="1_dypvc"]
+[ext_resource type="Script" path="res://script/front_desk.gd" id="2_teqvl"]
+[ext_resource type="Texture2D" path="res://assets/lobby_background.png" id="3_lll3t"]
+[ext_resource type="PackedScene" path="res://scene/guest.tscn" id="4_6nch0"]
+[ext_resource type="Texture2D" path="res://assets/lobby_foreground.png" id="5_p5r5t"]
+[ext_resource type="Texture2D" path="res://assets/plate.png" id="6_k61r8"]
+[ext_resource type="Texture2D" path="res://assets/monitor.png" id="7_qkg7q"]
+[ext_resource type="Texture2D" path="res://assets/clock.png" id="8_7dd4j"]
+[ext_resource type="Texture2D" path="res://assets/nameplate_all.png" id="9_m4lll"]
+[ext_resource type="Script" path="res://script/art_button.gd" id="10_n2sf6"]
+[ext_resource type="Texture2D" path="res://assets/bell.png" id="11_ddv1m"]
+[ext_resource type="Texture2D" path="res://assets/accept_button.png" id="12_cyba0"]
+[ext_resource type="Texture2D" path="res://assets/accept_button_pushed.png" id="13_tt0fo"]
+[ext_resource type="Texture2D" path="res://assets/deny_button.png" id="14_0djkw"]
+[ext_resource type="Texture2D" path="res://assets/deny_button_pushed.png" id="15_l6xa7"]
+[ext_resource type="PackedScene" path="res://scene/speech_bubble.tscn" id="16_8r1ro"]
+[ext_resource type="PackedScene" path="res://scene/computer_window.tscn" id="17_xfqts"]
+[ext_resource type="PackedScene" path="res://scene/day_popup.tscn" id="18_ak4hr"]
+[ext_resource type="PackedScene" path="res://scene/week_summary.tscn" id="19_78e58"]
 
-[node name="FrontDesk" type="Control" unique_id=933204110]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ndkyp"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.8, 0.6, 1, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.15, 0.1, 0.05, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ocy6k"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.6, 0.45000002, 0.75, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.15, 0.1, 0.05, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nmfns"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.83, 0.66, 1, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.15, 0.1, 0.05, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6qn1r"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.4, 0.3, 0.5, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.15, 0.1, 0.05, 0.5)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_rw334"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.12, 0.08, 0.05, 0.88)
+border_color = Color(0, 0, 0, 0)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="FrontDesk" type="Control" unique_id=523943518]
+texture_filter = 2
 layout_mode = 3
-anchors_preset = 15
+anchors_preset = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_desk")
+theme = ExtResource("1_dypvc")
+script = ExtResource("2_teqvl")
+
+[node name="Lobby" type="Control" parent="." unique_id=1248748829]
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Background" type="TextureRect" parent="Lobby" unique_id=1787783872]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("3_lll3t")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Guest" parent="Lobby" unique_id=1010616067 instance=ExtResource("4_6nch0")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 410.0
+offset_top = 192.0
+offset_right = 950.0
+offset_bottom = 732.0
+
+[node name="Foreground" type="TextureRect" parent="Lobby" unique_id=178969280]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("5_p5r5t")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Plate" type="TextureRect" parent="Lobby" unique_id=1715459022]
+layout_mode = 0
+offset_left = 380.0
+offset_top = 562.0
+offset_right = 380.0
+offset_bottom = 562.0
+mouse_filter = 2
+texture = ExtResource("6_k61r8")
+
+[node name="Monitor" type="TextureRect" parent="Lobby" unique_id=1774413700]
+layout_mode = 0
+offset_left = 988.8
+offset_top = 300.0
+offset_right = 988.8
+offset_bottom = 300.0
+scale = Vector2(0.8, 0.8)
+mouse_filter = 2
+texture = ExtResource("7_qkg7q")
+
+[node name="MonitorScreen" type="Button" parent="Lobby/Monitor" unique_id=1598116099]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 73.0
+offset_top = 102.0
+offset_right = 509.0
+offset_bottom = 412.0
+focus_mode = 0
+theme_override_colors/font_color = Color(0.15, 0.3, 0.4, 1)
+theme_override_colors/font_pressed_color = Color(0.05, 0.15, 0.25, 1)
+theme_override_colors/font_hover_color = Color(0.05, 0.15, 0.25, 1)
+theme_override_font_sizes/font_size = 27
+text = "TODAY'S CHECK-INS
+
+click to open"
+flat = true
+
+[node name="Clock" type="TextureRect" parent="Lobby" unique_id=2106813023]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 500.0
+offset_top = 807.0
+offset_right = 500.0
+offset_bottom = 807.0
+mouse_filter = 2
+texture = ExtResource("8_7dd4j")
+
+[node name="ClockTime" type="Label" parent="Lobby/Clock" unique_id=2105081276]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 89.0
+offset_top = 81.0
+offset_right = 302.0
+offset_bottom = 140.0
+theme_override_font_sizes/font_size = 40
+theme_override_colors/font_color = Color(1, 0.8, 0.25, 1)
+text = "08:00"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PaperPile" type="TextureButton" parent="Lobby" unique_id=1171589933]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 537.0
+offset_top = 676.0
+offset_right = 537.0
+offset_bottom = 676.0
+tooltip_text = "Click to read the guest's papers"
+focus_mode = 0
+texture_normal = ExtResource("9_m4lll")
+script = ExtResource("10_n2sf6")
+
+[node name="Bell" type="TextureButton" parent="Lobby" unique_id=765371361]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 137.0
+offset_top = 605.0
+offset_right = 137.0
+offset_bottom = 605.0
+pivot_offset = Vector2(78.5, 144)
+tooltip_text = "Ring the bell to open the desk"
+focus_mode = 0
+texture_normal = ExtResource("11_ddv1m")
+script = ExtResource("10_n2sf6")
+
+[node name="AcceptButton" type="TextureButton" parent="Lobby" unique_id=2044768085]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 18.0
+offset_top = 928.0
+offset_right = 18.0
+offset_bottom = 928.0
+tooltip_text = "ACCEPT the guest"
+focus_mode = 0
+texture_normal = ExtResource("12_cyba0")
+texture_pressed = ExtResource("13_tt0fo")
+script = ExtResource("10_n2sf6")
+
+[node name="DenyButton" type="TextureButton" parent="Lobby" unique_id=1326898674]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 270.0
+offset_top = 927.0
+offset_right = 270.0
+offset_bottom = 927.0
+tooltip_text = "DENY the guest. You can deny on suspicion; prove a discrepancy first (right-click two items) for a bonus."
+focus_mode = 0
+texture_normal = ExtResource("14_0djkw")
+texture_pressed = ExtResource("15_l6xa7")
+script = ExtResource("10_n2sf6")
+
+[node name="ScanButton" type="Button" parent="Lobby" unique_id=465843234]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(459, 72)
+layout_mode = 0
+offset_left = 18.0
+offset_top = 850.0
+offset_right = 18.0
+offset_bottom = 850.0
+focus_mode = 0
+theme_override_styles/normal = SubResource("StyleBoxFlat_ndkyp")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_ocy6k")
+theme_override_styles/hover = SubResource("StyleBoxFlat_nmfns")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_6qn1r")
+theme_override_colors/font_color = Color(0.1, 0.06, 0.03, 1)
+theme_override_colors/font_pressed_color = Color(0.1, 0.06, 0.03, 1)
+theme_override_colors/font_hover_color = Color(0.1, 0.06, 0.03, 1)
+text = "SCAN"
+
+[node name="RulesPaper" type="Button" parent="Lobby" unique_id=452057297]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 940.0
+offset_top = 975.0
+offset_right = 1340.0
+offset_bottom = 1080.0
+tooltip_text = "Today's rules"
+focus_mode = 0
+flat = true
+
+[node name="SpeechBubble" parent="." unique_id=614271595 instance=ExtResource("16_8r1ro")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 40.0
+offset_top = 140.0
+offset_right = 40.0
+offset_bottom = 140.0
+
+[node name="Papers" type="Control" parent="." unique_id=2055691435]
+unique_name_in_owner = true
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="ComputerWindow" parent="." unique_id=1932729627 instance=ExtResource("17_xfqts")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = 700.0
+offset_top = 60.0
+offset_right = 700.0
+offset_bottom = 60.0
+
+[node name="TopBar" type="PanelContainer" parent="." unique_id=1287662619]
+custom_minimum_size = Vector2(1440, 48)
+layout_mode = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_rw334")
+
+[node name="Labels" type="HBoxContainer" parent="TopBar" unique_id=1947396600]
+layout_mode = 2
+theme_override_constants/separation = 34
+
+[node name="DayLabel" type="Label" parent="TopBar/Labels" unique_id=364211999]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+text = "DAY 1/7"
+
+[node name="DateLabel" type="Label" parent="TopBar/Labels" unique_id=551582011]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Today's date — right-click to compare"
+mouse_filter = 0
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+text = "[11 MAR]"
+
+[node name="MoneyLabel" type="Label" parent="TopBar/Labels" unique_id=1426887525]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+text = "$20"
+
+[node name="ReputationLabel" type="Label" parent="TopBar/Labels" unique_id=1263285540]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+text = "Reputation 70"
+
+[node name="ResidentsLabel" type="Label" parent="TopBar/Labels" unique_id=1359686961]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+text = "Residents today 0/2"
+
+[node name="GuestsLeftLabel" type="Label" parent="TopBar/Labels" unique_id=1549123934]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+text = "Guests left 5"
+
+[node name="Toast" type="Label" parent="." unique_id=206266361]
+unique_name_in_owner = true
+layout_mode = 0
+offset_top = 60.0
+offset_right = 1440.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 26
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+horizontal_alignment = 1
+
+[node name="DayPopup" parent="." unique_id=856711715 instance=ExtResource("18_ak4hr")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+
+[node name="WeekSummary" parent="." unique_id=654444243 instance=ExtResource("19_78e58")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
