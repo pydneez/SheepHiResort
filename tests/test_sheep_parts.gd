@@ -75,6 +75,8 @@ func _check_colours(c: SheepColours) -> void:
 	for w in c.wools:
 		var fits := c.outfits.filter(func(o): return SheepColours.allowed(w, o))
 		check(not fits.is_empty(), "%s wool has outfits that suit it (%d)" % [w.name, fits.size()])
+		var faces := c.skins.filter(func(s): return SheepColours.skin_allowed(w, s))
+		check(not faces.is_empty(), "%s wool has skins that suit it (%d)" % [w.name, faces.size()])
 
 func _unique(a: Array) -> Array:
 	var seen := {}

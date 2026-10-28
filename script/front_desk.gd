@@ -179,11 +179,8 @@ func _on_guest_arrived() -> void:
 		pile_tex = ART_PILE_ID_HEALTH
 	pile_btn.set_art(pile_tex)
 	for def in defs:
-		# The ID photo is the same sheep, but in the wool colour the papers CLAIM.
-		var portrait := {}
-		if def.type == "id":
-			portrait = guest.appearance.look.duplicate(true)
-			portrait.wool = guest.papers.wool
+		# The ID photo: the sheep as its papers claim (no wolf parts, claimed wool).
+		var portrait: Dictionary = guest.appearance.claimed_look if def.type == "id" else {}
 		var doc := _spawn_doc(def, portrait)
 		doc.in_pile = true
 		doc.visible = false

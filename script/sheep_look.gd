@@ -13,6 +13,8 @@ const RECOLOUR_SHADER := preload("res://shaders/sheep_part.gdshader")
 const LAYERS := ["back", "base_wool", "base_skin", "base_detail", "bottom", "top",
 	"ears", "eyes", "mouth", "headwool", "hat", "front"]
 
+## The look currently shown (see show_look).
+var look_data := {}
 var _layers := {}   # layer name -> TextureRect (each with a "Detail" child)
 
 func _ready() -> void:
@@ -24,6 +26,7 @@ func _ready() -> void:
 		_layers[layer] = r
 
 func show_look(look: Dictionary) -> void:
+	look_data = look
 	var cat := SheepParts.shared()
 	var colours := SheepColours.shared()
 	for layer in _layers:

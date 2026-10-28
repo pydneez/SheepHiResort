@@ -37,8 +37,8 @@ func outfit(outfit_name: String) -> OutfitSet:
 func wool_names() -> Array:
 	return wools.map(func(r): return r.name)
 
-## Combination rules (from the colour test): dark outfits never on dark wool,
-## loud outfits only on light wool.
+## Combination rules (from the colour tests): dark outfits never on dark wool,
+## loud outfits only on light wool. See also skin_allowed().
 static func allowed(wool_ramp: ColourRamp, outfit_set: OutfitSet) -> bool:
 	if outfit_set == null:
 		return true
@@ -47,6 +47,10 @@ static func allowed(wool_ramp: ColourRamp, outfit_set: OutfitSet) -> bool:
 	if outfit_set.tag == "loud" and wool_ramp.tag != "light":
 		return false
 	return true
+
+## No dark face on dark wool, or the face disappears into the wool.
+static func skin_allowed(wool_ramp: ColourRamp, skin_ramp: ColourRamp) -> bool:
+	return not (skin_ramp.tag == "dark" and wool_ramp.tag == "dark")
 
 func _find(list: Array, ramp_name: String) -> ColourRamp:
 	for r in list:

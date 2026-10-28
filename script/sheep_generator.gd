@@ -118,7 +118,7 @@ func _make_guest(truth: Dictionary, booked: bool, is_wolf: bool, sloppy: bool) -
 	# Some wolves show a visual giveaway. Half of those have flawless papers, so
 	# only the giveaway (or the scanner) betrays them: deny on suspicion.
 	var tell := ""
-	var tells := _wolf_tells()
+	var tells := wolf_tells()
 	if is_wolf and not tells.is_empty() and rng.randf() < WOLF_TELL_CHANCE:
 		tell = pick(tells)
 	var clean_wolf := tell != "" and booked and rng.randf() < 0.5
@@ -143,8 +143,12 @@ func _make_guest(truth: Dictionary, booked: bool, is_wolf: bool, sloppy: bool) -
 	# "wool" flaw makes their ID claim a different colour.
 	if guest.flaws.has("wool"):
 		actual_wool = pick_other(SheepColours.shared().wool_names(), papers.wool)
+	var look := make_look(actual_wool, tell)
 	guest["appearance"] = {
-		"look": _make_look(actual_wool, tell),
+		"look": look,
+		# The ID photo: forged papers show a normal sheep (no wolf parts), in the
+		# wool colour the papers claim.
+		"claimed_look": claimed_look(look, papers.wool),
 		"wool": actual_wool,
 		"scale": rng.randf_range(0.92, 1.08),
 		"tell": tell,
@@ -162,16 +166,21 @@ func _shuffle(arr: Array) -> void:
 
 ## A paper-doll sheep (see SheepLook): a base, the required parts, optional parts
 ## by chance, and colours from the curated lists that obey the combination rules.
-## tell = a wolf giveaway slot (e.g. "eyes"), "wolf_skin", "wolf_detail" or "".
-func _make_look(wool: String, tell: String) -> Dictionary:
+## tell = a wolf giveaway: a slot with wolf parts (e.g. "eyes"), "wolf_skin"
+## (wolf face), "wolf_detail" (claws) or "" for none.
+func make_look(wool: String, tell := "") -> Dictionary:
 	var cat := SheepParts.shared()
 	var colours := SheepColours.shared()
-	var fits := colours.outfits.filter(func(o): return SheepColours.allowed(colours.wool(wool), o))
+	var wool_ramp := colours.wool(wool)
+	var fits := colours.outfits.filter(func(o): return SheepColours.allowed(wool_ramp, o))
+	var skins := colours.skins.filter(func(s): return SheepColours.skin_allowed(wool_ramp, s))
+	# A wolf face or claws need a base that has them drawn.
+	var bases: Array = cat.bases.keys().filter(func(n): return tell not in ["wolf_skin", "wolf_detail"] or cat.bases[n].has(tell))
 	var look := {
-		"base": pick(cat.bases.keys()),
+		"base": pick(bases),
 		"parts": {},
 		"wool": wool,
-		"skin": pick(colours.skins).name,
+		"skin": pick(skins).name,
 		"outfit": pick(fits).name if not fits.is_empty() else "",
 		"wolf_skin": tell == "wolf_skin",
 		"wolf_detail": tell == "wolf_detail",
@@ -184,11 +193,31 @@ func _make_look(wool: String, tell: String) -> Dictionary:
 			look.parts[slot] = pick(opts).id
 	if tell in SheepParts.LAYER_ORDER:
 		look.parts[tell] = pick(cat.options(tell, true)).id   # the wolf part replaces the normal one
+		if tell == "eyes":
+			look.parts.erase("front")   # glasses would hide the red eyes
 	return look
+
+## The same sheep as on its (forged) papers: every wolf part swapped for a
+## normal one (or left off if there is none), base without wolf face or claws,
+## in the given wool colour.
+func claimed_look(look: Dictionary, wool: String) -> Dictionary:
+	var cat := SheepParts.shared()
+	var claimed := look.duplicate(true)
+	claimed.wool = wool
+	claimed.wolf_skin = false
+	claimed.wolf_detail = false
+	for slot in look.parts:
+		if cat.part(slot, look.parts[slot]).get("wolf", false):
+			var normal := cat.options(slot)
+			if normal.is_empty():
+				claimed.parts.erase(slot)
+			else:
+				claimed.parts[slot] = pick(normal).id
+	return claimed
 
 ## Which wolf giveaways the current art can show: slots with *_wolf_* parts,
 ## plus wolf versions of the base skin / detail (snout, claws).
-func _wolf_tells() -> Array:
+func wolf_tells() -> Array:
 	var cat := SheepParts.shared()
 	var tells := []
 	for slot in SheepParts.LAYER_ORDER:
