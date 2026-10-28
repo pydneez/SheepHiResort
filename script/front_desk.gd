@@ -179,12 +179,9 @@ func _on_guest_arrived() -> void:
 		pile_tex = ART_PILE_ID_HEALTH
 	pile_btn.set_art(pile_tex)
 	for def in defs:
-		var portrait: Texture2D = null
-		var tint := Color.WHITE
-		if def.type == "id":
-			portrait = guest_node.body.texture
-			tint = SheepGenerator.WOOLS[guest.papers.wool]
-		var doc := _spawn_doc(def, portrait, tint)
+		# The ID photo: the sheep as its papers claim (no wolf parts, claimed wool).
+		var portrait: Dictionary = guest.appearance.claimed_look if def.type == "id" else {}
+		var doc := _spawn_doc(def, portrait)
 		doc.in_pile = true
 		doc.visible = false
 	pile_btn.visible = true
@@ -474,7 +471,7 @@ func _add_proof(flaw: String) -> void:
 func _on_guest_right_clicked() -> void:
 	if state == State.AT_DESK:
 		var w: String = guest.appearance.wool
-		_on_field_clicked({"label": "Guest's wool", "kind": "wool", "value": w, "text": w, "source": "sheep"}, guest_node.body)
+		_on_field_clicked({"label": "Guest's wool", "kind": "wool", "value": w, "text": w, "source": "sheep"}, guest_node.look)
 
 func _on_hud_date_input(event: InputEvent) -> void:
 	if DeskDocument.is_compare_click(event):
@@ -514,7 +511,7 @@ func _build_rules_doc() -> void:
 	if rules.check_wool: checks.append("Wool matches the guest")
 	fields.append(SheepGenerator._f("Check", "info", "", "\n".join(PackedStringArray(checks))))
 	rules_doc = _spawn_doc({"type": "rules", "title": "RULEBOOK — DAY %d" % day,
-		"color": Color(1.0, 0.9, 0.85), "fields": fields}, null, Color.WHITE, false)
+		"color": Color(1.0, 0.9, 0.85), "fields": fields}, {}, false)
 	rules_doc.position = RULES_POS
 	rules_doc.visible = false  # opened by clicking the paper drawn on the desk
 
@@ -524,10 +521,10 @@ func _toggle_rules() -> void:
 	if rules_doc.visible:
 		rules_doc.move_to_front()
 
-func _spawn_doc(def: Dictionary, portrait: Texture2D, tint: Color, track := true) -> DeskDocument:
+func _spawn_doc(def: Dictionary, portrait_look := {}, track := true) -> DeskDocument:
 	var doc: DeskDocument = DOC_SCENE.instantiate()
 	papers.add_child(doc)
-	doc.setup(def, portrait, tint)
+	doc.setup(def, portrait_look)
 	doc.drag_bounds = DOC_BOUNDS
 	doc.field_clicked.connect(_on_field_clicked)
 	if track:
