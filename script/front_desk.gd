@@ -4,8 +4,8 @@ extends Control
 ## UI is built in code so the layout lives in one place; swap any Button/Label
 ## for your own art later without touching the game logic.
 
-const LOBBY_TOP := preload("res://assets/lobby_up.png")
-const LOBBY_BOTTOM := preload("res://assets/lobby_bottom.png")
+const LOBBY_TOP := preload("res://assets/lobby/lobby_up.png")
+const LOBBY_BOTTOM := preload("res://assets/lobby/lobby_bottom.png")
 
 # Screen layout (1024x768), measured against the lobby art.
 const SHEEP_SIZE := Vector2(420, 420)
@@ -30,7 +30,7 @@ var clock := 0.0
 var day_running := false
 
 # Run-wide stats
-var money := 20
+var money := 150
 var reputation := 70
 var residents := 0
 var wolves_admitted := 0
@@ -69,6 +69,12 @@ var db_search: LineEdit
 var db_list: ItemList
 var db_detail: GridContainer
 var db_count: Label
+
+# Computer Monitor & Resort Layout
+var tab_db_btn: Button
+var tab_layout_btn: Button
+var db_view: Control
+
 var overlay: ColorRect
 var overlay_text: RichTextLabel
 var overlay_btn: Button
@@ -79,13 +85,21 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR  # big art scaled down: avoid nearest-neighbour shimmer
 	_build_scene()
-	start_day(1)
+	if GameManager.ENABLE_PHASE_2 and GameManager.current_day >= 1:
+		money = GameManager.money
+		reputation = GameManager.reputation
+		start_day(GameManager.current_day)
+	else:
+		GameManager.current_day = 1
+		start_day(1)
 
 # =============================================================================
 # Day flow
 
 func start_day(d: int) -> void:
 	day = d
+	GameManager.current_day = d
+	GameManager.reset_day_pool()
 	rules = DayRules.for_day(day)
 	today = DayRules.today(day)
 	var gen := SheepGenerator.new(run_seed, rules)
@@ -118,6 +132,9 @@ func start_day(d: int) -> void:
 
 ## Every wolf let in yesterday makes one resident disappear overnight.
 func _overnight_report() -> String:
+	if GameManager.ENABLE_PHASE_2:
+		wolves_inside = GameManager.wolves_escaped_unharmed
+		GameManager.wolves_escaped_unharmed = 0
 	if wolves_inside == 0:
 		return ""
 	var lines := PackedStringArray()
@@ -215,6 +232,8 @@ func decide(accept: bool) -> void:
 	day_stats.processed += 1
 	var msg := ""
 	var good := true
+	if accept:
+		GameManager.record_admitted_guest(guest)
 	if accept and valid:
 		day_stats.correct += 1
 		day_stats.residents += 1
@@ -311,7 +330,8 @@ func end_day() -> void:
 		state = State.GAME_OVER
 		_show_overlay(text + "\n\n" + _ending(), "Play again")
 	else:
-		_show_overlay(text, "Next day")
+		var btn_label := "Proceed to Resort (Phase 2)" if GameManager.ENABLE_PHASE_2 else "Next day"
+		_show_overlay(text, btn_label)
 
 func _ending() -> String:
 	if reputation < 40:
@@ -326,7 +346,12 @@ func _on_overlay_button() -> void:
 		State.BRIEFING:
 			state = State.IDLE
 		State.DAY_OVER:
-			start_day(day + 1)
+			if GameManager.ENABLE_PHASE_2:
+				GameManager.money = money
+				GameManager.reputation = reputation
+				get_tree().change_scene_to_file("res://scene/phase2_resort.tscn")
+			else:
+				start_day(day + 1)
 		State.GAME_OVER:
 			money = 20
 			reputation = 70
@@ -356,6 +381,23 @@ static func is_compare_click(event: InputEvent) -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		_reset_inspection()
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F1:
+			_on_dev_skip_phase1()
+
+func _on_dev_skip_phase1() -> void:
+	if GameManager.admitted_guests.is_empty():
+		if not queue.is_empty():
+			for g in queue:
+				GameManager.record_admitted_guest(g)
+		else:
+			var gen := SheepGenerator.new(randi(), DayRules.for_day(day))
+			var data := gen.generate_day()
+			for g in data.guests:
+				GameManager.record_admitted_guest(g)
+	GameManager.money = money
+	GameManager.reputation = reputation
+	get_tree().change_scene_to_file("res://scene/phase2_resort.tscn")
 
 func _reset_inspection() -> void:
 	_clear_selection()
@@ -440,18 +482,19 @@ func _build_scene() -> void:
 
 	add_child(_bg(LOBBY_BOTTOM))
 
-	# Computer monitor hotspot (click to open the database)
+	# Computer monitor hotspot (click to open the database and layout tool)
 	var mon := Button.new()
 	mon.flat = true
 	mon.position = MONITOR_RECT.position
 	mon.size = MONITOR_RECT.size
-	mon.text = "HOTEL DB\n\nclick to open"
+	mon.text = "RESORT TERMINAL\n• Guest DB\n• Resort Layout\n(click to open)"
 	mon.add_theme_color_override("font_color", Color(0.1, 0.3, 0.4))
 	mon.add_theme_color_override("font_hover_color", Color(0, 0.1, 0.2))
 	mon.focus_mode = Control.FOCUS_NONE
 	mon.pressed.connect(func():
 		computer.visible = not computer.visible
-		computer.move_to_front())
+		if computer.visible:
+			computer.move_to_front())
 	add_child(mon)
 
 	var col := VBoxContainer.new()
@@ -524,16 +567,23 @@ func _build_scene() -> void:
 	overlay_text.custom_minimum_size = Vector2(560, 0)
 	overlay_text.add_theme_color_override("default_color", Color(0.15, 0.1, 0.05))
 	vb.add_child(overlay_text)
-	overlay_btn = _button(vb, "OK", Color(0.95, 0.8, 0.3), _on_overlay_button)
+	var btn_row := HBoxContainer.new()
+	btn_row.add_theme_constant_override("separation", 12)
+	vb.add_child(btn_row)
+	overlay_btn = _button(btn_row, "OK", Color(0.95, 0.8, 0.3), _on_overlay_button)
+	overlay_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var dev_skip_btn := _button(btn_row, "⚡ Skip Phase I (Dev)", Color(0.85, 0.7, 0.2), _on_dev_skip_phase1)
+	dev_skip_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func _build_hud() -> void:
 	var bar := PanelContainer.new()
 	bar.add_theme_stylebox_override("panel", _box(Color(0.12, 0.08, 0.05, 0.88), Color(0, 0, 0, 0), 0, 6))
 	bar.position = Vector2.ZERO
 	bar.custom_minimum_size = Vector2(1024, 34)
+	bar.z_index = 50
 	add_child(bar)
 	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 22)
+	hb.add_theme_constant_override("separation", 16)
 	bar.add_child(hb)
 	hud_day = _hud_label(hb)
 	hud_date = _hud_label(hb)
@@ -546,6 +596,14 @@ func _build_hud() -> void:
 	hud_res = _hud_label(hb)
 	queue_label = _hud_label(hb)
 
+	var hud_skip_btn := Button.new()
+	hud_skip_btn.text = "⚡ Skip Phase I (F1)"
+	hud_skip_btn.tooltip_text = "Dev shortcut: Immediately launch Phase 2 Resort (Shortcut: F1)"
+	hud_skip_btn.focus_mode = Control.FOCUS_NONE
+	hud_skip_btn.add_theme_color_override("font_color", Color(1.0, 0.88, 0.3))
+	hud_skip_btn.pressed.connect(_on_dev_skip_phase1)
+	hb.add_child(hud_skip_btn)
+
 func _on_hud_date_input(event: InputEvent) -> void:
 	if is_compare_click(event):
 		_on_field_clicked({"label": "Today", "kind": "today", "value": today,
@@ -553,49 +611,85 @@ func _on_hud_date_input(event: InputEvent) -> void:
 
 func _build_computer() -> void:
 	computer = PanelContainer.new()
-	computer.add_theme_stylebox_override("panel", _box(Color(0.08, 0.16, 0.2), Color(0.55, 0.6, 0.62), 4, 8))
-	computer.position = Vector2(420, 60)
-	computer.custom_minimum_size = Vector2(590, 380)
+	computer.add_theme_stylebox_override("panel", _box(Color(0.06, 0.11, 0.16), Color(0.35, 0.55, 0.65), 4, 10))
+	computer.position = Vector2(240, 50)
+	computer.custom_minimum_size = Vector2(700, 495)
 	computer.visible = false
 	add_child(computer)
+
 	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 8)
 	computer.add_child(vb)
 
+	# --- 1. Title bar ---
 	var title := HBoxContainer.new()
 	vb.add_child(title)
 	var tl := Label.new()
-	tl.text = "SHEEP HI RESORT — RESERVATIONS (drag me)"
+	tl.text = "🖥️ RESORT OS v2.4 — FRONT DESK TERMINAL  (drag to move)"
 	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tl.add_theme_color_override("font_color", Color(0.6, 1, 0.9))
+	tl.add_theme_color_override("font_color", Color(0.65, 0.95, 1.0))
 	tl.mouse_filter = Control.MOUSE_FILTER_STOP
 	tl.mouse_default_cursor_shape = Control.CURSOR_MOVE
 	tl.gui_input.connect(_drag_window.bind(computer))
 	title.add_child(tl)
+
+	var online_lbl := Label.new()
+	online_lbl.text = "● ONLINE"
+	online_lbl.add_theme_color_override("font_color", Color(0.35, 1.0, 0.55))
+	online_lbl.add_theme_font_size_override("font_size", 12)
+	title.add_child(online_lbl)
+
 	var close := Button.new()
-	close.text = " X "
-	close.pressed.connect(func(): computer.visible = false)
+	close.text = " ✕ "
+	close.focus_mode = Control.FOCUS_NONE
+	close.pressed.connect(func():
+		computer.visible = false)
 	title.add_child(close)
 
-	var body := HBoxContainer.new()
-	body.add_theme_constant_override("separation", 12)
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vb.add_child(body)
+	# --- 2. Tab Navigation Bar ---
+	var tab_bar := HBoxContainer.new()
+	tab_bar.add_theme_constant_override("separation", 10)
+	vb.add_child(tab_bar)
+
+	tab_db_btn = Button.new()
+	tab_db_btn.text = "📋 Guest Reservations (DB)"
+	tab_db_btn.custom_minimum_size = Vector2(230, 32)
+	tab_db_btn.focus_mode = Control.FOCUS_NONE
+	var active_tab_style := _box(Color(0.18, 0.35, 0.48), Color(0.65, 0.9, 1.0), 2, 6)
+	tab_db_btn.add_theme_stylebox_override("normal", active_tab_style)
+	tab_bar.add_child(tab_db_btn)
+
+	tab_layout_btn = Button.new()
+	tab_layout_btn.text = "🗺️ Resort Architect (Real Map)"
+	tab_layout_btn.custom_minimum_size = Vector2(260, 32)
+	tab_layout_btn.focus_mode = Control.FOCUS_NONE
+	var layout_btn_style := _box(Color(0.18, 0.42, 0.28), Color(0.4, 0.95, 0.55), 2, 6)
+	tab_layout_btn.add_theme_stylebox_override("normal", layout_btn_style)
+	tab_layout_btn.pressed.connect(_on_open_resort_layout)
+	tab_bar.add_child(tab_layout_btn)
+
+	# --- 3. View: Guest Reservations DB ---
+	db_view = HBoxContainer.new()
+	db_view.add_theme_constant_override("separation", 14)
+	db_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vb.add_child(db_view)
+
 	var left := VBoxContainer.new()
-	left.custom_minimum_size = Vector2(250, 0)
-	body.add_child(left)
+	left.custom_minimum_size = Vector2(260, 0)
+	db_view.add_child(left)
 	db_search = LineEdit.new()
 	db_search.placeholder_text = "Search name or ID…"
 	db_search.text_changed.connect(func(_t): _refresh_database())
 	left.add_child(db_search)
 	db_list = ItemList.new()
 	db_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	db_list.custom_minimum_size = Vector2(0, 300)
+	db_list.custom_minimum_size = Vector2(0, 320)
 	db_list.item_selected.connect(_on_db_selected)
 	left.add_child(db_list)
 
 	var right := VBoxContainer.new()
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_child(right)
+	db_view.add_child(right)
 	db_count = Label.new()
 	db_count.add_theme_color_override("font_color", Color(0.6, 1, 0.9))
 	db_count.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -611,6 +705,12 @@ func _build_computer() -> void:
 	db_detail.add_theme_constant_override("h_separation", 12)
 	db_detail.add_theme_constant_override("v_separation", 8)
 	right.add_child(db_detail)
+
+func _on_open_resort_layout() -> void:
+	GameManager.money = money
+	GameManager.reputation = reputation
+	GameManager.is_layout_edit_mode = true
+	get_tree().change_scene_to_file("res://scene/phase2_resort.tscn")
 
 func _refresh_database() -> void:
 	if not db_list:
@@ -707,7 +807,7 @@ func _refresh_hud() -> void:
 
 func _refresh_clock() -> void:
 	var minutes := int(8 * 60 + clock / DayRules.DAY_LENGTH_SECONDS * 600)
-	hud_clock.text = "%02d:%02d" % [minutes / 60, minutes % 60]
+	hud_clock.text = "%02d:%02d" % [int(minutes / 60.0), minutes % 60]
 	if clock >= DayRules.DAY_LENGTH_SECONDS:
 		hud_clock.text += " CLOSING"
 

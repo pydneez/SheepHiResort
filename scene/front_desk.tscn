@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://ba8l7ymtqdpgc"]
 
 [ext_resource type="Script" uid="uid://cngg0h8btpvaa" path="res://script/front_desk.gd" id="1_desk"]
+[ext_resource type="Texture2D" uid="uid://msqg7pwm35vn" path="res://assets/lobby/lobby_Ref.png" id="2_5uhvb"]
 
 [node name="FrontDesk" type="Control" unique_id=933204110]
 layout_mode = 3
@@ -10,3 +11,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_desk")
+
+[node name="LobbyRef" type="Sprite2D" parent="." unique_id=552384308]
+position = Vector2(721, 541)
+texture = ExtResource("2_5uhvb")

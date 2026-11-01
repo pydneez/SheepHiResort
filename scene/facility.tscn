@@ -1,0 +1,95 @@
+[gd_scene format=3 uid="uid://doytyibgueaea"]
+
+[ext_resource type="Script" uid="uid://da31ewmyp81i1" path="res://script/facility.gd" id="1_facility_script"]
+[ext_resource type="Texture2D" uid="uid://w76qhpywitky" path="res://assets/PhaseII_Map/Buildings1.png" id="2_0t2vp"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_facility"]
+size = Vector2(150, 130)
+
+[node name="Facility" type="Area2D" unique_id=1873054754]
+y_sort_enabled = true
+collision_layer = 2
+script = ExtResource("1_facility_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1399068387]
+position = Vector2(0, -55)
+shape = SubResource("RectangleShape2D_facility")
+
+[node name="SlotMarker" type="Marker2D" parent="." unique_id=677334075]
+position = Vector2(0, 20)
+
+[node name="VisualRoot" type="Node2D" parent="." unique_id=1256130643]
+
+[node name="Buildings1" type="Sprite2D" parent="VisualRoot" unique_id=1535716848]
+texture_filter = 1
+position = Vector2(2, -65)
+texture = ExtResource("2_0t2vp")
+hframes = 15
+vframes = 15
+
+[node name="NameLabel" type="Label" parent="VisualRoot" unique_id=55636085]
+offset_left = -75.0
+offset_top = -98.0
+offset_right = 75.0
+offset_bottom = -78.0
+theme_override_colors/font_color = Color(1, 0.98, 0.9, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.08, 0.08, 0.9)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 12
+text = "Facility Name"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="VisualRoot" unique_id=91989817]
+offset_left = -75.0
+offset_top = -80.0
+offset_right = 75.0
+offset_bottom = -62.0
+theme_override_colors/font_color = Color(0.7, 0.95, 0.7, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.08, 0.08, 0.9)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 11
+text = "Open (0/2)"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ProgressBar" type="ProgressBar" parent="VisualRoot" unique_id=1433356203]
+offset_left = -32.0
+offset_top = 8.0
+offset_right = 32.0
+offset_bottom = 14.0
+mouse_filter = 2
+max_value = 5.0
+show_percentage = false
+
+[node name="RepairPanel" type="Control" parent="VisualRoot" unique_id=7529564]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_left = -75.0
+offset_top = -140.0
+offset_right = 75.0
+offset_bottom = 10.0
+
+[node name="WarningOverlay" type="ColorRect" parent="VisualRoot/RepairPanel" unique_id=851552043]
+layout_mode = 0
+offset_right = 150.0
+offset_bottom = 150.0
+mouse_filter = 2
+color = Color(0.75, 0.15, 0.15, 0.75)
+
+[node name="RepairTimeLabel" type="Label" parent="VisualRoot/RepairPanel" unique_id=608396641]
+layout_mode = 0
+offset_left = 6.0
+offset_top = 45.0
+offset_right = 144.0
+offset_bottom = 95.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 12
+text = "TAP TO REPAIR!
+(15.0s)"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2

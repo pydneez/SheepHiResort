@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://cguest0000001"]
+
+[ext_resource type="Script" path="res://script/resort_guest.gd" id="1_guest_script"]
+[ext_resource type="Texture2D" path="res://assets/sheep_character/detective_sheep.png" id="2_sprite"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_guest"]
+radius = 28.0
+
+[node name="ResortGuest" type="CharacterBody2D"]
+collision_layer = 1
+collision_mask = 2
+input_pickable = true
+script = ExtResource("1_guest_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_guest")
+
+[node name="VisualRoot" type="Node2D" parent="."]
+
+[node name="Sprite2D" type="Sprite2D" parent="VisualRoot"]
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("2_sprite")
+
+[node name="NameLabel" type="Label" parent="VisualRoot"]
+offset_left = -60.0
+offset_top = -62.0
+offset_right = 60.0
+offset_bottom = -34.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 10
+text = "Sheep Name
+(Breed)"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TellLabel" type="Label" parent="VisualRoot"]
+visible = false
+offset_left = -50.0
+offset_top = -80.0
+offset_right = 50.0
+offset_bottom = -60.0
+theme_override_colors/font_color = Color(1, 0.9, 0.2, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0, 0, 1)
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 11
+text = "SWEATING!"
+horizontal_alignment = 1
+
+[node name="DeportBar" type="ProgressBar" parent="VisualRoot"]
+visible = false
+offset_left = -30.0
+offset_top = -36.0
+offset_right = 30.0
+offset_bottom = -28.0
+max_value = 1.2
+show_percentage = false
