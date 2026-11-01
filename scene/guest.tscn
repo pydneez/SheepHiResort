@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://script/guest.gd" id="1_suo5t"]
+[ext_resource type="PackedScene" path="res://scene/sheep_look.tscn" id="2_look"]
+
+[node name="Guest" type="Control" unique_id=1010616067]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 540.0
+offset_bottom = 540.0
+pivot_offset = Vector2(270, 540)
+mouse_filter = 2
+script = ExtResource("1_suo5t")
+
+[node name="Look" parent="." instance=ExtResource("2_look")]
+unique_name_in_owner = true
+offset_left = 102.0
+offset_top = 108.0
+offset_right = 438.0
+offset_bottom = 540.0
+scale = Vector2(1.15, 1.15)

@@ -1,10 +1,16 @@
 class_name DeskDocument
 extends PanelContainer
-## A paper on the desk. Left-click-drag to move it; right-click a field to
-## select it for comparison (emits field_clicked).
+## A paper on the desk (scene/desk_document.tscn): ID card, health certificate,
+## booking voucher or today's rules. Left-click-drag to move it; right-click a
+## field to select it for comparison (emits field_clicked).
 
 signal field_clicked(field: Dictionary, label: Label)
-signal pile_clicked(doc: DeskDocument)
+
+const KEY_COLOR := Color(0.35, 0.3, 0.25)
+const VALUE_COLOR := Color(0.08, 0.06, 0.05)
+const FIELD_FONT_SIZE := 18
+
+const LOOK_SCENE := preload("res://scene/sheep_look.tscn")
 
 var data: Dictionary
 var in_pile := false
@@ -12,87 +18,69 @@ var drag_bounds := Rect2()
 var _dragging := false
 var _grab := Vector2.ZERO
 
-func setup(doc_data: Dictionary, portrait: Texture2D = null, portrait_tint := Color.WHITE) -> void:
+@onready var _title: Label = %Title
+@onready var _photo: Control = %Photo
+@onready var _fields: GridContainer = %Fields
+
+## Fill the paper with one document's data. Call after adding it to the tree.
+## portrait_look: the sheep for the photo (ID card only), see SheepLook.
+func setup(doc_data: Dictionary, portrait_look: Dictionary = {}) -> void:
 	data = doc_data
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	mouse_default_cursor_shape = Control.CURSOR_MOVE
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = data.get("color", Color(0.98, 0.96, 0.9))
-	sb.border_color = Color(0.15, 0.1, 0.05)
-	sb.set_border_width_all(3)
-	sb.set_corner_radius_all(4)
-	sb.set_content_margin_all(10)
-	sb.shadow_color = Color(0, 0, 0, 0.35)
-	sb.shadow_size = 6
-	sb.shadow_offset = Vector2(3, 4)
+	# Each document type has its own paper colour; the rest of the look is in the scene.
+	var sb := get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	sb.bg_color = data.get("color", sb.bg_color)
 	add_theme_stylebox_override("panel", sb)
-
-	var vb := VBoxContainer.new()
-	vb.mouse_filter = Control.MOUSE_FILTER_PASS
-	add_child(vb)
-	var title := Label.new()
-	title.text = data.title
-	title.add_theme_color_override("font_color", Color(0.25, 0.12, 0.05))
-	title.add_theme_font_size_override("font_size", 16)
-	title.mouse_filter = Control.MOUSE_FILTER_PASS
-	vb.add_child(title)
-
-	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_PASS
-	vb.add_child(row)
-	if portrait:
-		# The ID photo shows the wool colour the papers CLAIM.
-		var pic := TextureRect.new()
-		pic.texture = portrait
-		pic.modulate = portrait_tint
-		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		pic.custom_minimum_size = Vector2(70, 90)
-		pic.mouse_filter = Control.MOUSE_FILTER_PASS
-		row.add_child(pic)
-
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.mouse_filter = Control.MOUSE_FILTER_PASS
-	row.add_child(grid)
+	_title.text = data.title
+	_photo.visible = not portrait_look.is_empty()
+	if _photo.visible:
+		_show_portrait(portrait_look)
 	for f in data.fields:
 		var k := Label.new()
 		k.text = f.label + ":"
-		k.add_theme_color_override("font_color", Color(0.35, 0.3, 0.25))
-		k.add_theme_font_size_override("font_size", 13)
+		k.add_theme_color_override("font_color", KEY_COLOR)
+		k.add_theme_font_size_override("font_size", FIELD_FONT_SIZE)
 		k.mouse_filter = Control.MOUSE_FILTER_PASS
-		grid.add_child(k)
+		_fields.add_child(k)
 		var v := make_field_label(f, data.type)
-		grid.add_child(v)
+		_fields.add_child(v)
 		v.gui_input.connect(_on_field_input.bind(v))
 
-## Shared by documents, the computer and the HUD so every inspectable value
-## looks and behaves the same.
+## The ID photo: the sheep's head area, scaled to fill the photo box. It shows
+## the wool colour the papers CLAIM, which may differ from the real guest.
+func _show_portrait(look: Dictionary) -> void:
+	var head := SheepParts.HEAD_AREA
+	var s := minf(_photo.custom_minimum_size.x / head.size.x, _photo.custom_minimum_size.y / head.size.y)
+	var sheep: SheepLook = LOOK_SCENE.instantiate()
+	_photo.add_child(sheep)
+	sheep.pivot_offset = Vector2.ZERO   # scale from the top-left corner for the crop maths
+	sheep.scale = Vector2(s, s)
+	sheep.position = -head.position * s + (_photo.custom_minimum_size - head.size * s) * 0.5
+	sheep.show_look(look)
+
+## Shared by documents and the computer so every comparable value looks and
+## behaves the same.
 static func make_field_label(f: Dictionary, source: String) -> Label:
 	f["source"] = source
 	var v := Label.new()
 	v.text = f.text
-	v.add_theme_color_override("font_color", Color(0.08, 0.06, 0.05))
-	v.add_theme_font_size_override("font_size", 13)
+	v.add_theme_color_override("font_color", VALUE_COLOR)
+	v.add_theme_font_size_override("font_size", FIELD_FONT_SIZE)
 	v.mouse_filter = Control.MOUSE_FILTER_PASS
 	v.set_meta("field", f)
 	return v
 
+## Right-click selects things for comparison; left-click always drags.
+static func is_compare_click(event: InputEvent) -> bool:
+	return event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT
+
 func _on_field_input(event: InputEvent, label: Label) -> void:
-	# Right-click compares; left-click falls through to dragging.
-	if not in_pile and event is InputEventMouseButton \
-			and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+	if not in_pile and is_compare_click(event):
 		field_clicked.emit(label.get_meta("field"), label)
 		accept_event()
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
-			if in_pile:
-				pile_clicked.emit(self)
-				accept_event()
-				return
 			move_to_front()
 			_dragging = true
 			_grab = get_global_mouse_position() - global_position

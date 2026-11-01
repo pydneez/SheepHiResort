@@ -7,12 +7,15 @@ extends Node
 var ENABLE_PHASE_2: bool = true
 
 # Run progression
+var run_started: bool = false
+var run_seed: int = 0
 var current_day: int = 1
 var money: int = 150
 var reputation: int = 70
 var residents: int = 0
 var wolves_admitted_total: int = 0
 var guest_book: Array = []
+var week: Dictionary = {"processed": 0, "correct": 0, "wolves_caught": 0, "residents": 0, "quota_days": 0, "earned": 0}
 
 # Pool of admitted guests for today's Phase 2 resort rush
 # Each entry is the full guest dictionary from SheepGenerator

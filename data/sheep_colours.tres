@@ -1,0 +1,401 @@
+[gd_resource type="Resource" script_class="SheepColours" format=3]
+
+[ext_resource type="Script" path="res://script/outfit_set.gd" id="1_0oojy"]
+[ext_resource type="Script" path="res://script/colour_ramp.gd" id="2_guub5"]
+[ext_resource type="Script" path="res://script/sheep_colours.gd" id="3_vtip6"]
+
+[sub_resource type="Resource" id="Resource_lkkk2"]
+script = ExtResource("2_guub5")
+name = "Detective accent"
+highlight = Color(0.56078434, 0.8784314, 1, 1)
+base = Color(0.14901961, 0.7058824, 0.9019608, 1)
+shadow = Color(0.101960786, 0.47058824, 0.72156864, 1)
+deep = Color(0.08235294, 0.27450982, 0.47843137, 1)
+
+[sub_resource type="Resource" id="Resource_8y6tc"]
+script = ExtResource("2_guub5")
+name = "Detective bottom"
+highlight = Color(0.3529412, 0.3529412, 0.6039216, 1)
+base = Color(0.18039216, 0.16862746, 0.34117648, 1)
+shadow = Color(0.11372549, 0.101960786, 0.22745098, 1)
+deep = Color(0.0627451, 0.05490196, 0.13333334, 1)
+
+[sub_resource type="Resource" id="Resource_pcw0s"]
+script = ExtResource("2_guub5")
+name = "Detective top"
+highlight = Color(1, 0.8235294, 0.6901961, 1)
+base = Color(0.8862745, 0.627451, 0.49803922, 1)
+shadow = Color(0.6901961, 0.43137255, 0.34509805, 1)
+deep = Color(0.43137255, 0.24313726, 0.21960784, 1)
+
+[sub_resource type="Resource" id="Resource_3s66d"]
+script = ExtResource("1_0oojy")
+name = "Detective"
+top = SubResource("Resource_pcw0s")
+accent = SubResource("Resource_lkkk2")
+bottom = SubResource("Resource_8y6tc")
+
+[sub_resource type="Resource" id="Resource_p4735"]
+script = ExtResource("2_guub5")
+name = "Berry accent"
+highlight = Color(1, 0.9647059, 0.8784314, 1)
+base = Color(0.9490196, 0.8627451, 0.6901961, 1)
+shadow = Color(0.78431374, 0.65882355, 0.47058824, 1)
+deep = Color(0.5411765, 0.41568628, 0.28235295, 1)
+
+[sub_resource type="Resource" id="Resource_r5d4w"]
+script = ExtResource("2_guub5")
+name = "Berry bottom"
+highlight = Color(0.5411765, 0.5411765, 0.5882353, 1)
+base = Color(0.3137255, 0.3137255, 0.36078432, 1)
+shadow = Color(0.1882353, 0.1882353, 0.22745098, 1)
+deep = Color(0.09411765, 0.09411765, 0.11764706, 1)
+
+[sub_resource type="Resource" id="Resource_857kw"]
+script = ExtResource("2_guub5")
+name = "Berry top"
+highlight = Color(0.8784314, 0.6039216, 0.78431374, 1)
+base = Color(0.65882355, 0.27058825, 0.49411765, 1)
+shadow = Color(0.43137255, 0.14117648, 0.34509805, 1)
+deep = Color(0.23921569, 0.07058824, 0.21960784, 1)
+
+[sub_resource type="Resource" id="Resource_2vtv1"]
+script = ExtResource("1_0oojy")
+name = "Berry"
+top = SubResource("Resource_857kw")
+accent = SubResource("Resource_p4735")
+bottom = SubResource("Resource_r5d4w")
+
+[sub_resource type="Resource" id="Resource_hdugj"]
+script = ExtResource("2_guub5")
+name = "Forest accent"
+highlight = Color(1, 0.8862745, 0.5411765, 1)
+base = Color(0.9490196, 0.7137255, 0.19607843, 1)
+shadow = Color(0.72156864, 0.47843137, 0.1254902, 1)
+deep = Color(0.4392157, 0.27450982, 0.101960786, 1)
+
+[sub_resource type="Resource" id="Resource_2i85o"]
+script = ExtResource("2_guub5")
+name = "Forest bottom"
+highlight = Color(0.6901961, 0.5019608, 0.3764706, 1)
+base = Color(0.43137255, 0.27450982, 0.1882353, 1)
+shadow = Color(0.27058825, 0.16470589, 0.11764706, 1)
+deep = Color(0.14117648, 0.078431375, 0.0627451, 1)
+
+[sub_resource type="Resource" id="Resource_g853s"]
+script = ExtResource("2_guub5")
+name = "Forest top"
+highlight = Color(0.72156864, 0.84705883, 0.5019608, 1)
+base = Color(0.43529412, 0.6039216, 0.22745098, 1)
+shadow = Color(0.24705882, 0.4, 0.1882353, 1)
+deep = Color(0.12156863, 0.22745098, 0.1254902, 1)
+
+[sub_resource type="Resource" id="Resource_vdg4f"]
+script = ExtResource("1_0oojy")
+name = "Forest"
+top = SubResource("Resource_g853s")
+accent = SubResource("Resource_hdugj")
+bottom = SubResource("Resource_2i85o")
+
+[sub_resource type="Resource" id="Resource_o288s"]
+script = ExtResource("2_guub5")
+name = "Seaside accent"
+base = Color(0.9019608, 0.9254902, 0.9490196, 1)
+shadow = Color(0.6666667, 0.72156864, 0.78431374, 1)
+deep = Color(0.41568628, 0.47843137, 0.5647059, 1)
+
+[sub_resource type="Resource" id="Resource_2l7a3"]
+script = ExtResource("2_guub5")
+name = "Seaside bottom"
+highlight = Color(1, 0.5411765, 0.47843137, 1)
+base = Color(0.84705883, 0.20392157, 0.22745098, 1)
+shadow = Color(0.5568628, 0.12156863, 0.2901961, 1)
+deep = Color(0.2901961, 0.0627451, 0.1882353, 1)
+
+[sub_resource type="Resource" id="Resource_qm3dm"]
+script = ExtResource("2_guub5")
+name = "Seaside top"
+highlight = Color(0.47843137, 0.5647059, 0.8156863, 1)
+base = Color(0.18431373, 0.2901961, 0.6039216, 1)
+shadow = Color(0.11764706, 0.17254902, 0.4, 1)
+deep = Color(0.05882353, 0.08627451, 0.22745098, 1)
+
+[sub_resource type="Resource" id="Resource_7hq3r"]
+script = ExtResource("1_0oojy")
+name = "Seaside"
+top = SubResource("Resource_qm3dm")
+accent = SubResource("Resource_o288s")
+bottom = SubResource("Resource_2l7a3")
+
+[sub_resource type="Resource" id="Resource_8s4xd"]
+script = ExtResource("2_guub5")
+name = "Royal accent"
+highlight = Color(1, 0.9411765, 0.627451, 1)
+base = Color(0.9490196, 0.75686276, 0.30588236, 1)
+shadow = Color(0.72156864, 0.5176471, 0.14117648, 1)
+deep = Color(0.43137255, 0.2901961, 0.078431375, 1)
+
+[sub_resource type="Resource" id="Resource_cd5s3"]
+script = ExtResource("2_guub5")
+name = "Royal bottom"
+highlight = Color(0.36078432, 0.34509805, 0.4, 1)
+base = Color(0.18039216, 0.16862746, 0.21176471, 1)
+shadow = Color(0.10980392, 0.101960786, 0.13333334, 1)
+deep = Color(0.05490196, 0.050980393, 0.07058824, 1)
+
+[sub_resource type="Resource" id="Resource_wu6o2"]
+script = ExtResource("2_guub5")
+name = "Royal top"
+highlight = Color(0.76862746, 0.6039216, 0.9411765, 1)
+base = Color(0.47843137, 0.24705882, 0.6901961, 1)
+shadow = Color(0.29803923, 0.13333334, 0.47058824, 1)
+deep = Color(0.15686275, 0.0627451, 0.24313726, 1)
+
+[sub_resource type="Resource" id="Resource_fqudt"]
+script = ExtResource("1_0oojy")
+name = "Royal"
+tag = "dark"
+top = SubResource("Resource_wu6o2")
+accent = SubResource("Resource_8s4xd")
+bottom = SubResource("Resource_cd5s3")
+
+[sub_resource type="Resource" id="Resource_gm1si"]
+script = ExtResource("2_guub5")
+name = "Sunset accent"
+highlight = Color(1, 0.7529412, 0.84705883, 1)
+base = Color(0.9490196, 0.47843137, 0.65882355, 1)
+shadow = Color(0.72156864, 0.26666668, 0.47843137, 1)
+deep = Color(0.43137255, 0.1254902, 0.3137255, 1)
+
+[sub_resource type="Resource" id="Resource_lx15l"]
+script = ExtResource("2_guub5")
+name = "Sunset bottom"
+highlight = Color(0.65882355, 0.5019608, 0.41568628, 1)
+base = Color(0.41568628, 0.2901961, 0.23529412, 1)
+shadow = Color(0.26666668, 0.1882353, 0.15686275, 1)
+deep = Color(0.14117648, 0.09411765, 0.078431375, 1)
+
+[sub_resource type="Resource" id="Resource_scxuk"]
+script = ExtResource("2_guub5")
+name = "Sunset top"
+highlight = Color(1, 0.76862746, 0.5411765, 1)
+base = Color(0.9490196, 0.5411765, 0.22745098, 1)
+shadow = Color(0.72156864, 0.3137255, 0.16470589, 1)
+deep = Color(0.43137255, 0.16470589, 0.11764706, 1)
+
+[sub_resource type="Resource" id="Resource_vw6qw"]
+script = ExtResource("1_0oojy")
+name = "Sunset"
+tag = "loud"
+top = SubResource("Resource_scxuk")
+accent = SubResource("Resource_gm1si")
+bottom = SubResource("Resource_lx15l")
+
+[sub_resource type="Resource" id="Resource_uspv4"]
+script = ExtResource("2_guub5")
+name = "Mint accent"
+base = Color(0.9098039, 0.9254902, 0.9372549, 1)
+shadow = Color(0.6901961, 0.72156864, 0.7529412, 1)
+deep = Color(0.4392157, 0.47843137, 0.5254902, 1)
+
+[sub_resource type="Resource" id="Resource_yel4j"]
+script = ExtResource("2_guub5")
+name = "Mint bottom"
+highlight = Color(0.5411765, 0.6039216, 0.6901961, 1)
+base = Color(0.3372549, 0.4, 0.49411765, 1)
+shadow = Color(0.21176471, 0.25882354, 0.3529412, 1)
+deep = Color(0.10980392, 0.14117648, 0.21176471, 1)
+
+[sub_resource type="Resource" id="Resource_j0tvf"]
+script = ExtResource("2_guub5")
+name = "Mint top"
+highlight = Color(0.8156863, 1, 0.9411765, 1)
+base = Color(0.5568628, 0.8784314, 0.76862746, 1)
+shadow = Color(0.30980393, 0.65882355, 0.5647059, 1)
+deep = Color(0.15686275, 0.41568628, 0.36078432, 1)
+
+[sub_resource type="Resource" id="Resource_wqpts"]
+script = ExtResource("1_0oojy")
+name = "Mint"
+tag = "dark"
+top = SubResource("Resource_j0tvf")
+accent = SubResource("Resource_uspv4")
+bottom = SubResource("Resource_yel4j")
+
+[sub_resource type="Resource" id="Resource_6l75u"]
+script = ExtResource("2_guub5")
+name = "Candy accent"
+highlight = Color(0.9098039, 0.84705883, 1, 1)
+base = Color(0.72156864, 0.6039216, 0.9411765, 1)
+shadow = Color(0.4862745, 0.36078432, 0.7529412, 1)
+deep = Color(0.27450982, 0.1882353, 0.47843137, 1)
+
+[sub_resource type="Resource" id="Resource_rk2g2"]
+script = ExtResource("2_guub5")
+name = "Candy bottom"
+highlight = Color(0.627451, 0.9411765, 0.9254902, 1)
+base = Color(0.29803923, 0.78431374, 0.7529412, 1)
+shadow = Color(0.16470589, 0.5411765, 0.5411765, 1)
+deep = Color(0.078431375, 0.3137255, 0.30588236, 1)
+
+[sub_resource type="Resource" id="Resource_6yxtk"]
+script = ExtResource("2_guub5")
+name = "Candy top"
+highlight = Color(1, 0.8156863, 0.9098039, 1)
+base = Color(1, 0.54901963, 0.7529412, 1)
+shadow = Color(0.8156863, 0.3137255, 0.54901963, 1)
+deep = Color(0.53333336, 0.16470589, 0.36078432, 1)
+
+[sub_resource type="Resource" id="Resource_6bg84"]
+script = ExtResource("1_0oojy")
+name = "Candy"
+tag = "loud"
+top = SubResource("Resource_6yxtk")
+accent = SubResource("Resource_6l75u")
+bottom = SubResource("Resource_rk2g2")
+
+[sub_resource type="Resource" id="Resource_7q4yo"]
+script = ExtResource("2_guub5")
+name = "Midnight accent"
+highlight = Color(0.95686275, 0.9647059, 0.98039216, 1)
+base = Color(0.78431374, 0.8, 0.8392157, 1)
+shadow = Color(0.5568628, 0.5803922, 0.6431373, 1)
+deep = Color(0.3372549, 0.36078432, 0.42352942, 1)
+
+[sub_resource type="Resource" id="Resource_atqff"]
+script = ExtResource("2_guub5")
+name = "Midnight bottom"
+highlight = Color(0.47843137, 0.65882355, 0.9411765, 1)
+base = Color(0.22745098, 0.41568628, 0.8156863, 1)
+shadow = Color(0.14117648, 0.2509804, 0.5411765, 1)
+deep = Color(0.07058824, 0.1254902, 0.2901961, 1)
+
+[sub_resource type="Resource" id="Resource_w7rq4"]
+script = ExtResource("2_guub5")
+name = "Midnight top"
+highlight = Color(0.41568628, 0.4392157, 0.53333336, 1)
+base = Color(0.20392157, 0.22745098, 0.3137255, 1)
+shadow = Color(0.11764706, 0.13333334, 0.20392157, 1)
+deep = Color(0.05490196, 0.0627451, 0.10980392, 1)
+
+[sub_resource type="Resource" id="Resource_a3hsc"]
+script = ExtResource("1_0oojy")
+name = "Midnight"
+tag = "dark"
+top = SubResource("Resource_w7rq4")
+accent = SubResource("Resource_7q4yo")
+bottom = SubResource("Resource_atqff")
+
+[sub_resource type="Resource" id="Resource_7euw4"]
+script = ExtResource("2_guub5")
+name = "Pumpkin accent"
+highlight = Color(0.72156864, 0.8784314, 0.47843137, 1)
+base = Color(0.41568628, 0.65882355, 0.22745098, 1)
+shadow = Color(0.23529412, 0.4392157, 0.14117648, 1)
+deep = Color(0.11764706, 0.2509804, 0.078431375, 1)
+
+[sub_resource type="Resource" id="Resource_pvv70"]
+script = ExtResource("2_guub5")
+name = "Pumpkin bottom"
+highlight = Color(0.6039216, 0.4627451, 0.3764706, 1)
+base = Color(0.36862746, 0.26666668, 0.20392157, 1)
+shadow = Color(0.23529412, 0.16470589, 0.1254902, 1)
+deep = Color(0.11764706, 0.078431375, 0.0627451, 1)
+
+[sub_resource type="Resource" id="Resource_6bw2m"]
+script = ExtResource("2_guub5")
+name = "Pumpkin top"
+highlight = Color(1, 0.7529412, 0.4392157, 1)
+base = Color(0.9411765, 0.5411765, 0.11764706, 1)
+shadow = Color(0.6901961, 0.32941177, 0.078431375, 1)
+deep = Color(0.4, 0.17254902, 0.047058824, 1)
+
+[sub_resource type="Resource" id="Resource_0gh68"]
+script = ExtResource("1_0oojy")
+name = "Pumpkin"
+tag = "loud"
+top = SubResource("Resource_6bw2m")
+accent = SubResource("Resource_7euw4")
+bottom = SubResource("Resource_pvv70")
+
+[sub_resource type="Resource" id="Resource_scf1g"]
+script = ExtResource("2_guub5")
+name = "Pink-beige"
+highlight = Color(1, 0.94509804, 0.8862745, 1)
+base = Color(1, 0.8784314, 0.7607843, 1)
+shadow = Color(0.8784314, 0.7058824, 0.6039216, 1)
+deep = Color(0.65882355, 0.47058824, 0.41568628, 1)
+
+[sub_resource type="Resource" id="Resource_bnep4"]
+script = ExtResource("2_guub5")
+name = "Brown"
+tag = "mid"
+highlight = Color(0.8509804, 0.627451, 0.47843137, 1)
+base = Color(0.6901961, 0.47058824, 0.3137255, 1)
+shadow = Color(0.49411765, 0.30588236, 0.20392157, 1)
+deep = Color(0.2901961, 0.17254902, 0.11764706, 1)
+
+[sub_resource type="Resource" id="Resource_s7mqo"]
+script = ExtResource("2_guub5")
+name = "Black (Suffolk)"
+tag = "dark"
+highlight = Color(0.41568628, 0.3764706, 0.40784314, 1)
+base = Color(0.24313726, 0.21960784, 0.24313726, 1)
+shadow = Color(0.14901961, 0.13333334, 0.16470589, 1)
+deep = Color(0.078431375, 0.07058824, 0.09411765, 1)
+
+[sub_resource type="Resource" id="Resource_jd08f"]
+script = ExtResource("2_guub5")
+name = "White"
+base = Color(0.93333334, 0.9490196, 0.9647059, 1)
+shadow = Color(0.72156864, 0.7607843, 0.8156863, 1)
+deep = Color(0.47843137, 0.5176471, 0.59607846, 1)
+
+[sub_resource type="Resource" id="Resource_7sfi5"]
+script = ExtResource("2_guub5")
+name = "Cream"
+highlight = Color(1, 0.972549, 0.9098039, 1)
+base = Color(0.9411765, 0.8627451, 0.7058824, 1)
+shadow = Color(0.7882353, 0.654902, 0.47843137, 1)
+deep = Color(0.5411765, 0.41568628, 0.28235295, 1)
+
+[sub_resource type="Resource" id="Resource_uc3tf"]
+script = ExtResource("2_guub5")
+name = "Grey"
+highlight = Color(0.9490196, 0.9490196, 0.96862745, 1)
+base = Color(0.76862746, 0.7764706, 0.8117647, 1)
+shadow = Color(0.5568628, 0.56078434, 0.6392157, 1)
+deep = Color(0.3372549, 0.3372549, 0.4392157, 1)
+
+[sub_resource type="Resource" id="Resource_g1c05"]
+script = ExtResource("2_guub5")
+name = "Caramel"
+tag = "mid"
+highlight = Color(1, 0.8784314, 0.65882355, 1)
+base = Color(0.8784314, 0.65882355, 0.3764706, 1)
+shadow = Color(0.65882355, 0.4392157, 0.22745098, 1)
+deep = Color(0.41568628, 0.2509804, 0.14117648, 1)
+
+[sub_resource type="Resource" id="Resource_c6m1k"]
+script = ExtResource("2_guub5")
+name = "Chocolate"
+tag = "dark"
+highlight = Color(0.7882353, 0.5294118, 0.41568628, 1)
+base = Color(0.56078434, 0.3137255, 0.21960784, 1)
+shadow = Color(0.36862746, 0.18039216, 0.13333334, 1)
+deep = Color(0.20784314, 0.09411765, 0.07058824, 1)
+
+[sub_resource type="Resource" id="Resource_eforo"]
+script = ExtResource("2_guub5")
+name = "Black"
+tag = "dark"
+highlight = Color(0.41568628, 0.39215687, 0.47058824, 1)
+base = Color(0.22745098, 0.21176471, 0.26666668, 1)
+shadow = Color(0.14117648, 0.12941177, 0.17254902, 1)
+deep = Color(0.07058824, 0.0627451, 0.08627451, 1)
+
+[resource]
+script = ExtResource("3_vtip6")
+wools = Array[ExtResource("2_guub5")]([SubResource("Resource_jd08f"), SubResource("Resource_7sfi5"), SubResource("Resource_uc3tf"), SubResource("Resource_g1c05"), SubResource("Resource_c6m1k"), SubResource("Resource_eforo")])
+skins = Array[ExtResource("2_guub5")]([SubResource("Resource_scf1g"), SubResource("Resource_bnep4"), SubResource("Resource_s7mqo")])
+outfits = Array[ExtResource("1_0oojy")]([SubResource("Resource_3s66d"), SubResource("Resource_2vtv1"), SubResource("Resource_vdg4f"), SubResource("Resource_7hq3r"), SubResource("Resource_fqudt"), SubResource("Resource_vw6qw"), SubResource("Resource_wqpts"), SubResource("Resource_6bg84"), SubResource("Resource_a3hsc"), SubResource("Resource_0gh68")])
