@@ -13,27 +13,6 @@ const HITBOX_RADIUS: float = 18.0
 const CHARGE_SPEED: float = 0.95   # Fills 0.25 to 1.0 in ~0.78s
 const DECAY_SPEED: float = 0.85    # Gradually decays if not held or outside hitbox
 
-const PIXEL_SPRITES := [
-	"res://assets/sheep_character_pixel/Detective_sheep_pixel.png",
-	"res://assets/sheep_character_pixel/Axel_drifter_pixel.png",
-	"res://assets/sheep_character_pixel/Babara_sheep_pixel.png",
-	"res://assets/sheep_character_pixel/Gambling_sheep_pixel.png",
-	"res://assets/sheep_character_pixel/Rapper_Sheep.png",
-	"res://assets/sheep_character_pixel/nun_sheep_pixel.png",
-	"res://assets/sheep_character_pixel/star_sheep_pixel.png",
-]
-
-const SPECIES_PIXEL_MAP := {
-	"Merino": "res://assets/sheep_character_pixel/star_sheep_pixel.png",
-	"Suffolk": "res://assets/sheep_character_pixel/Detective_sheep_pixel.png",
-	"Dorper": "res://assets/sheep_character_pixel/Rapper_Sheep.png",
-	"Jacob": "res://assets/sheep_character_pixel/Gambling_sheep_pixel.png",
-	"Cheviot": "res://assets/sheep_character_pixel/Axel_drifter_pixel.png",
-	"Texel": "res://assets/sheep_character_pixel/nun_sheep_pixel.png",
-	"Shetland": "res://assets/sheep_character_pixel/Babara_sheep_pixel.png",
-	"Romney": "res://assets/sheep_character_pixel/star_sheep_pixel.png",
-}
-
 @export var move_speed: float = 100.0
 
 var guest_data: Dictionary = {}
@@ -70,47 +49,19 @@ func setup(data: Dictionary) -> void:
 	var sheep_name: String = truth.get("name", "Sheep")
 	name_label.text = sheep_name
 
-	# Pixel art sprite resolution
-	var pixel_path := _resolve_pixel_sprite(data)
-	if ResourceLoader.exists(pixel_path):
-		sprite.texture = load(pixel_path)
+	# The pixel version of the sheep they were at the front desk.
+	var pixel := SheepCharacters.shared().pixel_for(data)
+	if pixel:
+		sprite.texture = pixel
 
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	sprite.scale = Vector2(0.85, 0.85)
 
-	# Modulate: subtle wolf tell or wool tint
-	var app: Dictionary = data.get("appearance", {})
-	var tint: Color = app.get("tint", Color.WHITE)
-	if is_wolf:
-		sprite.modulate = Color(1.0, 0.82, 0.82)
-	else:
-		sprite.modulate = tint
+	# Subtle wolf tell
+	sprite.modulate = Color(1.0, 0.82, 0.82) if is_wolf else Color.WHITE
 
 	deport_bar.visible = false
 	tell_label.visible = false
-
-func _resolve_pixel_sprite(data: Dictionary) -> String:
-	var app: Dictionary = data.get("appearance", {})
-	var orig_path: String = app.get("sprite", "").to_lower()
-	if "detective" in orig_path:
-		return "res://assets/sheep_character_pixel/Detective_sheep_pixel.png"
-	elif "drift" in orig_path:
-		return "res://assets/sheep_character_pixel/Axel_drifter_pixel.png"
-	elif "robin" in orig_path:
-		return "res://assets/sheep_character_pixel/Rapper_Sheep.png"
-	elif "wiz" in orig_path:
-		return "res://assets/sheep_character_pixel/star_sheep_pixel.png"
-	elif "fake" in orig_path:
-		return "res://assets/sheep_character_pixel/Gambling_sheep_pixel.png"
-
-	var truth: Dictionary = data.get("truth", {})
-	var spec: String = truth.get("species", "")
-	if SPECIES_PIXEL_MAP.has(spec):
-		return SPECIES_PIXEL_MAP[spec]
-
-	var guest_name: String = truth.get("name", "Sheep")
-	var idx := absi(guest_name.hash()) % PIXEL_SPRITES.size()
-	return PIXEL_SPRITES[idx]
 
 func _ready() -> void:
 	deport_bar.visible = false

@@ -1,0 +1,58 @@
+[gd_resource type="Resource" script_class="SheepCharacter" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sheep_character/sheep_pcg_2.png" id="1_pum18"]
+[ext_resource type="Script" path="res://script/sheep_face.gd" id="2_kblhq"]
+[ext_resource type="Texture2D" path="res://assets/sheep_character_pixel/rapper_sheep_pixel.png" id="3_p0yge"]
+[ext_resource type="Script" path="res://script/sheep_character.gd" id="4_4drod"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nhdky"]
+atlas = ExtResource("1_pum18")
+region = Rect2(1948, 76, 484, 1492)
+
+[sub_resource type="Resource" id="Resource_x8tha"]
+script = ExtResource("2_kblhq")
+id = "face_01"
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_8bm4h"]
+atlas = ExtResource("1_pum18")
+region = Rect2(2548, 160, 232, 100)
+
+[sub_resource type="Resource" id="Resource_rj660"]
+script = ExtResource("2_kblhq")
+id = "face_02"
+texture = SubResource("AtlasTexture_8bm4h")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_8isqh"]
+atlas = ExtResource("1_pum18")
+region = Rect2(2524, 304, 256, 136)
+
+[sub_resource type="Resource" id="Resource_2wrdr"]
+script = ExtResource("2_kblhq")
+id = "face_03"
+texture = SubResource("AtlasTexture_8isqh")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_f621a"]
+atlas = ExtResource("1_pum18")
+region = Rect2(2548, 496, 172, 88)
+
+[sub_resource type="Resource" id="Resource_m2bmy"]
+script = ExtResource("2_kblhq")
+id = "face_04"
+texture = SubResource("AtlasTexture_f621a")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_e6rfc"]
+atlas = ExtResource("1_pum18")
+region = Rect2(2536, 616, 196, 100)
+
+[sub_resource type="Resource" id="Resource_6f51a"]
+script = ExtResource("2_kblhq")
+id = "face_05"
+texture = SubResource("AtlasTexture_e6rfc")
+
+[resource]
+script = ExtResource("4_4drod")
+body = SubResource("AtlasTexture_nhdky")
+faces = Array[ExtResource("2_kblhq")]([SubResource("Resource_x8tha"), SubResource("Resource_rj660"), SubResource("Resource_2wrdr"), SubResource("Resource_m2bmy"), SubResource("Resource_6f51a")])
+face_anchor = Vector2(216, 196)
+photo_rect = Rect2(48, 8, 320, 360)
+pixel = ExtResource("3_p0yge")

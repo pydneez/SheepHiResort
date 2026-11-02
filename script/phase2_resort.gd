@@ -319,25 +319,7 @@ func _on_next_day_pressed() -> void:
 	GameManager.change_scene("res://scene/front_desk.tscn")
 
 func _generate_fallback_pool() -> void:
-	# Generates a quick test queue when running Phase 2 directly from editor
-	var test_breeds := ["Merino", "Suffolk", "Cheviot", "Dorper", "Shetland", "Jacob"]
+	# Generates a quick test queue when running Phase 2 directly from editor:
+	# real generated guests (so each has its drawn sheep), 1 undercover wolf.
 	for i in 6:
-		var species_name: String = test_breeds[i % test_breeds.size()]
-		var is_w: bool = (i == 4) # 1 undercover wolf for testing
-		var pixel_sprites := [
-			"res://assets/sheep_character_pixel/Detective_sheep_pixel.png",
-			"res://assets/sheep_character_pixel/Axel_drifter_pixel.png",
-			"res://assets/sheep_character_pixel/Babara_sheep_pixel.png",
-			"res://assets/sheep_character_pixel/Gambling_sheep_pixel.png",
-			"res://assets/sheep_character_pixel/Rapper_Sheep.png",
-			"res://assets/sheep_character_pixel/star_sheep_pixel.png",
-		]
-		guest_queue.append({
-			"is_wolf": is_w,
-			"truth": {"name": "Guest #%d" % (i + 1), "species": species_name},
-			"appearance": {
-				"sprite": pixel_sprites[i % pixel_sprites.size()],
-				"tint": Color(1.0, 0.8, 0.8) if is_w else Color.WHITE,
-				"scale": 1.0,
-			}
-		})
+		guest_queue.append(GameManager.make_dev_guest(i == 4, i + 1))

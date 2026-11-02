@@ -6,8 +6,11 @@ extends RefCounted
 ## Rules of the world:
 ##  * name + ID are ALWAYS truthful and identical on every document and in the
 ##    database (they are the lookup key).
-##  * Everything else (region, species, vaccines, expiry, room, wool...) may be
-##    forged. Wolves always carry at least one forged/invalid field.
+##  * Everything else (region, species, vaccines, expiry, room, ID photo...) may
+##    be forged. Wolves always carry at least one forged/invalid field.
+##  * Each guest is one of the drawn sheep (SheepCharacters) with one of its
+##    faces. The body never changes; the face is what varies, and what the ID
+##    photo can get wrong.
 ##  * Some honest sheep are just sloppy and also carry a flaw. Those should be
 ##    denied too, but turning them away hurts less than letting a wolf in.
 
@@ -20,10 +23,9 @@ const REGIONS := ["Woolington", "Baahamas", "Lambsterdam", "Ewe-tah", "Ramsgate"
 	"Fleece Valley", "Mount Muttonmore", "Cloverfield"]
 const SPECIES := ["Merino", "Suffolk", "Dorper", "Jacob", "Cheviot", "Texel", "Shetland", "Romney"]
 const VACCINES := ["Rabies", "Scrapie", "Anthrax", "Bluetongue"]
-## How often each optional part is worn (eyes, mouth and head wool always are).
-const OPTIONAL_CHANCE := {"ears": 1.0, "top": 0.7, "bottom": 0.6, "hat": 0.4, "front": 0.25, "back": 0.15}
-## Share of wolves showing a visual giveaway (a wolf part: red eyes, claws, tail...).
-const WOLF_TELL_CHANCE := 0.3
+## Share of wolves showing a visual giveaway (a red-eyed face), among wolves
+## whose sheep has one drawn (all but the rapper, so ~30% of all wolves).
+const WOLF_TELL_CHANCE := 0.35
 
 const GREETINGS := ["Baa! I have a reservation.", "Good evening, one room please.",
 	"Long trip from %s. I'm exhausted.", "Hello! Is the pool open?",
@@ -85,19 +87,21 @@ func _make_identity(used_ids: Dictionary) -> Dictionary:
 	while id == "" or used_ids.has(id):
 		id = "S-%04d" % rng.randi_range(1000, 9999)
 	used_ids[id] = true
+	var chars := SheepCharacters.shared()
+	var character: String = pick(chars.playable)
 	return {
+		"character": character,
+		"face": pick(chars.get_character(character).normal_faces()).id,
 		"name": "%s %s" % [pick(FIRST_NAMES), pick(LAST_NAMES)],
 		"id": id,
 		"region": pick(REGIONS),
 		"species": pick(SPECIES),
-		"wool": pick(SheepColours.shared().wool_names()),
 		"room": rng.randi_range(101, 420),
 		"nights": rng.randi_range(1, 7),
 	}
 
 func _make_guest(truth: Dictionary, booked: bool, is_wolf: bool, sloppy: bool) -> Dictionary:
 	var papers := truth.duplicate()
-	var actual_wool: String = truth.wool
 	var vaccines := {}
 	for v in rules.required_vaccines:
 		vaccines[v] = today + rng.randi_range(5, 200)
@@ -117,10 +121,10 @@ func _make_guest(truth: Dictionary, booked: bool, is_wolf: bool, sloppy: bool) -
 
 	# Some wolves show a visual giveaway. Half of those have flawless papers, so
 	# only the giveaway (or the scanner) betrays them: deny on suspicion.
+	var character := SheepCharacters.shared().get_character(truth.character)
 	var tell := ""
-	var tells := wolf_tells()
-	if is_wolf and not tells.is_empty() and rng.randf() < WOLF_TELL_CHANCE:
-		tell = pick(tells)
+	if is_wolf and not character.wolf_faces().is_empty() and rng.randf() < WOLF_TELL_CHANCE:
+		tell = "red_eyes"
 	var clean_wolf := tell != "" and booked and rng.randf() < 0.5
 
 	# Corrupt papers so other wolves / sloppy sheep have something to catch.
@@ -139,17 +143,20 @@ func _make_guest(truth: Dictionary, booked: bool, is_wolf: bool, sloppy: bool) -
 	if is_wolf and not clean_wolf and guest.flaws.is_empty():
 		_apply_flaw(guest, "region")
 
-	# Appearance. The wool here is what the guest *actually* looks like; the
-	# "wool" flaw makes their ID claim a different colour.
-	if guest.flaws.has("wool"):
-		actual_wool = pick_other(SheepColours.shared().wool_names(), papers.wool)
-	var look := make_look(actual_wool, tell)
+	# Appearance: the face the guest really has (red eyes for a wolf showing its
+	# giveaway), and the ID photo, which shows the face the papers claim — the
+	# normal one, or another face of the same sheep when the photo is forged.
+	var look := {"character": truth.character, "face": truth.face}
+	if tell != "":
+		look.face = pick(character.wolf_faces()).id
+	var photo := {"character": papers.character, "face": papers.face}
+	# A red-eyed wolf's photo can't match either; once photos are checked that
+	# counts as a flaw you can prove.
+	if rules.check_face and photo.face != look.face and not guest.flaws.has("face"):
+		guest.flaws.append("face")
 	guest["appearance"] = {
 		"look": look,
-		# The ID photo: forged papers show a normal sheep (no wolf parts), in the
-		# wool colour the papers claim.
-		"claimed_look": claimed_look(look, papers.wool),
-		"wool": actual_wool,
+		"photo": photo,
 		"scale": rng.randf_range(0.92, 1.08),
 		"tell": tell,
 	}
@@ -164,71 +171,6 @@ func _shuffle(arr: Array) -> void:
 		arr[i] = arr[j]
 		arr[j] = tmp
 
-## A paper-doll sheep (see SheepLook): a base, the required parts, optional parts
-## by chance, and colours from the curated lists that obey the combination rules.
-## tell = a wolf giveaway: a slot with wolf parts (e.g. "eyes"), "wolf_skin"
-## (wolf face), "wolf_detail" (claws) or "" for none.
-func make_look(wool: String, tell := "") -> Dictionary:
-	var cat := SheepParts.shared()
-	var colours := SheepColours.shared()
-	var wool_ramp := colours.wool(wool)
-	var fits := colours.outfits.filter(func(o): return SheepColours.allowed(wool_ramp, o))
-	var skins := colours.skins.filter(func(s): return SheepColours.skin_allowed(wool_ramp, s))
-	# A wolf face or claws need a base that has them drawn.
-	var bases: Array = cat.bases.keys().filter(func(n): return tell not in ["wolf_skin", "wolf_detail"] or cat.bases[n].has(tell))
-	var look := {
-		"base": pick(bases),
-		"parts": {},
-		"wool": wool,
-		"skin": pick(skins).name,
-		"outfit": pick(fits).name if not fits.is_empty() else "",
-		"wolf_skin": tell == "wolf_skin",
-		"wolf_detail": tell == "wolf_detail",
-	}
-	for slot in SheepParts.REQUIRED:
-		look.parts[slot] = pick(cat.options(slot)).id
-	for slot in OPTIONAL_CHANCE:
-		var opts := cat.options(slot)
-		if not opts.is_empty() and rng.randf() < OPTIONAL_CHANCE[slot]:
-			look.parts[slot] = pick(opts).id
-	if tell in SheepParts.LAYER_ORDER:
-		look.parts[tell] = pick(cat.options(tell, true)).id   # the wolf part replaces the normal one
-		if tell == "eyes":
-			look.parts.erase("front")   # glasses would hide the red eyes
-	return look
-
-## The same sheep as on its (forged) papers: every wolf part swapped for a
-## normal one (or left off if there is none), base without wolf face or claws,
-## in the given wool colour.
-func claimed_look(look: Dictionary, wool: String) -> Dictionary:
-	var cat := SheepParts.shared()
-	var claimed := look.duplicate(true)
-	claimed.wool = wool
-	claimed.wolf_skin = false
-	claimed.wolf_detail = false
-	for slot in look.parts:
-		if cat.part(slot, look.parts[slot]).get("wolf", false):
-			var normal := cat.options(slot)
-			if normal.is_empty():
-				claimed.parts.erase(slot)
-			else:
-				claimed.parts[slot] = pick(normal).id
-	return claimed
-
-## Which wolf giveaways the current art can show: slots with *_wolf_* parts,
-## plus wolf versions of the base skin / detail (snout, claws).
-func wolf_tells() -> Array:
-	var cat := SheepParts.shared()
-	var tells := []
-	for slot in SheepParts.LAYER_ORDER:
-		if slot != "base" and not cat.options(slot, true).is_empty():
-			tells.append(slot)
-	for b in cat.bases.values():
-		for k in ["wolf_skin", "wolf_detail"]:
-			if b.has(k) and not tells.has(k):
-				tells.append(k)
-	return tells
-
 func _flaw_options() -> Array:
 	var o := ["region", "species"]
 	if rules.check_health:
@@ -237,8 +179,8 @@ func _flaw_options() -> Array:
 		o.append("id_expired")
 	if rules.check_voucher:
 		o.append_array(["room", "nights"])
-	if rules.check_wool:
-		o.append("wool")
+	if rules.check_face:
+		o.append("face")
 	return o
 
 func _apply_flaw(g: Dictionary, f: String) -> void:
@@ -250,7 +192,13 @@ func _apply_flaw(g: Dictionary, f: String) -> void:
 		"species": p.species = pick_other(SPECIES, p.species)
 		"room": p.room = p.room + rng.randi_range(1, 9) * (1 if rng.randf() < 0.5 else -1)
 		"nights": p.nights = p.nights % 7 + 1
-		"wool": pass  # handled when building the appearance
+		"face":
+			# The photo shows another (normal) face of the same sheep.
+			var others := SheepCharacters.shared().get_character(p.character).normal_faces() \
+				.map(func(x): return x.id).filter(func(id): return id != p.face)
+			if others.is_empty():
+				return
+			p.face = pick(others)
 		"id_expired": g.id_expiry = today - rng.randi_range(1, 60)
 		"vaccine_missing":
 			if g.flaws.has("vaccine_expired"):
@@ -282,11 +230,11 @@ static func build_documents(g: Dictionary, r: Dictionary) -> Array:
 		_f("Region", "region", p.region),
 		_f("Species", "species", p.species),
 	]
-	if r.check_wool:
-		id_fields.append(_f("Wool", "wool", p.wool))
 	if r.check_id_expiry:
 		id_fields.append(_f("Expires", "expiry", g.id_expiry, DayRules.format_date(g.id_expiry)))
-	docs.append({"type": "id", "title": "SHEEP ID CARD", "color": Color(0.86, 0.93, 1.0), "fields": id_fields})
+	# The photo can be right-clicked like a field (kind "face"), against the guest.
+	docs.append({"type": "id", "title": "SHEEP ID CARD", "color": Color(0.86, 0.93, 1.0), "fields": id_fields,
+		"photo": face_field("ID photo", g.appearance.photo)})
 
 	if r.check_health:
 		var h := [_f("Name", "name", p.name), _f("ID", "id", p.id),
@@ -300,6 +248,12 @@ static func build_documents(g: Dictionary, r: Dictionary) -> Array:
 			_f("Name", "name", p.name), _f("ID", "id", p.id),
 			_f("Room", "room", p.room), _f("Nights", "nights", p.nights)]})
 	return docs
+
+## A face to compare: the ID photo or the guest themself. look: {character, face}.
+static func face_field(label: String, look: Dictionary) -> Dictionary:
+	var f := _f(label, "face", "%s/%s" % [look.character, look.face], label)
+	f["look"] = look
+	return f
 
 static func _f(label: String, kind: String, value, text = null) -> Dictionary:
 	return {"label": label, "kind": kind, "value": value, "text": str(value) if text == null else text}
@@ -324,7 +278,7 @@ static func compare(a: Dictionary, b: Dictionary, today_ord: int) -> Dictionary:
 			return _res(missing, "vaccine_missing")
 		if x.kind == "id" and y.kind == "booking_list":
 			return _res(not y.value.has(x.value), "not_booked")
-	if a.kind == b.kind and a.kind in ["name", "id", "region", "species", "room", "nights", "wool"]:
+	if a.kind == b.kind and a.kind in ["name", "id", "region", "species", "room", "nights", "face"]:
 		if a.get("source", "") == b.get("source", ""):
 			return {"comparable": false}
 		return _res(str(a.value) != str(b.value), a.kind)
@@ -342,5 +296,5 @@ const FLAW_TEXT := {
 	"id_expired": "The ID card has expired.",
 	"room": "Room number doesn't match the booking.",
 	"nights": "Number of nights doesn't match the booking.",
-	"wool": "Wool colour doesn't match the guest.",
+	"face": "The ID photo doesn't match the guest's face.",
 }

@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="SheepCharacter" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sheep_character/epic_sheep.png" id="1_2y43n"]
+[ext_resource type="Script" path="res://script/sheep_face.gd" id="2_ohwti"]
+[ext_resource type="Script" path="res://script/sheep_character.gd" id="3_vlpq3"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_66ye1"]
+atlas = ExtResource("1_2y43n")
+region = Rect2(40, 337, 592, 907)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ihwhn"]
+atlas = ExtResource("1_2y43n")
+region = Rect2(142, 0, 406, 348)
+
+[sub_resource type="Resource" id="Resource_uboix"]
+script = ExtResource("2_ohwti")
+id = "face_01"
+texture = SubResource("AtlasTexture_ihwhn")
+offset = Vector2(7.5471964, 1.8867991)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tvxt1"]
+atlas = ExtResource("1_2y43n")
+region = Rect2(664, 112, 376, 340)
+
+[sub_resource type="Resource" id="Resource_2keqw"]
+script = ExtResource("2_ohwti")
+id = "face_02"
+texture = SubResource("AtlasTexture_tvxt1")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nb8p8"]
+atlas = ExtResource("1_2y43n")
+region = Rect2(664, 472, 400, 340)
+
+[sub_resource type="Resource" id="Resource_2jvvj"]
+script = ExtResource("2_ohwti")
+id = "wolf_01"
+texture = SubResource("AtlasTexture_nb8p8")
+wolf = true
+offset = Vector2(-3.7791548, -1.8839966)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2qs3y"]
+atlas = ExtResource("1_2y43n")
+region = Rect2(712, 844, 388, 352)
+
+[sub_resource type="Resource" id="Resource_0j6dc"]
+script = ExtResource("2_ohwti")
+id = "face_03"
+texture = SubResource("AtlasTexture_2qs3y")
+offset = Vector2(7.5471964, -3.773622)
+
+[resource]
+script = ExtResource("3_vlpq3")
+body = SubResource("AtlasTexture_66ye1")
+faces = Array[ExtResource("2_ohwti")]([SubResource("Resource_uboix"), SubResource("Resource_2keqw"), SubResource("Resource_2jvvj"), SubResource("Resource_0j6dc")])
+face_anchor = Vector2(299.32968, -48.54788)

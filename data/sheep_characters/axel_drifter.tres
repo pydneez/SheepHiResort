@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="SheepCharacter" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sheep_character/sheep_pcg_1.png" id="1_xmudj"]
+[ext_resource type="Script" path="res://script/sheep_face.gd" id="2_urpw6"]
+[ext_resource type="Texture2D" path="res://assets/sheep_character_pixel/axel_drifter_pixel.png" id="3_auul8"]
+[ext_resource type="Script" path="res://script/sheep_character.gd" id="4_swi7e"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cfiwb"]
+atlas = ExtResource("1_xmudj")
+region = Rect2(1960, 304, 460, 664)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_c4sew"]
+atlas = ExtResource("1_xmudj")
+region = Rect2(1936, 1000, 340, 352)
+
+[sub_resource type="Resource" id="Resource_e27du"]
+script = ExtResource("2_urpw6")
+id = "face_01"
+texture = SubResource("AtlasTexture_c4sew")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wm8pn"]
+atlas = ExtResource("1_xmudj")
+region = Rect2(1936, 1384, 328, 352)
+
+[sub_resource type="Resource" id="Resource_b85cb"]
+script = ExtResource("2_urpw6")
+id = "face_02"
+texture = SubResource("AtlasTexture_wm8pn")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_eyudv"]
+atlas = ExtResource("1_xmudj")
+region = Rect2(1936, 1756, 328, 352)
+
+[sub_resource type="Resource" id="Resource_1uis2"]
+script = ExtResource("2_urpw6")
+id = "wolf_01"
+texture = SubResource("AtlasTexture_eyudv")
+wolf = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_f6h0w"]
+atlas = ExtResource("1_xmudj")
+region = Rect2(1936, 2116, 340, 364)
+
+[sub_resource type="Resource" id="Resource_f1w6u"]
+script = ExtResource("2_urpw6")
+id = "face_04"
+texture = SubResource("AtlasTexture_f6h0w")
+
+[resource]
+script = ExtResource("4_swi7e")
+body = SubResource("AtlasTexture_cfiwb")
+faces = Array[ExtResource("2_urpw6")]([SubResource("Resource_e27du"), SubResource("Resource_b85cb"), SubResource("Resource_1uis2"), SubResource("Resource_f1w6u")])
+face_anchor = Vector2(180.16003, -55.929276)
+face_scale = 0.9238454260265141
+pixel = ExtResource("3_auul8")
