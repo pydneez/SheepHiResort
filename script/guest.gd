@@ -3,9 +3,9 @@ extends Control
 ## The guest at the desk (scene/guest.tscn). Where this node sits in
 ## front_desk.tscn is where the guest stands while being served; they walk in
 ## from enter_x and leave to exit_x (accepted) or back to enter_x (denied).
-## The sheep itself is a SheepLook: stacked part pictures (paper doll).
+## The sheep itself is a SheepLook: a drawn body with one of its faces.
 
-signal right_clicked  # right-click on the guest = compare their real wool colour
+signal right_clicked  # right-click on the guest = compare their real face
 
 @export var enter_x := -560.0
 @export var exit_x := 1480.0

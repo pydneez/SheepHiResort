@@ -31,17 +31,19 @@ func _check_guest(g: Dictionary) -> void:
 func _provable(g: Dictionary, f: String) -> bool:
 	var fields: Array = []
 	for doc in SheepGenerator.build_documents(g, desk.rules):
-		for x in doc.fields:
+		for x in doc.fields + ([doc.photo] if doc.has("photo") else []):
 			var c: Dictionary = x.duplicate()
 			c["source"] = doc.type
 			fields.append(c)
 	var b: Dictionary = g.truth
-	for k in ["name", "id", "region", "species", "wool", "room", "nights"]:
+	for k in ["name", "id", "region", "species", "room", "nights"]:
 		fields.append({"label": k, "kind": k, "value": b[k], "text": str(b[k]), "source": "db"})
 	fields.append({"label": "today", "kind": "today", "value": desk.today, "source": "clock"})
 	fields.append({"label": "req", "kind": "required", "value": desk.rules.required_vaccines, "source": "rules"})
 	fields.append({"label": "bk", "kind": "booking_list", "value": desk.database.map(func(x): return x.id), "source": "db"})
-	fields.append({"label": "sheep", "kind": "wool", "value": g.appearance.wool, "source": "sheep"})
+	var sheep := SheepGenerator.face_field("sheep", g.appearance.look)
+	sheep["source"] = "sheep"
+	fields.append(sheep)
 	for a in fields:
 		for c in fields:
 			var r: Dictionary = SheepGenerator.compare(a, c, desk.today)

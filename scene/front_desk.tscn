@@ -18,7 +18,7 @@
 [ext_resource type="PackedScene" path="res://scene/speech_bubble.tscn" id="16_8r1ro"]
 [ext_resource type="PackedScene" path="res://scene/computer_window.tscn" id="17_xfqts"]
 [ext_resource type="PackedScene" path="res://scene/day_popup.tscn" id="18_ak4hr"]
-[ext_resource type="PackedScene" path="res://scene/week_summary.tscn" id="19_78e58"]
+[ext_resource type="PackedScene" uid="uid://b46lh3kv7apid" path="res://scene/week_summary.tscn" id="19_78e58"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ndkyp"]
 content_margin_left = 6.0
@@ -102,6 +102,8 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme = ExtResource("1_dypvc")
 script = ExtResource("2_teqvl")
 
@@ -123,9 +125,9 @@ stretch_mode = 6
 [node name="Guest" parent="Lobby" unique_id=1010616067 instance=ExtResource("4_6nch0")]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 410.0
+offset_left = 448.0
 offset_top = 192.0
-offset_right = 950.0
+offset_right = 988.0
 offset_bottom = 732.0
 
 [node name="Foreground" type="TextureRect" parent="Lobby" unique_id=178969280]
@@ -292,6 +294,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 
 [node name="ComputerWindow" parent="." unique_id=1932729627 instance=ExtResource("17_xfqts")]

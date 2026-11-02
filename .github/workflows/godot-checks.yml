@@ -1,5 +1,5 @@
 # Checks every pull request (and every push to main):
-#   1. game file names are lowercase without spaces
+#   1. every res:// path in the code matches a file exactly (capitals too)
 #   2. Godot imports the project and starts the game without errors
 #   3. headless gameplay tests in tests/ pass
 name: Godot checks
@@ -20,8 +20,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: File names are lowercase without spaces
-        run: bash tools/ci/check_file_names.sh
+      - name: res:// paths match files exactly
+        run: bash tools/ci/check_res_paths.sh
 
       - name: Cache Godot
         id: cache-godot

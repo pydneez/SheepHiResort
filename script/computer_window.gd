@@ -59,8 +59,6 @@ func _on_booking_selected(idx: int) -> void:
 	var fields := [
 		SheepGenerator._f("Name", "name", b.name), SheepGenerator._f("ID", "id", b.id),
 		SheepGenerator._f("Region", "region", b.region), SheepGenerator._f("Species", "species", b.species)]
-	if _rules.get("check_wool", false):
-		fields.append(SheepGenerator._f("Wool", "wool", b.wool))
 	if _rules.get("check_voucher", false):
 		fields.append(SheepGenerator._f("Room", "room", b.room))
 		fields.append(SheepGenerator._f("Nights", "nights", b.nights))

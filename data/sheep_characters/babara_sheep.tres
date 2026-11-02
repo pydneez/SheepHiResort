@@ -1,0 +1,54 @@
+[gd_resource type="Resource" script_class="SheepCharacter" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sheep_character/sheep_pcg_1.png" id="1_b2ub8"]
+[ext_resource type="Script" path="res://script/sheep_face.gd" id="2_0bdo5"]
+[ext_resource type="Texture2D" path="res://assets/sheep_character_pixel/babara_sheep_pixel.png" id="3_3j4ms"]
+[ext_resource type="Script" path="res://script/sheep_character.gd" id="4_1tjan"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qeow4"]
+atlas = ExtResource("1_b2ub8")
+region = Rect2(2596, 124, 604, 880)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jcqrs"]
+atlas = ExtResource("1_b2ub8")
+region = Rect2(2752, 1060, 304, 280)
+
+[sub_resource type="Resource" id="Resource_4ifqq"]
+script = ExtResource("2_0bdo5")
+id = "face_01"
+texture = SubResource("AtlasTexture_jcqrs")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6d6w8"]
+atlas = ExtResource("1_b2ub8")
+region = Rect2(2752, 1384, 304, 280)
+
+[sub_resource type="Resource" id="Resource_xtfxv"]
+script = ExtResource("2_0bdo5")
+id = "face_02"
+texture = SubResource("AtlasTexture_6d6w8")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cpyro"]
+atlas = ExtResource("1_b2ub8")
+region = Rect2(2752, 1720, 304, 280)
+
+[sub_resource type="Resource" id="Resource_yxjd8"]
+script = ExtResource("2_0bdo5")
+id = "face_03"
+texture = SubResource("AtlasTexture_cpyro")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_v4u08"]
+atlas = ExtResource("1_b2ub8")
+region = Rect2(2764, 2068, 292, 268)
+
+[sub_resource type="Resource" id="Resource_3eiyp"]
+script = ExtResource("2_0bdo5")
+id = "wolf_01"
+texture = SubResource("AtlasTexture_v4u08")
+wolf = true
+
+[resource]
+script = ExtResource("4_1tjan")
+body = SubResource("AtlasTexture_qeow4")
+faces = Array[ExtResource("2_0bdo5")]([SubResource("Resource_4ifqq"), SubResource("Resource_xtfxv"), SubResource("Resource_yxjd8"), SubResource("Resource_3eiyp")])
+face_anchor = Vector2(296.297, 346.55444)
+pixel = ExtResource("3_3j4ms")

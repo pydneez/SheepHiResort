@@ -1,0 +1,63 @@
+[gd_resource type="Resource" script_class="SheepCharacter" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sheep_character/sheep_pcg_1.png" id="1_hh7db"]
+[ext_resource type="Script" path="res://script/sheep_face.gd" id="2_xb8uh"]
+[ext_resource type="Texture2D" path="res://assets/sheep_character_pixel/star_sheep_pixel.png" id="3_2l7nb"]
+[ext_resource type="Script" path="res://script/sheep_character.gd" id="4_3uge7"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rjmbm"]
+atlas = ExtResource("1_hh7db")
+region = Rect2(40, 16, 628, 904)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gt501"]
+atlas = ExtResource("1_hh7db")
+region = Rect2(232, 1048, 208, 232)
+
+[sub_resource type="Resource" id="Resource_m42yr"]
+script = ExtResource("2_xb8uh")
+id = "face_01"
+texture = SubResource("AtlasTexture_gt501")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_247y5"]
+atlas = ExtResource("1_hh7db")
+region = Rect2(232, 1312, 208, 244)
+
+[sub_resource type="Resource" id="Resource_77s8a"]
+script = ExtResource("2_xb8uh")
+id = "face_02"
+texture = SubResource("AtlasTexture_247y5")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7v0s3"]
+atlas = ExtResource("1_hh7db")
+region = Rect2(244, 1576, 208, 244)
+
+[sub_resource type="Resource" id="Resource_f3217"]
+script = ExtResource("2_xb8uh")
+id = "wolf_01"
+texture = SubResource("AtlasTexture_7v0s3")
+wolf = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mybd1"]
+atlas = ExtResource("1_hh7db")
+region = Rect2(244, 1852, 208, 244)
+
+[sub_resource type="Resource" id="Resource_1batt"]
+script = ExtResource("2_xb8uh")
+id = "face_03"
+texture = SubResource("AtlasTexture_mybd1")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_88yeh"]
+atlas = ExtResource("1_hh7db")
+region = Rect2(244, 2116, 220, 244)
+
+[sub_resource type="Resource" id="Resource_0j2l0"]
+script = ExtResource("2_xb8uh")
+id = "face_04"
+texture = SubResource("AtlasTexture_88yeh")
+
+[resource]
+script = ExtResource("4_3uge7")
+body = SubResource("AtlasTexture_rjmbm")
+faces = Array[ExtResource("2_xb8uh")]([SubResource("Resource_m42yr"), SubResource("Resource_77s8a"), SubResource("Resource_f3217"), SubResource("Resource_1batt"), SubResource("Resource_0j2l0")])
+face_anchor = Vector2(314, 308)
+pixel = ExtResource("3_2l7nb")
