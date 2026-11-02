@@ -35,10 +35,10 @@ const PREFERRED_FACILITIES := {
 	"Shetland": "wool_salon",
 	"Suffolk": "restaurant",
 	"Dorper": "restaurant",
-	"Cheviot": "main_building",
-	"Jacob": "main_building",
+	"Cheviot": "cabin",
+	"Jacob": "cabin",
 	"Texel": "restaurant",
-	"Romney": "main_building",
+	"Romney": "cabin",
 }
 
 # Resort Layout & Pathway Planning (Phase 3 Desk Tool)
@@ -46,20 +46,20 @@ const PATH_CELL_SIZE: float = 32.0
 const BUILDING_COST: int = 50
 
 const FACILITY_TEMPLATES := {
+	"cabin": {
+		"facility_id": "cabin",
+		"display_name": "Cabin",
+		"base_cycle_time": 7.5,
+		"base_payout": 35,
+		"building_row": 0,
+		"cost": BUILDING_COST,
+	},
 	"restaurant": {
 		"facility_id": "restaurant",
 		"display_name": "Restaurant",
 		"base_cycle_time": 4.5,
 		"base_payout": 15,
-		"building_row": 10,
-		"cost": BUILDING_COST,
-	},
-	"main_building": {
-		"facility_id": "main_building",
-		"display_name": "Main Building",
-		"base_cycle_time": 7.5,
-		"base_payout": 35,
-		"building_row": 8,
+		"building_row": 7,
 		"cost": BUILDING_COST,
 	},
 	"wool_salon": {
@@ -75,29 +75,38 @@ const FACILITY_TEMPLATES := {
 		"display_name": "Jail",
 		"base_cycle_time": 3.5,
 		"base_payout": 0,
-		"building_row": 7,
+		"building_row": 11,
 		"cost": BUILDING_COST,
 	},
 }
 
 const DEFAULT_FACILITY_INSTANCES := [
 	{
-		"name": "CloverMeadow",
-		"facility_id": "restaurant",
-		"display_name": "Restaurant",
-		"position": Vector2(-260, -90),
-		"building_row": 10,
-		"base_cycle_time": 4.5,
-		"base_payout": 15,
-	},
-	{
-		"name": "ThermalMudBath",
+		"name": "MainBuilding",
 		"facility_id": "main_building",
 		"display_name": "Main Building",
 		"position": Vector2(0, -170),
 		"building_row": 8,
+		"base_cycle_time": 0.0,
+		"base_payout": 0,
+	},
+	{
+		"name": "CabinFacility",
+		"facility_id": "cabin",
+		"display_name": "Cabin",
+		"position": Vector2(0, 70),
+		"building_row": 0,
 		"base_cycle_time": 7.5,
 		"base_payout": 35,
+	},
+	{
+		"name": "CloverMeadow",
+		"facility_id": "restaurant",
+		"display_name": "Restaurant",
+		"position": Vector2(-260, -90),
+		"building_row": 7,
+		"base_cycle_time": 4.5,
+		"base_payout": 15,
 	},
 	{
 		"name": "ShearingBoutique",
@@ -113,18 +122,20 @@ const DEFAULT_FACILITY_INSTANCES := [
 		"facility_id": "jail",
 		"display_name": "Jail",
 		"position": Vector2(-310, 110),
-		"building_row": 7,
+		"building_row": 11,
 		"base_cycle_time": 3.5,
 		"base_payout": 0,
 	},
 ]
 
 const DEFAULT_FACILITY_POSITIONS := {
+	"MainBuilding": Vector2(0, -170),
+	"CabinFacility": Vector2(0, 70),
+	"Cabin": Vector2(0, 70),
 	"CloverMeadow": Vector2(-260, -90),
-	"ThermalMudBath": Vector2(0, -170),
+	"ThermalMudBath": Vector2(0, 70),
 	"ShearingBoutique": Vector2(260, -90),
 	"Restaurant": Vector2(-260, -90),
-	"MainBuilding": Vector2(0, -170),
 	"WoolSalon": Vector2(260, -90),
 	"Jail": Vector2(-310, 110),
 	"JailFacility": Vector2(-310, 110),
@@ -133,9 +144,69 @@ const DEFAULT_FACILITY_POSITIONS := {
 var resort_layout: Dictionary = {}
 var path_cell_lookup: Dictionary = {}
 var is_layout_edit_mode: bool = false
+var dev_pending_week_report: Dictionary = {}
+var dev_menu: CanvasLayer = null
+
+# Scene Transition Manager
+var transition_layer: CanvasLayer = null
+var transition_overlay: ColorRect = null
+var is_transitioning: bool = false
 
 func _ready() -> void:
 	init_default_layout()
+	_setup_transition_overlay()
+	if DisplayServer.get_name() != "headless" and ResourceLoader.exists("res://script/dev_menu.gd"):
+		var dev_script := load("res://script/dev_menu.gd")
+		if dev_script:
+			dev_menu = dev_script.new()
+			dev_menu.name = "DevMenu"
+			add_child(dev_menu)
+
+func _setup_transition_overlay() -> void:
+	transition_layer = CanvasLayer.new()
+	transition_layer.name = "TransitionLayer"
+	transition_layer.layer = 128 # Ensure it sits above all UI layers
+	add_child(transition_layer)
+
+	transition_overlay = ColorRect.new()
+	transition_overlay.name = "TransitionOverlay"
+	transition_overlay.color = Color.BLACK
+	transition_overlay.modulate.a = 0.0
+	transition_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	transition_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	transition_layer.add_child(transition_overlay)
+
+## Smoothly fades to black, changes the scene, and fades back in.
+func change_scene(target_path: String, fade_duration: float = 0.35) -> void:
+	if is_transitioning:
+		return
+	is_transitioning = true
+
+	if not transition_overlay:
+		_setup_transition_overlay()
+
+	# Block all player mouse clicks during the fade
+	transition_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+
+	# Fade to Black
+	var tween_out := create_tween()
+	tween_out.tween_property(transition_overlay, "modulate:a", 1.0, fade_duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await tween_out.finished
+
+	# Change scene file
+	get_tree().change_scene_to_file(target_path)
+
+	# Wait a frame so the new scene is instantiated and ready
+	await get_tree().process_frame
+
+	# Fade in from Black
+	var tween_in := create_tween()
+	tween_in.tween_property(transition_overlay, "modulate:a", 0.0, fade_duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	await tween_in.finished
+
+	# Release mouse filter and transition lock
+	transition_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	is_transitioning = false
 
 func init_default_layout() -> void:
 	if resort_layout.is_empty():
@@ -212,3 +283,22 @@ func record_admitted_guest(guest: Dictionary) -> void:
 func get_preferred_facility(species: String) -> String:
 	return PREFERRED_FACILITIES.get(species, "restaurant")
 
+func make_dev_guest(is_wolf: bool, idx: int = 1) -> Dictionary:
+	var gen := SheepGenerator.new(randi(), DayRules.for_day(clampi(current_day, 1, DayRules.LAST_DAY)))
+	var used_ids := {}
+	var truth := gen._make_identity(used_ids)
+	if is_wolf:
+		truth.name = "%s (Wolf #%d)" % [truth.name, idx] if false else truth.name
+	var g := gen._make_guest(truth, true, is_wolf, false)
+	return g
+
+func build_custom_phase2_pool(sheep_count: int, wolf_count: int) -> void:
+	reset_day_pool()
+	var pool: Array = []
+	for i in range(maxi(sheep_count, 0)):
+		pool.append(make_dev_guest(false, i + 1))
+	for j in range(maxi(wolf_count, 0)):
+		pool.append(make_dev_guest(true, j + 1))
+	pool.shuffle()
+	for guest in pool:
+		record_admitted_guest(guest)

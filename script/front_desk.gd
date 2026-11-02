@@ -6,17 +6,17 @@ extends Control
 
 const DOC_SCENE := preload("res://scene/desk_document.tscn")
 # The guest's paper pile on the mat; the picture matches the papers they hand over.
-const ART_PILE_ID := preload("res://assets/nameplate_id.png")
-const ART_PILE_ID_HEALTH := preload("res://assets/nameplate_id_and_health.png")
-const ART_PILE_ALL := preload("res://assets/nameplate_all.png")      # ID + health certificate + booking voucher
+const ART_PILE_ID := preload("res://assets/lobby/nameplate_id.png")
+const ART_PILE_ID_HEALTH := preload("res://assets/lobby/nameplate_id_and_health.png")
+const ART_PILE_ALL := preload("res://assets/lobby/nameplate_all.png") # ID + health certificate + booking voucher
 
-const DOC_SPREAD := Vector2(430, 600)          # where the first opened paper lands
-const RULES_POS := Vector2(960, 560)           # where the rules paper opens
-const DOC_BOUNDS := Rect2(0, 48, 1440, 1032)   # papers can be dragged anywhere below the top bar
-const CLOCK_WARNING := 0.85                    # last 15% of the day: clock shakes and blinks
-const WOLF_LIMIT := 3                          # the 3rd wolf let in ends the game with an F
+const DOC_SPREAD := Vector2(430, 600) # where the first opened paper lands
+const RULES_POS := Vector2(960, 560) # where the rules paper opens
+const DOC_BOUNDS := Rect2(0, 48, 1440, 1032) # papers can be dragged anywhere below the top bar
+const CLOCK_WARNING := 0.85 # last 15% of the day: clock shakes and blinks
+const WOLF_LIMIT := 3 # the 3rd wolf let in ends the game with an F
 
-enum State { BRIEFING, IDLE, WALKING_IN, AT_DESK, WALKING_OUT, DAY_OVER, GAME_OVER }
+enum State {BRIEFING, IDLE, WALKING_IN, AT_DESK, WALKING_OUT, DAY_OVER, GAME_OVER}
 
 var state := State.BRIEFING
 var run_seed := 0
@@ -25,7 +25,7 @@ var rules: Dictionary
 var today := 0
 var queue: Array = []
 var database: Array = []
-var guest: Dictionary = {}     # the current guest's data (the walking sheep is guest_node)
+var guest: Dictionary = {} # the current guest's data (the walking sheep is guest_node)
 var clock := 0.0
 var day_running := false
 
@@ -34,14 +34,14 @@ var money := 150
 var reputation := 70
 var residents := 0
 var wolves_admitted := 0
-var guest_book: Array = []     # residents checked in this week: {name, room}
-var wolves_inside := 0         # wolves admitted since the last morning report
-var week := {}                 # the week's totals, for the end-of-week summary
+var guest_book: Array = [] # residents checked in this week: {name, room}
+var wolves_inside := 0 # wolves admitted since the last morning report
+var week := {} # the week's totals, for the end-of-week summary
 # Per-day stats
 var day_stats := {}
 
 # Inspection
-var selected: Array = []   # [[field, label], ...]
+var selected: Array = [] # [[field, label], ...]
 var found_flaws: Array = []
 var docs_opened := false
 var docs: Array[DeskDocument] = []
@@ -69,14 +69,21 @@ var rules_doc: DeskDocument
 @onready var hud_res: Label = %ResidentsLabel
 @onready var queue_label: Label = %GuestsLeftLabel
 
-var pile_home: Vector2     # where the pile sits on the mat (set in the editor)
-var clock_home: Vector2    # where the clock sits (it shakes around this point)
+var pile_home: Vector2 # where the pile sits on the mat (set in the editor)
+var clock_home: Vector2 # where the clock sits (it shakes around this point)
 
 func _ready() -> void:
 	randomize()
 	pile_home = pile_btn.position
 	clock_home = clock_art.position
 	_connect_scene()
+	if not GameManager.dev_pending_week_report.is_empty():
+		var req := GameManager.dev_pending_week_report.duplicate(true)
+		GameManager.dev_pending_week_report.clear()
+		_restore_from_game_manager()
+		start_day(clampi(GameManager.current_day, 1, DayRules.LAST_DAY))
+		trigger_dev_week_report(req.get("ending", ""))
+		return
 	if GameManager.ENABLE_PHASE_2 and GameManager.run_started:
 		_restore_from_game_manager()
 		start_day(GameManager.current_day)
@@ -254,7 +261,7 @@ func decide(accept: bool) -> void:
 		day_stats.mistakes += 1
 		day_stats.wolves_in += 1
 		wolves_admitted += 1
-		wolves_inside += 1  # each one makes a resident vanish overnight
+		wolves_inside += 1 # each one makes a resident vanish overnight
 		reputation -= 20
 		msg = "CITATION: You let a WOLF in! (%s)  -20 rep" % reason
 	elif accept:
@@ -351,7 +358,7 @@ func _on_popup_continue() -> void:
 				_finish_week("")
 			elif GameManager.ENABLE_PHASE_2:
 				_sync_to_game_manager()
-				get_tree().change_scene_to_file("res://scene/phase2_resort.tscn")
+				GameManager.change_scene("res://scene/phase2_resort.tscn")
 			else:
 				start_day(day + 1)
 
@@ -393,7 +400,7 @@ func _restore_from_game_manager() -> void:
 func _on_open_resort_layout() -> void:
 	_sync_to_game_manager()
 	GameManager.is_layout_edit_mode = true
-	get_tree().change_scene_to_file("res://scene/phase2_resort.tscn")
+	GameManager.change_scene("res://scene/phase2_resort.tscn")
 
 ## Folds a (possibly unfinished) day into the week's totals, once per day.
 func _add_day_to_week() -> void:
@@ -418,8 +425,8 @@ func _finish_week(ending: String) -> void:
 	var accuracy: float = 100.0 * week.correct / maxi(week.processed, 1)
 	var title: String = {"": "WEEK COMPLETE", "wolves": "THE WOLVES GOT IN", "fired": "YOU'RE FIRED"}[ending]
 	var stats := ("Days worked: %d / %d\nGuests processed: %d\nCorrect decisions: %d%%\n"
-		+ "Wolves caught: %d\nWolves let in: %d / %d\nResidents checked in: %d\nQuota met: %d / %d days\n"
-		+ "Money earned: $%d\nFinal reputation: %d") % [
+		+"Wolves caught: %d\nWolves let in: %d / %d\nResidents checked in: %d\nQuota met: %d / %d days\n"
+		+"Money earned: $%d\nFinal reputation: %d") % [
 		day, DayRules.LAST_DAY, week.processed, roundi(accuracy), week.wolves_caught,
 		wolves_admitted, WOLF_LIMIT, week.residents, week.quota_days, day, week.earned, reputation]
 	week_summary.show_result(grade, title, stats, _receptionist_line(grade, ending))
@@ -469,9 +476,10 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		_reset_inspection()
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_F1:
-			_on_dev_skip_phase1()
+
+func trigger_dev_week_report(ending: String = "") -> void:
+	day_popup.hide()
+	_finish_week(ending)
 
 func _on_dev_skip_phase1() -> void:
 	if GameManager.admitted_guests.is_empty():
@@ -484,7 +492,7 @@ func _on_dev_skip_phase1() -> void:
 			for g in data.guests:
 				GameManager.record_admitted_guest(g)
 	_sync_to_game_manager()
-	get_tree().change_scene_to_file("res://scene/phase2_resort.tscn")
+	GameManager.change_scene("res://scene/phase2_resort.tscn")
 
 func _reset_inspection() -> void:
 	for s in selected:
@@ -501,7 +509,7 @@ func _on_field_clicked(field: Dictionary, label: Control) -> void:
 	label.modulate = Color(1.0, 0.75, 0.1)
 	selected.append([field, label])
 	if selected.size() == 1:
-		return  # wait for the second item
+		return # wait for the second item
 	var a: Dictionary = selected[0][0]
 	var b: Dictionary = selected[1][0]
 	var res := SheepGenerator.compare(a, b, today)
@@ -569,7 +577,7 @@ func _build_rules_doc() -> void:
 	rules_doc = _spawn_doc({"type": "rules", "title": "RULEBOOK — DAY %d" % day,
 		"color": Color(1.0, 0.9, 0.85), "fields": fields}, {}, false)
 	rules_doc.position = RULES_POS
-	rules_doc.visible = false  # opened by clicking the paper drawn on the desk
+	rules_doc.visible = false # opened by clicking the paper drawn on the desk
 
 ## The paper drawn on the desk is today's rules: click to open / close it.
 func _toggle_rules() -> void:
@@ -612,7 +620,7 @@ func _refresh_hud() -> void:
 
 func _refresh_clock() -> void:
 	var minutes := int(8 * 60 + clock / DayRules.DAY_LENGTH_SECONDS * 600)
-	clock_time.text = "%02d:%02d" % [minutes / 60, minutes % 60]
+	clock_time.text = "%02d:%02d" % [int(minutes / 60.0), minutes % 60]
 	if clock >= DayRules.DAY_LENGTH_SECONDS:
 		clock_time.text = "CLOSED"
 	# Near closing time the digits blink red.

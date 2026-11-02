@@ -111,13 +111,21 @@ func _apply_resort_layout() -> void:
 					child.position = fac_pos[key]
 
 func create_facility_instance(fac_id: String, pos: Vector2, custom_node_name: String = "", custom_display: String = "") -> Facility:
-	var tmpl: Dictionary = GameManager.FACILITY_TEMPLATES.get(fac_id, GameManager.FACILITY_TEMPLATES["restaurant"])
+	var tmpl: Dictionary = GameManager.FACILITY_TEMPLATES.get(fac_id, {})
 	var fac: Facility = FACILITY_SCENE.instantiate()
 	fac.facility_id = fac_id
-	fac.display_name = custom_display if custom_display != "" else tmpl["display_name"]
-	fac.base_cycle_time = tmpl["base_cycle_time"]
-	fac.base_payout = tmpl["base_payout"]
-	fac.building_row = tmpl["building_row"]
+	if not tmpl.is_empty():
+		fac.display_name = custom_display if custom_display != "" else tmpl.get("display_name", "Facility")
+		fac.base_cycle_time = tmpl.get("base_cycle_time", 5.0)
+		fac.base_payout = tmpl.get("base_payout", 15)
+		fac.building_row = tmpl.get("building_row", 8)
+	elif fac_id == "main_building":
+		fac.display_name = "Main Building"
+		fac.base_cycle_time = 0.0
+		fac.base_payout = 0
+		fac.building_row = 8
+	else:
+		fac.display_name = custom_display if custom_display != "" else "Facility"
 	fac.position = pos
 	if custom_node_name != "":
 		fac.name = custom_node_name
@@ -141,6 +149,8 @@ func _matches_facility_id(fac_id: String, pref_id: String) -> bool:
 	if fac_id == pref_id:
 		return true
 	var aliases := {
+		"cabin": ["cabin", "lodge"],
+		"lodge": ["cabin", "lodge"],
 		"restaurant": ["restaurant", "clover_meadow"],
 		"clover_meadow": ["restaurant", "clover_meadow"],
 		"main_building": ["main_building", "thermal_mud_bath"],
@@ -174,21 +184,34 @@ func _spawn_next_guest() -> void:
 		return
 
 	var data: Dictionary = guest_queue.pop_front()
-	var guest: ResortGuest = GUEST_SCENE.instantiate()
-	guests_container.add_child(guest)
-	guest.global_position = entrance_marker.global_position
-	guest.setup(data)
-	guest.target_pos = entrance_marker.global_position + Vector2(randf_range(-40, 40), 90.0)
-
-	guest.guest_ready_for_facility.connect(_assign_guest_to_facility)
-	guest.wolf_deported.connect(_on_wolf_deported)
-	active_guests.append(guest)
-	_refresh_hud()
+	spawn_guest_from_data(data)
 
 	# Schedule next spawn
 	if not guest_queue.is_empty():
 		var timer := get_tree().create_timer(1.8)
 		timer.timeout.connect(_spawn_next_guest)
+
+func _get_spawn_position() -> Vector2:
+	# Spawn from the Main Building if present
+	for f in facilities_container.get_children():
+		if f is Facility and f.facility_id == "main_building":
+			return f.get_slot_position()
+	return entrance_marker.global_position
+
+func spawn_guest_from_data(data: Dictionary) -> ResortGuest:
+	var guest: ResortGuest = GUEST_SCENE.instantiate()
+	guests_container.add_child(guest)
+	var spawn_pos := _get_spawn_position()
+	guest.global_position = spawn_pos
+	guest.setup(data)
+	# Step forward out of the doorway onto the walkway
+	guest.target_pos = spawn_pos + Vector2(randf_range(-30, 30), 45.0)
+
+	guest.guest_ready_for_facility.connect(_assign_guest_to_facility)
+	guest.wolf_deported.connect(_on_wolf_deported)
+	active_guests.append(guest)
+	_refresh_hud()
+	return guest
 
 func _assign_guest_to_facility(guest) -> void:
 	if not is_instance_valid(guest):
@@ -221,10 +244,14 @@ func _assign_guest_to_facility(guest) -> void:
 		guest.wander_for(randf_range(2.0, 3.5))
 
 func _on_payout_earned(amount: int, _fac_name: String) -> void:
+	if not is_active:
+		return
 	resort_revenue += amount
 	_refresh_hud()
 
 func _on_facility_broken(_fac_name: String) -> void:
+	if not is_active:
+		return
 	resort_damages += 15
 	_refresh_hud()
 
@@ -250,6 +277,9 @@ func _on_wolf_deported(guest) -> void:
 
 func _end_rush_hour() -> void:
 	is_active = false
+	
+	# Freeze the resort world: stop movement, guest actions, facilities, bubbles, and timers
+	$WorldRoot.process_mode = Node.PROCESS_MODE_DISABLED
 	
 	# Count any wolves that escaped without being deported
 	var escaped_wolves := 0
@@ -286,14 +316,14 @@ func _on_next_day_pressed() -> void:
 	# Advance to next day and return to Front Desk (Phase 1)
 	GameManager.current_day += 1
 	GameManager.reset_day_pool()
-	get_tree().change_scene_to_file("res://scene/front_desk.tscn")
+	GameManager.change_scene("res://scene/front_desk.tscn")
 
 func _generate_fallback_pool() -> void:
 	# Generates a quick test queue when running Phase 2 directly from editor
 	var test_breeds := ["Merino", "Suffolk", "Cheviot", "Dorper", "Shetland", "Jacob"]
 	for i in 6:
 		var species_name: String = test_breeds[i % test_breeds.size()]
-		var is_w: bool = (i == 4)  # 1 undercover wolf for testing
+		var is_w: bool = (i == 4) # 1 undercover wolf for testing
 		var pixel_sprites := [
 			"res://assets/sheep_character_pixel/Detective_sheep_pixel.png",
 			"res://assets/sheep_character_pixel/Axel_drifter_pixel.png",

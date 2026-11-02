@@ -51,6 +51,10 @@ func _ready() -> void:
 	if facility_id == "jail":
 		add_to_group("jail")
 		max_occupants = 1
+	elif facility_id == "main_building":
+		add_to_group("main_building")
+		max_occupants = 0
+		status_label.visible = false
 	_update_status()
 
 func _init_building_sprite() -> void:
@@ -116,7 +120,7 @@ func _process(delta: float) -> void:
 		progress_bar.value = 0.0
 
 func can_accept_guest() -> bool:
-	if facility_id == "jail":
+	if facility_id == "jail" or facility_id == "main_building":
 		return false
 	return not is_broken and occupants.size() < max_occupants
 
@@ -235,6 +239,11 @@ func complete_repair() -> void:
 	_update_status()
 
 func _update_status() -> void:
+	if facility_id == "main_building":
+		status_label.text = "Entrance Hall"
+		status_label.modulate = Color(0.8, 0.85, 1.0)
+		return
+
 	if facility_id == "jail":
 		if not occupants.is_empty():
 			status_label.text = "Screening..."

@@ -13,14 +13,14 @@ extends Node2D
 signal layout_saved()
 signal layout_cancelled()
 
-const UI_SPRITESHEET_PATH := "res://assets/Ui.png"
+const UI_SPRITESHEET_PATH := "res://assets/UI/Ui.png"
 const BUILDINGS_PATH := "res://assets/PhaseII_Map/Buildings1.png"
 const CELL_SIZE: float = 32.0
 const BUILDING_COST: int = 50
 
 # =============================================================================
 # NOTE FOR MANUAL EDITING: UI.PNG SPRITESHEET REGIONS (16x16 icons)
-# File: res://assets/Ui.png
+# File: res://assets/UI/Ui.png
 # You can manually change any Rect2(x, y, width, height) region below if you
 # want to use a different button color/row from assets/Ui.png!
 # =============================================================================
@@ -67,8 +67,8 @@ var drag_mouse_offset: Vector2 = Vector2.ZERO
 
 # Per-facility purchase quantity selector in Left Panel: fac_id -> int (default 1)
 var pending_buy_counts: Dictionary = {
+	"cabin": 1,
 	"restaurant": 1,
-	"main_building": 1,
 	"wool_salon": 1,
 	"jail": 1,
 }
@@ -571,18 +571,18 @@ func _build_left_panel() -> void:
 func _build_facility_cards(parent: VBoxContainer) -> void:
 	var fac_defs := [
 		{
-			"id": "restaurant",
-			"display": "Restaurant",
-			"sub": "Dining • Row 10",
-			"row": 10,
-			"color": Color(0.35, 0.85, 0.45)
+			"id": "cabin",
+			"display": "Cabin",
+			"sub": "Lodge • Row 0",
+			"row": 0,
+			"color": Color(1.0, 0.65, 0.25)
 		},
 		{
-			"id": "main_building",
-			"display": "Main Building",
-			"sub": "Lodge • Row 8",
-			"row": 8,
-			"color": Color(1.0, 0.65, 0.25)
+			"id": "restaurant",
+			"display": "Restaurant",
+			"sub": "Dining • Row 7",
+			"row": 7,
+			"color": Color(0.35, 0.85, 0.45)
 		},
 		{
 			"id": "wool_salon",
@@ -594,8 +594,8 @@ func _build_facility_cards(parent: VBoxContainer) -> void:
 		{
 			"id": "jail",
 			"display": "Jail",
-			"sub": "Deportation • Row 7",
-			"row": 7,
+			"sub": "Deportation • Row 11",
+			"row": 11,
 			"color": Color(0.9, 0.35, 0.35)
 		},
 	]
@@ -1212,7 +1212,7 @@ func _on_save_and_exit() -> void:
 
 	layout_saved.emit()
 	GameManager.is_layout_edit_mode = false
-	get_tree().change_scene_to_file("res://scene/front_desk.tscn")
+	GameManager.change_scene("res://scene/front_desk.tscn")
 
 func _on_cancel_and_exit() -> void:
 	# Restore money & layout snapshot from before opening the editor
@@ -1225,4 +1225,4 @@ func _on_cancel_and_exit() -> void:
 
 	layout_cancelled.emit()
 	GameManager.is_layout_edit_mode = false
-	get_tree().change_scene_to_file("res://scene/front_desk.tscn")
+	GameManager.change_scene("res://scene/front_desk.tscn")
