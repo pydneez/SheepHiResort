@@ -1,0 +1,65 @@
+[gd_resource type="Resource" script_class="SheepCharacter" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sheep_character/sheep_pcg_1.png" id="1_y4r83"]
+[ext_resource type="Script" path="res://script/sheep_face.gd" id="2_sge2i"]
+[ext_resource type="Texture2D" path="res://assets/sheep_character_pixel/detective_sheep_pixel.png" id="3_2fgny"]
+[ext_resource type="Script" path="res://script/sheep_character.gd" id="4_8iexf"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yo34w"]
+atlas = ExtResource("1_y4r83")
+region = Rect2(964, 64, 532, 856)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jhtrt"]
+atlas = ExtResource("1_y4r83")
+region = Rect2(1108, 1024, 220, 208)
+
+[sub_resource type="Resource" id="Resource_m7eq0"]
+script = ExtResource("2_sge2i")
+id = "face_01"
+texture = SubResource("AtlasTexture_jhtrt")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7e6gp"]
+atlas = ExtResource("1_y4r83")
+region = Rect2(1096, 1324, 220, 220)
+
+[sub_resource type="Resource" id="Resource_04vlq"]
+script = ExtResource("2_sge2i")
+id = "face_02"
+texture = SubResource("AtlasTexture_7e6gp")
+offset = Vector2(-12.510877, 1.3901131)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_u6bei"]
+atlas = ExtResource("1_y4r83")
+region = Rect2(1096, 1612, 220, 220)
+
+[sub_resource type="Resource" id="Resource_j0xxn"]
+script = ExtResource("2_sge2i")
+id = "face_03"
+texture = SubResource("AtlasTexture_u6bei")
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7fyby"]
+atlas = ExtResource("1_y4r83")
+region = Rect2(1084, 1912, 220, 220)
+
+[sub_resource type="Resource" id="Resource_rtexa"]
+script = ExtResource("2_sge2i")
+id = "wolf_01"
+texture = SubResource("AtlasTexture_7fyby")
+wolf = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hstqf"]
+atlas = ExtResource("1_y4r83")
+region = Rect2(1096, 2176, 220, 208)
+
+[sub_resource type="Resource" id="Resource_ahmqm"]
+script = ExtResource("2_sge2i")
+id = "face_04"
+texture = SubResource("AtlasTexture_hstqf")
+offset = Vector2(-9.73065, 4.1703043)
+
+[resource]
+script = ExtResource("4_8iexf")
+body = SubResource("AtlasTexture_yo34w")
+faces = Array[ExtResource("2_sge2i")]([SubResource("Resource_m7eq0"), SubResource("Resource_04vlq"), SubResource("Resource_j0xxn"), SubResource("Resource_rtexa"), SubResource("Resource_ahmqm")])
+face_anchor = Vector2(267.39017, 305.21982)
+pixel = ExtResource("3_2fgny")

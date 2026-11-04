@@ -4,7 +4,7 @@ extends PanelContainer
 ## booking voucher or today's rules. Left-click-drag to move it; right-click a
 ## field to select it for comparison (emits field_clicked).
 
-signal field_clicked(field: Dictionary, label: Label)
+signal field_clicked(field: Dictionary, label: Control)
 
 const KEY_COLOR := Color(0.35, 0.3, 0.25)
 const VALUE_COLOR := Color(0.08, 0.06, 0.05)
@@ -23,8 +23,8 @@ var _grab := Vector2.ZERO
 @onready var _fields: GridContainer = %Fields
 
 ## Fill the paper with one document's data. Call after adding it to the tree.
-## portrait_look: the sheep for the photo (ID card only), see SheepLook.
-func setup(doc_data: Dictionary, portrait_look: Dictionary = {}) -> void:
+## An ID card's data has a "photo" field (SheepGenerator.face_field).
+func setup(doc_data: Dictionary) -> void:
 	data = doc_data
 	# Each document type has its own paper colour; the rest of the look is in the scene.
 	var sb := get_theme_stylebox("panel").duplicate()
@@ -34,9 +34,9 @@ func setup(doc_data: Dictionary, portrait_look: Dictionary = {}) -> void:
 		sb.bg_color = data.get("color", sb.bg_color)
 	add_theme_stylebox_override("panel", sb)
 	_title.text = data.title
-	_photo.visible = not portrait_look.is_empty()
+	_photo.visible = data.has("photo")
 	if _photo.visible:
-		_show_portrait(portrait_look)
+		_show_portrait(data.photo)
 	for f in data.fields:
 		var k := Label.new()
 		k.text = f.label + ":"
@@ -48,17 +48,19 @@ func setup(doc_data: Dictionary, portrait_look: Dictionary = {}) -> void:
 		_fields.add_child(v)
 		v.gui_input.connect(_on_field_input.bind(v))
 
-## The ID photo: the sheep's head area, scaled to fill the photo box. It shows
-## the wool colour the papers CLAIM, which may differ from the real guest.
-func _show_portrait(look: Dictionary) -> void:
-	var head := SheepParts.HEAD_AREA
-	var s := minf(_photo.custom_minimum_size.x / head.size.x, _photo.custom_minimum_size.y / head.size.y)
+## The ID photo: the sheep's head, filling the photo box. It shows the face the
+## papers CLAIM, which may differ from the real guest. Right-click compares it.
+func _show_portrait(field: Dictionary) -> void:
+	field["source"] = data.type
 	var sheep: SheepLook = LOOK_SCENE.instantiate()
 	_photo.add_child(sheep)
-	sheep.pivot_offset = Vector2.ZERO   # scale from the top-left corner for the crop maths
-	sheep.scale = Vector2(s, s)
-	sheep.position = -head.position * s + (_photo.custom_minimum_size - head.size * s) * 0.5
-	sheep.show_look(look)
+	sheep.photo = true
+	sheep.size = _photo.custom_minimum_size
+	sheep.show_look(field.look)
+	_photo.gui_input.connect(func(event):
+		if not in_pile and is_compare_click(event):
+			field_clicked.emit(field, _photo)
+			accept_event())
 
 ## Shared by documents and the computer so every comparable value looks and
 ## behaves the same.
