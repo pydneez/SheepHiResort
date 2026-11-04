@@ -216,7 +216,16 @@ func _pick_wander_target() -> void:
 	if not nearby_paths.is_empty() and randf() < 0.7:
 		target_pos = nearby_paths.pick_random() + Vector2(randf_range(-6, 6), randf_range(-6, 6))
 	else:
-		target_pos = global_position + Vector2(randf_range(-90, 90), randf_range(-60, 60))
+		var nearby_land: Array = []
+		for dx in range(-3, 4):
+			for dy in range(-3, 4):
+				var c := cur_cell + Vector2i(dx, dy)
+				if GameManager.is_land_cell_unlocked(c):
+					nearby_land.append(GameManager.path_cell_to_world(c))
+		if not nearby_land.is_empty():
+			target_pos = nearby_land.pick_random() + Vector2(randf_range(-8, 8), randf_range(-8, 8))
+		else:
+			target_pos = Vector2(16, 16) + Vector2(randf_range(-40, 40), randf_range(-40, 40))
 
 func on_service_finished() -> void:
 	# Emerge from the facility entrance door

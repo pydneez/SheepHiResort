@@ -29,6 +29,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 func _process(_delta: float) -> void:
+	var scene := get_tree().current_scene
+	var is_main_menu: bool = scene != null and scene.name == "MainMenu"
+	if is_instance_valid(toggle_btn):
+		toggle_btn.visible = not is_main_menu
 	if panel and panel.visible:
 		_refresh_status()
 
@@ -40,7 +44,7 @@ func toggle_panel() -> void:
 func _build_ui() -> void:
 	# 1. Floating bottom-left toggle pill
 	toggle_btn = Button.new()
-	toggle_btn.text = "🛠️ DEV [F1]"
+	toggle_btn.text = "DEV [F1]"
 	toggle_btn.position = Vector2(14, 1028)
 	toggle_btn.custom_minimum_size = Vector2(115, 36)
 	toggle_btn.focus_mode = Control.FOCUS_NONE
@@ -69,7 +73,7 @@ func _build_ui() -> void:
 	root_vbox.add_child(title_bar)
 
 	var title_lbl := Label.new()
-	title_lbl.text = "🛠️ DEVELOPER CONSOLE — SHEEP HI RESORT  (drag header | F1 to toggle)"
+	title_lbl.text = "DEVELOPER CONSOLE — SHEEP HI RESORT  (drag header | F1 to toggle)"
 	title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_lbl.mouse_filter = Control.MOUSE_FILTER_STOP
 	title_lbl.mouse_default_cursor_shape = Control.CURSOR_MOVE
@@ -103,7 +107,7 @@ func _build_ui() -> void:
 	sheep_box.add_theme_constant_override("separation", 4)
 	pool_row.add_child(sheep_box)
 	var sheep_lbl := Label.new()
-	sheep_lbl.text = "🐑 Honest Sheep:"
+	sheep_lbl.text = "Honest Sheep:"
 	sheep_lbl.add_theme_color_override("font_color", Color(0.75, 1.0, 0.8))
 	sheep_box.add_child(sheep_lbl)
 	sheep_box.add_child(_make_small_btn("-5", func(): _adjust_pool(-5, 0)))
@@ -118,7 +122,7 @@ func _build_ui() -> void:
 	wolf_box.add_theme_constant_override("separation", 4)
 	pool_row.add_child(wolf_box)
 	var wolf_lbl := Label.new()
-	wolf_lbl.text = "🐺 Undercover Wolves:"
+	wolf_lbl.text = "Undercover Wolves:"
 	wolf_lbl.add_theme_color_override("font_color", Color(1.0, 0.72, 0.72))
 	wolf_box.add_child(wolf_lbl)
 	wolf_box.add_child(_make_small_btn("-5", func(): _adjust_pool(0, -5)))
@@ -131,8 +135,8 @@ func _build_ui() -> void:
 	var skip1_row := HBoxContainer.new()
 	skip1_row.add_theme_constant_override("separation", 8)
 	sec1.add_child(skip1_row)
-	skip1_row.add_child(_make_btn("🚀 Skip Phase I → Launch Phase II (Custom Pool)", Color(0.16, 0.44, 0.28), _on_launch_phase2_custom, true))
-	skip1_row.add_child(_make_btn("📋 Skip Phase I → End-of-Day Popup", Color(0.22, 0.34, 0.48), _on_skip_phase1_to_eod, true))
+	skip1_row.add_child(_make_btn("Skip Phase I - Launch Phase II (Custom Pool)", Color(0.16, 0.44, 0.28), _on_launch_phase2_custom, true))
+	skip1_row.add_child(_make_btn("Skip Phase I - End-of-Day Popup", Color(0.22, 0.34, 0.48), _on_skip_phase1_to_eod, true))
 
 	var live_spawn_row := HBoxContainer.new()
 	live_spawn_row.add_theme_constant_override("separation", 8)
@@ -141,36 +145,36 @@ func _build_ui() -> void:
 	live_lbl.text = "Live in Phase II:"
 	live_lbl.add_theme_color_override("font_color", Color(0.75, 0.85, 0.95))
 	live_spawn_row.add_child(live_lbl)
-	live_spawn_row.add_child(_make_btn("+1 🐑 Sheep Now", Color(0.18, 0.38, 0.26), func(): _on_live_spawn(false), true))
-	live_spawn_row.add_child(_make_btn("+1 🐺 Wolf Now", Color(0.45, 0.2, 0.22), func(): _on_live_spawn(true), true))
-	live_spawn_row.add_child(_make_btn("⏱️ +15s Timer", Color(0.25, 0.32, 0.45), _on_add_phase2_time, true))
-	live_spawn_row.add_child(_make_btn("🔧 Repair All", Color(0.32, 0.35, 0.2), _on_repair_all_facilities, true))
+	live_spawn_row.add_child(_make_btn("+1 Sheep Now", Color(0.18, 0.38, 0.26), func(): _on_live_spawn(false), true))
+	live_spawn_row.add_child(_make_btn("+1 Wolf Now", Color(0.45, 0.2, 0.22), func(): _on_live_spawn(true), true))
+	live_spawn_row.add_child(_make_btn("+15s Timer", Color(0.25, 0.32, 0.45), _on_add_phase2_time, true))
+	live_spawn_row.add_child(_make_btn("Repair All", Color(0.32, 0.35, 0.2), _on_repair_all_facilities, true))
 
 	# --- Section 2: Skip Phase II & Map Architect ---
 	var sec2 := _make_section(root_vbox, "2. SKIP PHASE II & RESORT ARCHITECT")
 	var skip2_row := HBoxContainer.new()
 	skip2_row.add_theme_constant_override("separation", 8)
 	sec2.add_child(skip2_row)
-	skip2_row.add_child(_make_btn("🏁 Skip Phase II → Finish Rush Hour (Ledger)", Color(0.42, 0.32, 0.14), _on_skip_phase2_to_ledger, true))
-	skip2_row.add_child(_make_btn("⏭️ Skip Phase II → Next Day Front Desk", Color(0.2, 0.36, 0.48), _on_skip_phase2_next_day, true))
-	skip2_row.add_child(_make_btn("🗺️ Open Resort Architect", Color(0.16, 0.4, 0.36), _on_open_architect, true))
+	skip2_row.add_child(_make_btn("Skip Phase II - Finish Rush Hour (Ledger)", Color(0.42, 0.32, 0.14), _on_skip_phase2_to_ledger, true))
+	skip2_row.add_child(_make_btn("Skip Phase II - Next Day Front Desk", Color(0.2, 0.36, 0.48), _on_skip_phase2_next_day, true))
+	skip2_row.add_child(_make_btn("★ Open Resort Architect", Color(0.16, 0.4, 0.36), _on_open_architect, true))
 
 	# --- Section 3: Week Report & Ending Previews ---
 	var sec3 := _make_section(root_vbox, "3. WEEK REPORT & ENDING PREVIEWS")
 	var report_row1 := HBoxContainer.new()
 	report_row1.add_theme_constant_override("separation", 8)
 	sec3.add_child(report_row1)
-	report_row1.add_child(_make_btn("📊 Go to Week Report (Current Stats)", Color(0.32, 0.24, 0.48), func(): _on_go_week_report("current"), true))
+	report_row1.add_child(_make_btn("Go to Week Report (Current Stats)", Color(0.32, 0.24, 0.48), func(): _on_go_week_report("current"), true))
 
 	var report_row2 := HBoxContainer.new()
 	report_row2.add_theme_constant_override("separation", 6)
 	sec3.add_child(report_row2)
-	report_row2.add_child(_make_btn("🏆 Grade S", Color(0.42, 0.35, 0.12), func(): _on_go_week_report("S"), true))
-	report_row2.add_child(_make_btn("🥇 Grade A", Color(0.18, 0.38, 0.24), func(): _on_go_week_report("A"), true))
-	report_row2.add_child(_make_btn("🥈 Grade B", Color(0.18, 0.32, 0.44), func(): _on_go_week_report("B"), true))
-	report_row2.add_child(_make_btn("🥉 Grade D", Color(0.36, 0.28, 0.2), func(): _on_go_week_report("D"), true))
-	report_row2.add_child(_make_btn("🐺 Wolves (F)", Color(0.46, 0.16, 0.18), func(): _on_go_week_report("wolves"), true))
-	report_row2.add_child(_make_btn("🔥 Fired (F)", Color(0.42, 0.14, 0.26), func(): _on_go_week_report("fired"), true))
+	report_row2.add_child(_make_btn("★ Grade S", Color(0.42, 0.35, 0.12), func(): _on_go_week_report("S"), true))
+	report_row2.add_child(_make_btn("Grade A", Color(0.18, 0.38, 0.24), func(): _on_go_week_report("A"), true))
+	report_row2.add_child(_make_btn("Grade B", Color(0.18, 0.32, 0.44), func(): _on_go_week_report("B"), true))
+	report_row2.add_child(_make_btn("Grade D", Color(0.36, 0.28, 0.2), func(): _on_go_week_report("D"), true))
+	report_row2.add_child(_make_btn("Wolves (F)", Color(0.46, 0.16, 0.18), func(): _on_go_week_report("wolves"), true))
+	report_row2.add_child(_make_btn("Fired (F)", Color(0.42, 0.14, 0.26), func(): _on_go_week_report("fired"), true))
 
 	# --- Section 4: Jump to Day, Economy & Front Desk Helpers ---
 	var sec4 := _make_section(root_vbox, "4. DAY JUMP, ECONOMY & FRONT DESK CHEATS")
@@ -189,13 +193,13 @@ func _build_ui() -> void:
 	var econ_row := HBoxContainer.new()
 	econ_row.add_theme_constant_override("separation", 6)
 	sec4.add_child(econ_row)
-	econ_row.add_child(_make_btn("💰 +$100", Color(0.18, 0.38, 0.22), func(): _on_adjust_economy(100, 0), true))
-	econ_row.add_child(_make_btn("💰 +$500", Color(0.18, 0.44, 0.24), func(): _on_adjust_economy(500, 0), true))
-	econ_row.add_child(_make_btn("⭐ +20 Rep", Color(0.22, 0.35, 0.46), func(): _on_adjust_economy(0, 20), true))
-	econ_row.add_child(_make_btn("⭐ Max Rep (100)", Color(0.26, 0.38, 0.5), func(): _on_set_rep(100), true))
-	econ_row.add_child(_make_btn("🔍 Reveal Desk Guest", Color(0.36, 0.26, 0.44), _on_reveal_desk_guest, true))
-	econ_row.add_child(_make_btn("✅ Force Accept", Color(0.16, 0.4, 0.24), func(): _on_force_desk_decision(true), true))
-	econ_row.add_child(_make_btn("❌ Force Deny", Color(0.44, 0.18, 0.18), func(): _on_force_desk_decision(false), true))
+	econ_row.add_child(_make_btn("+$100", Color(0.18, 0.38, 0.22), func(): _on_adjust_economy(100, 0), true))
+	econ_row.add_child(_make_btn("+$500", Color(0.18, 0.44, 0.24), func(): _on_adjust_economy(500, 0), true))
+	econ_row.add_child(_make_btn("★ +20 Rep", Color(0.22, 0.35, 0.46), func(): _on_adjust_economy(0, 20), true))
+	econ_row.add_child(_make_btn("★ Max Rep (100)", Color(0.26, 0.38, 0.5), func(): _on_set_rep(100), true))
+	econ_row.add_child(_make_btn("? Reveal Desk Guest", Color(0.36, 0.26, 0.44), _on_reveal_desk_guest, true))
+	econ_row.add_child(_make_btn("✓ Force Accept", Color(0.16, 0.4, 0.24), func(): _on_force_desk_decision(true), true))
+	econ_row.add_child(_make_btn("✕ Force Deny", Color(0.44, 0.18, 0.18), func(): _on_force_desk_decision(false), true))
 
 	# --- Footer Feedback Label ---
 	feedback_label = Label.new()
@@ -240,7 +244,7 @@ func _on_live_spawn(is_wolf: bool) -> void:
 		var data := GameManager.make_dev_guest(is_wolf)
 		GameManager.record_admitted_guest(data)
 		scene.spawn_guest_from_data(data)
-		_notify("Spawned +1 %s at the Resort entrance!" % ("🐺 Undercover Wolf" if is_wolf else "🐑 Honest Sheep"))
+		_notify("Spawned +1 %s at the Resort entrance!" % ("Undercover Wolf" if is_wolf else "Honest Sheep"))
 	else:
 		_adjust_pool(0 if is_wolf else 1, 1 if is_wolf else 0)
 		_notify("Added +1 %s to pool (launch Phase II to spawn)." % ("wolf" if is_wolf else "sheep"))
@@ -397,7 +401,7 @@ func _on_reveal_desk_guest() -> void:
 		var tell: String = g.get("appearance", {}).get("tell", "")
 		var info := "GUEST: %s | %s | Flaws: %s | Tell: %s" % [
 			g.get("truth", {}).get("name", "?"),
-			"🐺 WOLF!" if is_w else "🐑 Honest Sheep",
+			"WOLF!" if is_w else "Honest Sheep",
 			", ".join(PackedStringArray(flaws)) if not flaws.is_empty() else "None (Valid)",
 			tell if tell != "" else "None"
 		]
@@ -443,13 +447,13 @@ func _refresh_status() -> void:
 			d = scene.day
 			m = scene.money
 			r = scene.reputation
-	status_label.text = "📍 %s   |   📅 Day %d/%d   |   💰 $%d   |   ⭐ Rep %d   |   Pool: %d guests (%d wolves)" % [
+	status_label.text = "%s   |   Day %d/%d   |   $%d   |   ★ Rep %d   |   Pool: %d guests (%d wolves)" % [
 		scene_name, d, DayRules.LAST_DAY, m, r, GameManager.admitted_guests.size(), GameManager.wolves_in_pool
 	]
 
 func _notify(msg: String) -> void:
 	if feedback_label:
-		feedback_label.text = "▸ " + msg
+		feedback_label.text = "> " + msg
 
 func _on_title_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:

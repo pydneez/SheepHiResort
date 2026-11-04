@@ -27,6 +27,11 @@ window/size/window_width_override=1200
 window/size/window_height_override=900
 window/stretch/mode="canvas_items"
 
+[gui]
+
+theme/custom="res://ui/game_theme.tres"
+theme/custom_font="res://fonts/Peaberry Base/PeaberryBase.ttf"
+
 [physics]
 
 3d/physics_engine="Jolt Physics"

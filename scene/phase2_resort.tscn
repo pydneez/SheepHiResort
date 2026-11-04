@@ -5,17 +5,31 @@
 [ext_resource type="PackedScene" uid="uid://doytyibgueaea" path="res://scene/facility.tscn" id="3_facility_scene"]
 [ext_resource type="TileSet" uid="uid://bjms7r2dfetlp" path="res://resource/resort_tileset_ground.tres" id="4_ground_tileset"]
 [ext_resource type="TileSet" uid="uid://bfnjenemth3b8" path="res://resource/resort_tileset_decor.tres" id="5_decor_tileset"]
+[ext_resource type="Texture2D" uid="uid://tq5mvwqjkxsd" path="res://assets/UI/UI_pack.png" id="6_ui_pack"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hud"]
-bg_color = Color(0.12, 0.16, 0.22, 0.88)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-expand_margin_left = 12.0
-expand_margin_top = 6.0
-expand_margin_right = 12.0
-expand_margin_bottom = 6.0
+[sub_resource type="StyleBoxTexture" id="StyleBoxFlat_hud"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+texture = ExtResource("6_ui_pack")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+region_rect = Rect2(153, 105, 30, 30)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ledger"]
+content_margin_left = 36.0
+content_margin_top = 32.0
+content_margin_right = 36.0
+content_margin_bottom = 32.0
+texture = ExtResource("6_ui_pack")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+region_rect = Rect2(153, 105, 30, 30)
 
 [node name="Phase2Resort" type="Node2D" unique_id=2067500724]
 script = ExtResource("1_phase2_script")
@@ -28,43 +42,35 @@ script = ExtResource("2_camera_script")
 y_sort_enabled = true
 
 [node name="EntranceMarker" type="Marker2D" parent="WorldRoot" unique_id=2087189626]
-position = Vector2(0, 310)
+position = Vector2(16, 130)
 
 [node name="FacilitiesContainer" type="Node2D" parent="WorldRoot" unique_id=1280559563]
 y_sort_enabled = true
 
 [node name="CloverMeadow" parent="WorldRoot/FacilitiesContainer" unique_id=1507174641 instance=ExtResource("3_facility_scene")]
-position = Vector2(-260, -90)
+position = Vector2(-156, 0)
 facility_id = "restaurant"
 display_name = "Restaurant"
 base_cycle_time = 4.5
 building_row = 7
 
 [node name="MainBuilding" parent="WorldRoot/FacilitiesContainer" unique_id=225449228 instance=ExtResource("3_facility_scene")]
-position = Vector2(-1, 342)
+position = Vector2(16, 172)
 facility_id = "main_building"
 display_name = "Main Building"
 base_cycle_time = 0.0
 base_payout = 0
 
 [node name="CabinFacility" parent="WorldRoot/FacilitiesContainer" unique_id=1499086541 instance=ExtResource("3_facility_scene")]
-position = Vector2(-10, -180)
+position = Vector2(16, -78)
 facility_id = "cabin"
 display_name = "Cabin"
 base_cycle_time = 7.5
 base_payout = 35
 building_row = 0
 
-[node name="ShearingBoutique" parent="WorldRoot/FacilitiesContainer" unique_id=1728151005 instance=ExtResource("3_facility_scene")]
-position = Vector2(260, -90)
-facility_id = "wool_salon"
-display_name = "Wool Salon"
-base_cycle_time = 11.0
-base_payout = 65
-building_row = 13
-
 [node name="JailFacility" parent="WorldRoot/FacilitiesContainer" unique_id=987123456 instance=ExtResource("3_facility_scene")]
-position = Vector2(-310, 110)
+position = Vector2(188, 0)
 facility_id = "jail"
 display_name = "Jail"
 base_cycle_time = 3.5
@@ -83,10 +89,10 @@ z_index = 25
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -460.0
+offset_left = -500.0
 offset_top = 16.0
-offset_right = 460.0
-offset_bottom = 56.0
+offset_right = 500.0
+offset_bottom = 66.0
 grow_horizontal = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_hud")
 
@@ -98,24 +104,24 @@ alignment = 1
 [node name="TimerLabel" type="Label" parent="UILayer/TopHUD/HBoxContainer" unique_id=1679905828]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.3, 1)
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 22
 text = "Rush Hour: 01:00"
 
 [node name="MoneyLabel" type="Label" parent="UILayer/TopHUD/HBoxContainer" unique_id=1049127236]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.4, 1, 0.4, 1)
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 22
 text = "Earned: +$0"
 
 [node name="GuestsLabel" type="Label" parent="UILayer/TopHUD/HBoxContainer" unique_id=397660173]
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 22
 text = "Guests: 0"
 
 [node name="WolvesLabel" type="Label" parent="UILayer/TopHUD/HBoxContainer" unique_id=502395904]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 22
 text = "Wolves Deported: 0"
 
 [node name="BottomTipPanel" type="PanelContainer" parent="UILayer" unique_id=1954851406]
@@ -124,9 +130,9 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -480.0
-offset_top = -46.0
-offset_right = 480.0
+offset_left = -640.0
+offset_top = -56.0
+offset_right = 640.0
 offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 0
@@ -135,36 +141,42 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_hud")
 [node name="TipText" type="Label" parent="UILayer/BottomTipPanel" unique_id=1383980623]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.9, 0.95, 1)
-theme_override_font_sizes/font_size = 12
-text = "WASD / Right-Click Drag = Pan  •  Scroll = Zoom  •  Hold Left-Click on Wolves = Deport (1.2s)  •  Spam Broken Buildings = Repair"
+theme_override_font_sizes/font_size = 20
+text = "WASD / Right-Click = Pan • Scroll = Zoom • Hold Left-Click on Wolves = Deport • Tap Broken Buildings = Repair"
 horizontal_alignment = 1
 
 [node name="LedgerPanel" type="PanelContainer" parent="UILayer" unique_id=1739681693]
+texture_filter = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -230.0
-offset_top = -180.0
-offset_right = 230.0
-offset_bottom = 180.0
+offset_left = -340.0
+offset_top = -260.0
+offset_right = 340.0
+offset_bottom = 260.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_ledger")
 
 [node name="VBoxContainer" type="VBoxContainer" parent="UILayer/LedgerPanel" unique_id=1653132918]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 22
 
 [node name="LedgerText" type="RichTextLabel" parent="UILayer/LedgerPanel/VBoxContainer" unique_id=737050104]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/line_separation = 12
+theme_override_font_sizes/normal_font_size = 22
+theme_override_font_sizes/bold_font_size = 24
 bbcode_enabled = true
 text = "[center]Ledger[/center]"
 
 [node name="NextDayButton" type="Button" parent="UILayer/LedgerPanel/VBoxContainer" unique_id=232235496]
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
+theme_override_font_sizes/font_size = 24
 text = "Proceed to Next Day Shift"
 
 [node name="TileMap" type="Node" parent="." unique_id=315688004]

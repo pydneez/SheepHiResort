@@ -41,8 +41,9 @@ func _ready() -> void:
 	ledger_panel.visible = false
 	next_day_button.pressed.connect(_on_next_day_pressed)
 
-	# Apply custom resort layout and pathways
+	# Apply custom resort layout, unlocked grass land, and pathways
 	_apply_resort_layout()
+	rebuild_grass_tilemap()
 	var pathways := _setup_pathways()
 
 	# Check if launched in Layout Architect / Edit Mode from Front Desk
@@ -74,7 +75,7 @@ func _ready() -> void:
 func _init_layout_edit_mode(pathways: PathwaysRenderer) -> void:
 	is_active = false
 	$UILayer.visible = false
-	camera.position = Vector2(80, 50)
+	camera.position = Vector2(-240, 180)
 	camera.zoom = Vector2(0.85, 0.85)
 
 	var editor = RESORT_LAYOUT_EDITOR.new()
@@ -119,6 +120,15 @@ func create_facility_instance(fac_id: String, pos: Vector2, custom_node_name: St
 		fac.base_cycle_time = tmpl.get("base_cycle_time", 5.0)
 		fac.base_payout = tmpl.get("base_payout", 15)
 		fac.building_row = tmpl.get("building_row", 8)
+		var sheet_path: String = tmpl.get("sheet_path", "res://assets/PhaseII_Map/Buildings1.png")
+		if ResourceLoader.exists(sheet_path):
+			fac.building_texture = load(sheet_path) as Texture2D
+		var pref_arr: Array = tmpl.get("preferred_species", [])
+		if not pref_arr.is_empty():
+			var typed_prefs: Array[String] = []
+			for s in pref_arr:
+				typed_prefs.append(str(s))
+			fac.preferred_species = typed_prefs
 	elif fac_id == "main_building":
 		fac.display_name = "Main Building"
 		fac.base_cycle_time = 0.0
@@ -137,6 +147,28 @@ func create_facility_instance(fac_id: String, pos: Vector2, custom_node_name: St
 		fac.name = "%s_%d" % [fac_id.to_pascal_case(), count]
 	facilities_container.add_child(fac)
 	return fac
+
+func rebuild_grass_tilemap() -> void:
+	var grass_layer: TileMapLayer = $TileMap/Grass if has_node("TileMap/Grass") else null
+	if not is_instance_valid(grass_layer):
+		return
+	var land_cells: Array = GameManager.resort_layout.get("land_cells", [])
+	if land_cells.is_empty():
+		return
+	grass_layer.clear()
+	var subtile_cells: Array[Vector2i] = []
+	for cell in land_cells:
+		if not cell is Vector2i:
+			continue
+		var bx: int = cell.x * 2
+		var by: int = cell.y * 2
+		subtile_cells.append(Vector2i(bx, by))
+		subtile_cells.append(Vector2i(bx + 1, by))
+		subtile_cells.append(Vector2i(bx, by + 1))
+		subtile_cells.append(Vector2i(bx + 1, by + 1))
+	if not subtile_cells.is_empty():
+		# Terrain Set 1, Terrain 0 = "Grass" in resort_tileset_ground.tres
+		grass_layer.set_cells_terrain_connect(subtile_cells, 1, 0, false)
 
 func _setup_pathways() -> PathwaysRenderer:
 	var pathways := PathwaysRenderer.new()
@@ -195,6 +227,9 @@ func _get_spawn_position() -> Vector2:
 	# Spawn from the Main Building if present
 	for f in facilities_container.get_children():
 		if f is Facility and f.facility_id == "main_building":
+			# If Main Building is at the bottom of the cross pathway (y > 0), spawn at its north pathway edge
+			if f.global_position.y > 40.0:
+				return f.global_position + Vector2(0, -48.0)
 			return f.get_slot_position()
 	return entrance_marker.global_position
 
@@ -204,8 +239,9 @@ func spawn_guest_from_data(data: Dictionary) -> ResortGuest:
 	var spawn_pos := _get_spawn_position()
 	guest.global_position = spawn_pos
 	guest.setup(data)
-	# Step forward out of the doorway onto the walkway
-	guest.target_pos = spawn_pos + Vector2(randf_range(-30, 30), 45.0)
+	# Step forward onto the cross pathway toward the center
+	var step_y: float = -38.0 if spawn_pos.y > 40.0 else 45.0
+	guest.target_pos = spawn_pos + Vector2(randf_range(-16, 16), step_y)
 
 	guest.guest_ready_for_facility.connect(_assign_guest_to_facility)
 	guest.wolf_deported.connect(_on_wolf_deported)
@@ -296,7 +332,7 @@ func _end_rush_hour() -> void:
 	GameManager.phase2_damages = resort_damages
 
 	# Display End-of-Day Rush Hour Ledger
-	var summary: String = "[center][b]RESORT RUSH HOUR COMPLETE![/b][/center]\n\n"
+	var summary: String = "[center][font_size=28][b]RESORT RUSH HOUR COMPLETE![/b][/font_size][/center]\n\n"
 	summary += "• Facility Revenue: [color=#55dd55]+$%d[/color]\n" % resort_revenue
 	summary += "• Tip Bubbles & Bounties: [color=#55dd55]+$%d[/color]\n" % resort_tips
 	summary += "• Sabotage & Damage Costs: [color=#ff5555]-$%d[/color]\n\n" % resort_damages

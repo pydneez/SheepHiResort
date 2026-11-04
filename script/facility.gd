@@ -48,6 +48,7 @@ func _ready() -> void:
 	progress_bar.value = 0.0
 	progress_bar.visible = false
 	_init_building_sprite()
+	update_bounds_and_collision()
 	if facility_id == "jail":
 		add_to_group("jail")
 		max_occupants = 1
@@ -154,14 +155,23 @@ func _complete_service() -> void:
 	progress_bar.visible = false
 	progress_bar.value = 0.0
 	var departing := occupants.duplicate()
+	var all_facs: Array = get_parent().get_children() if get_parent() else []
+	var combo_info: Dictionary = GameManager.calculate_facility_combo(facility_id, position, all_facs, self)
+	var combo_bonus: int = int(combo_info.get("bonus", 0))
 	for guest in departing:
 		if not is_instance_valid(guest):
 			continue
-		# Calculate payout with trait affinity bonus
+		# Calculate payout with Combo Skill delta and trait affinity bonus
+		var effective_base: int = maxi(5, base_payout + combo_bonus)
 		var affinity_bonus: float = 1.5 if preferred_species.has(guest.species) else 1.0
-		var payout: int = int(round(base_payout * affinity_bonus))
+		var payout: int = int(round(effective_base * affinity_bonus))
 		payout_earned.emit(payout, display_name)
-		_spawn_floating_text("+$%d" % payout, Color(0.3, 1.0, 0.3))
+		if combo_bonus > 0:
+			_spawn_floating_text("+$%d (Combo +$%d!)" % [payout, combo_bonus], Color(0.3, 1.0, 0.45), 16)
+		elif combo_bonus < 0:
+			_spawn_floating_text("+$%d (Combo %d)" % [payout, combo_bonus], Color(1.0, 0.65, 0.3), 16)
+		else:
+			_spawn_floating_text("+$%d" % payout, Color(0.3, 1.0, 0.3), 16)
 
 		# 35% chance to trigger a Hay Day style TipBubble
 		if randf() < 0.35:
@@ -263,10 +273,46 @@ func _update_status() -> void:
 		status_label.text = "In Use (%d/%d)" % [occupants.size(), max_occupants]
 		status_label.modulate = Color(1.0, 0.85, 0.3)
 
+func get_selection_rect() -> Rect2:
+	match facility_id:
+		"main_building":
+			return Rect2(-68, -120, 136, 115)
+		"jail":
+			return Rect2(-55, -92, 110, 85)
+		"cabin":
+			return Rect2(-36, -85, 72, 75)
+		"restaurant":
+			return Rect2(-45, -92, 90, 85)
+		"wool_salon":
+			return Rect2(-45, -98, 90, 90)
+		"bakery":
+			return Rect2(-42, -92, 84, 85)
+		"gift_shop":
+			return Rect2(-42, -92, 84, 85)
+		"clock_tower":
+			return Rect2(-30, -135, 60, 125)
+		_:
+			return Rect2(-45, -90, 90, 85)
+
+func update_bounds_and_collision() -> void:
+	var rect := get_selection_rect()
+	var col_shape: CollisionShape2D = get_node_or_null("CollisionShape2D")
+	if is_instance_valid(col_shape):
+		var rect_shape := RectangleShape2D.new()
+		rect_shape.size = rect.size
+		col_shape.shape = rect_shape
+		col_shape.position = rect.get_center()
+
+	if is_instance_valid(repair_panel):
+		repair_panel.position = rect.position
+		repair_panel.size = rect.size
+		var warn: ColorRect = repair_panel.get_node_or_null("WarningOverlay")
+		if is_instance_valid(warn):
+			warn.size = rect.size
+
 func is_point_inside(point: Vector2) -> bool:
 	var local_p := to_local(point)
-	# Check against building boundaries (width ~150, height ~150)
-	return absf(local_p.x) <= 80.0 and local_p.y >= -135.0 and local_p.y <= 35.0
+	return get_selection_rect().has_point(local_p)
 
 func process_deportation(guest: ResortGuest) -> bool:
 	if not is_instance_valid(guest):

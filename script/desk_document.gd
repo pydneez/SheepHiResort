@@ -8,7 +8,7 @@ signal field_clicked(field: Dictionary, label: Label)
 
 const KEY_COLOR := Color(0.35, 0.3, 0.25)
 const VALUE_COLOR := Color(0.08, 0.06, 0.05)
-const FIELD_FONT_SIZE := 18
+const FIELD_FONT_SIZE := 20
 
 const LOOK_SCENE := preload("res://scene/sheep_look.tscn")
 
@@ -27,8 +27,11 @@ var _grab := Vector2.ZERO
 func setup(doc_data: Dictionary, portrait_look: Dictionary = {}) -> void:
 	data = doc_data
 	# Each document type has its own paper colour; the rest of the look is in the scene.
-	var sb := get_theme_stylebox("panel").duplicate() as StyleBoxFlat
-	sb.bg_color = data.get("color", sb.bg_color)
+	var sb := get_theme_stylebox("panel").duplicate()
+	if sb is StyleBoxTexture:
+		sb.modulate_color = data.get("color", Color.WHITE)
+	elif sb is StyleBoxFlat:
+		sb.bg_color = data.get("color", sb.bg_color)
 	add_theme_stylebox_override("panel", sb)
 	_title.text = data.title
 	_photo.visible = not portrait_look.is_empty()

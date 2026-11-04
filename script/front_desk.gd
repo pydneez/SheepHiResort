@@ -59,6 +59,9 @@ var rules_doc: DeskDocument
 @onready var speech: SpeechBubble = %SpeechBubble
 @onready var papers: Control = %Papers
 @onready var computer: ComputerWindow = %ComputerWindow
+@onready var file_icon_btn: TextureButton = %FileIconButton
+@onready var fix_icon_btn: TextureButton = %FixIconButton
+@onready var upward_icon_btn: TextureButton = %UpwardIconButton
 @onready var toast: Label = %Toast
 @onready var day_popup: DayPopup = %DayPopup
 @onready var week_summary: WeekSummary = %WeekSummary
@@ -97,11 +100,12 @@ func _connect_scene() -> void:
 	accept_btn.pressed.connect(decide.bind(true))
 	deny_btn.pressed.connect(decide.bind(false))
 	scan_btn.pressed.connect(_on_scan)
-	%MonitorScreen.pressed.connect(computer.toggle)
+	file_icon_btn.pressed.connect(computer.toggle)
+	fix_icon_btn.pressed.connect(_on_open_resort_layout)
+	upward_icon_btn.pressed.connect(_on_open_upgrades)
 	%RulesPaper.pressed.connect(_toggle_rules)
 	guest_node.right_clicked.connect(_on_guest_right_clicked)
 	computer.field_clicked.connect(_on_field_clicked)
-	computer.open_resort_layout.connect(_on_open_resort_layout)
 	hud_date.gui_input.connect(_on_hud_date_input)
 	day_popup.continue_pressed.connect(_on_popup_continue)
 	week_summary.play_again.connect(_on_play_again)
@@ -136,9 +140,17 @@ func start_day(d: int) -> void:
 	guest_node.visible = false
 	speech.visible = false
 	computer.visible = false
+	if GameManager.returned_from_layout_editor:
+		GameManager.returned_from_layout_editor = false
+		state = State.IDLE
+		day_popup.visible = false
+		_refresh_hud()
+		_refresh_monitor_icons()
+		return
 	state = State.BRIEFING
 	var missing := _overnight_report()
 	_refresh_hud()
+	_refresh_monitor_icons()
 	day_popup.show_text("[center][b]DAY %d[/b]  —  %s[/center]\n\n%s%s\n\nGuests in line: %d\nBoss's quota: %d valid residents\n\n[i]Ring the bell to open the desk.[/i]" % [
 		day, DayRules.format_date(today), missing, rules.news, queue.size(), rules.quota], "Start shift")
 
@@ -166,6 +178,7 @@ func _on_bell() -> void:
 		return
 	bell_btn.disabled = true
 	day_running = true
+	_refresh_monitor_icons()
 	speech.say("[DING] Next guest, please!")
 	call_next_guest()
 
@@ -353,6 +366,7 @@ func _on_popup_continue() -> void:
 	match state:
 		State.BRIEFING:
 			state = State.IDLE
+			_refresh_monitor_icons()
 		State.DAY_OVER:
 			if day >= DayRules.LAST_DAY:
 				_finish_week("")
@@ -377,6 +391,7 @@ func _new_week() -> void:
 	run_seed = randi()
 	GameManager.current_day = 1
 	GameManager.run_started = true
+	GameManager.init_default_layout(true)
 	_sync_to_game_manager()
 
 func _sync_to_game_manager() -> void:
@@ -398,9 +413,26 @@ func _restore_from_game_manager() -> void:
 	run_seed = GameManager.run_seed if GameManager.run_seed != 0 else randi()
 
 func _on_open_resort_layout() -> void:
+	if day_running or state != State.IDLE:
+		_toast("Resort Editor is only available before starting the day!", Color(1.0, 0.5, 0.4))
+		return
 	_sync_to_game_manager()
 	GameManager.is_layout_edit_mode = true
 	GameManager.change_scene("res://scene/phase2_resort.tscn")
+
+func _on_open_upgrades() -> void:
+	_toast("Upgrade window coming soon!", Color(0.75, 0.9, 1.0))
+
+func _refresh_monitor_icons() -> void:
+	if not is_instance_valid(fix_icon_btn):
+		return
+	var can_edit := not day_running and (state == State.IDLE or state == State.BRIEFING)
+	fix_icon_btn.modulate = Color.WHITE if can_edit else Color(0.45, 0.45, 0.45, 0.65)
+	fix_icon_btn.tooltip_text = (
+		"Resort Layout Editor (Click before starting the day)"
+		if can_edit
+		else "Resort Layout Editor (Unavailable after starting the day)"
+	)
 
 ## Folds a (possibly unfinished) day into the week's totals, once per day.
 func _add_day_to_week() -> void:

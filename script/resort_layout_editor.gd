@@ -1,800 +1,1049 @@
 class_name ResortLayoutEditor
 extends Node2D
-## Renovated Real-World Resort Layout & Pathways Architect.
-## Activated in Phase 2 map when GameManager.is_layout_edit_mode is true.
+## Interactive in-world Resort Layout & Pathway Architect.
 ## Features:
-## - Full real-map view with camera panning & zooming
-## - Buy multiple of the same building ($50 per building) using +, -, and $ buttons from assets/Ui.png
-## - Hold-to-lift circle progress bar (~1s) preventing accidental clicks
-## - Real-time confirmation floating bar with Tick (✓), Dollar ($), Minus (-), & Cross (✖) from assets/Ui.png
-## - Real-map pathway paving & erasing with 32x32 grid snapping & Tile Map.png support
-## - Fixed Top Navigation Bar with live Money HUD, "Save & Exit", and "Back to Lobby"
+## - Left Panel matching the reference UI: single Coin Icon + Balance (with pending "-Cost" preview),
+##   2-column scrollable Facility Grid with hover description panel (Combo Skill & Flavor Text),
+##   streamlined Pathway Builder ("Draw", "- Erase", "Clear All"), and Save/Cancel actions.
+## - On-map Land Sale Signs on locked quarters with click-to-confirm Tick/Cross buttons
+##   that automatically close when the mouse moves away.
+## - Facility storage inventory ("Owned : X" tracks unplaced buildings in storage; removing a
+##   facility from the map returns it to Owned storage rather than selling it).
+## - Live 220px Combo Skill range circle and neighbor synergy highlights while placing buildings.
 
 signal layout_saved()
 signal layout_cancelled()
 
-const UI_SPRITESHEET_PATH := "res://assets/UI/Ui.png"
-const BUILDINGS_PATH := "res://assets/PhaseII_Map/Buildings1.png"
+const UI_SHEET_PATH := "res://assets/UI/UI_pack.png"
 const CELL_SIZE: float = 32.0
-const BUILDING_COST: int = 50
+const FACILITY_HOLD_DURATION: float = 0.45
+const FACILITY_CHARGE_SPEED: float = 1.0 / FACILITY_HOLD_DURATION
+const FACILITY_DECAY_SPEED: float = 2.5
+const SIGN_AUTO_CLOSE_RADIUS: float = 115.0
 
-# =============================================================================
-# NOTE FOR MANUAL EDITING: UI.PNG SPRITESHEET REGIONS (16x16 icons)
-# File: res://assets/UI/Ui.png
-# You can manually change any Rect2(x, y, width, height) region below if you
-# want to use a different button color/row from assets/Ui.png!
-# =============================================================================
-# 1. Tick (✓) Button — Confirm moving an existing building (Col 2 & 3, Row 3)
-const REGION_TICK_NORMAL := Rect2(32, 48, 16, 16)
-const REGION_TICK_PRESSED := Rect2(48, 48, 16, 16)
-
-# 2. Cross (✖) Button — Cancel move / Cancel purchase (Col 0 & 1, Row 4)
-const REGION_CROSS_NORMAL := Rect2(0, 64, 16, 16)
-const REGION_CROSS_PRESSED := Rect2(16, 64, 16, 16)
-
-# 3. Plus (+) Button — Increase building purchase count (Col 0 & 1, Row 3)
-# NOTE: Placeholder region from assets/Ui.png — edit here if replacing manually!
-const REGION_PLUS_NORMAL := Rect2(0, 48, 16, 16)
-const REGION_PLUS_PRESSED := Rect2(16, 48, 16, 16)
-
-# 4. Minus (-) Button — Decrease purchase count / Remove building (Col 2 & 3, Row 4)
-# NOTE: Placeholder region from assets/Ui.png — edit here if replacing manually!
-const REGION_MINUS_NORMAL := Rect2(32, 64, 16, 16)
-const REGION_MINUS_PRESSED := Rect2(48, 64, 16, 16)
-
-# 5. Dollar ($) Button — Confirm building purchase for $50 (Col 2 & 3, Row 5)
-# NOTE: Placeholder region from assets/Ui.png — edit here if replacing manually!
-const REGION_DOLLAR_NORMAL := Rect2(32, 80, 16, 16)
-const REGION_DOLLAR_PRESSED := Rect2(48, 80, 16, 16)
-
-enum ToolMode {MOVE, PAVE, ERASE}
-var current_tool: ToolMode = ToolMode.MOVE
+enum ToolMode {
+	MOVE,
+	DRAW,
+	ERASE,
+}
 
 var phase2_root: Phase2Resort = null
 var facilities_container: Node2D = null
 var pathways_renderer: PathwaysRenderer = null
 
-# Snapshot for cancelling unsaved changes
+var current_tool: ToolMode = ToolMode.MOVE
+
+# Snapshot of state when entering Edit Mode so "Cancel" can revert everything cleanly
 var initial_money: int = 0
 var initial_layout_snapshot: Dictionary = {}
 
-# Active facility manipulation
+# Facility selection, hold-to-lift & dragging state
 var selected_facility: Facility = null
+var is_pending_purchase_facility: bool = false
+var is_pending_stored_placement: bool = false
+var pending_facility_id: String = ""
+var pending_purchase_cost: int = 0
 var original_facility_pos: Vector2 = Vector2.ZERO
 var is_dragging_facility: bool = false
-var is_pending_purchase_facility: bool = false
 var drag_mouse_offset: Vector2 = Vector2.ZERO
 
-# Per-facility purchase quantity selector in Left Panel: fac_id -> int (default 1)
-var pending_buy_counts: Dictionary = {
-	"cabin": 1,
-	"restaurant": 1,
-	"wool_salon": 1,
-	"jail": 1,
-}
-var card_qty_labels: Dictionary = {}
-var card_owned_labels: Dictionary = {}
-
-# Hold-to-Lift mechanics (1.0s circle progress bar like the sheep)
+# Hold-to-lift state
 var hold_target_facility: Facility = null
 var is_holding_facility: bool = false
 var facility_hold_progress: float = 0.0
-const FACILITY_CHARGE_SPEED: float = 1.0 / 0.85 # ~0.85s to fill from 25% to 100%
-const FACILITY_DECAY_SPEED: float = 2.5
 var facility_hold_ring: Node2D = null
-
-# UI Nodes
-var canvas_layer: CanvasLayer = null
-var top_nav_bar: PanelContainer = null
-var left_panel: PanelContainer = null
-var floating_widget: Node2D = null
-var floating_btn_tick: TextureButton = null
-var floating_btn_dollar: TextureButton = null
-var floating_btn_minus: TextureButton = null
-var floating_btn_cross: TextureButton = null
-var floating_price_label: Label = null
-var selection_pad: Node2D = null
-var path_cursor: Node2D = null
-
-# Left Panel & Top HUD Controls
-var top_money_label: Label = null
-var panel_money_label: Label = null
-var status_toast_label: Label = null
-var fac_header_label: Label = null
-var btn_tool_move: Button = null
-var btn_tool_pave: Button = null
-var btn_tool_erase: Button = null
-var btn_path_style: Button = null
-var path_count_label: Label = null
-var facility_card_map: Dictionary = {}
 var hovered_facility: Facility = null
 
-# Button textures from assets/Ui.png
-var tex_tick_normal: AtlasTexture = null
-var tex_tick_pressed: AtlasTexture = null
-var tex_cross_normal: AtlasTexture = null
-var tex_cross_pressed: AtlasTexture = null
-var tex_plus_normal: AtlasTexture = null
-var tex_plus_pressed: AtlasTexture = null
-var tex_minus_normal: AtlasTexture = null
-var tex_minus_pressed: AtlasTexture = null
-var tex_dollar_normal: AtlasTexture = null
-var tex_dollar_pressed: AtlasTexture = null
+# In-world visual overlays
+var land_grid_overlay: Node2D = null
+var selection_pad: Node2D = null
+var floating_widget: Node2D = null
+var floating_combo_label: Label = null
+var floating_btn_tick: TextureButton = null
+var floating_btn_cross: TextureButton = null
+var floating_btn_minus: TextureButton = null
+var path_cursor: Node2D = null
 
-func setup(phase2: Phase2Resort, fac_container: Node2D, p_renderer: PathwaysRenderer) -> void:
-	phase2_root = phase2
+# On-map Land Sale Signs (quarter_idx -> Dictionary of sign nodes & state)
+var land_signs_root: Node2D = null
+var land_signs: Dictionary = {}
+var active_confirm_quarter: int = 0
+
+# UI Layer & Left Panel controls
+var ui_layer: CanvasLayer = null
+var left_panel: PanelContainer = null
+var pending_cost_label: Label = null
+var balance_label: Label = null
+var status_toast_label: Label = null
+var fac_header_label: Label = null
+var path_count_label: Label = null
+var btn_tool_draw: Button = null
+var btn_tool_erase: Button = null
+
+# Hover Description Panel controls
+var hover_desc_panel: PanelContainer = null
+var hover_icon_rect: TextureRect = null
+var hover_name_label: Label = null
+var hover_desc_label: Label = null
+var hover_combo_title_label: Label = null
+var hover_combo_desc_label: Label = null
+var hover_flavor_label: Label = null
+var hovered_card_fac_id: String = ""
+
+# Card references (facility_id -> Dictionary of card UI nodes)
+var facility_cards: Dictionary = {}
+
+# Preloaded UI AtlasTextures
+var tex_tick_normal: AtlasTexture
+var tex_tick_pressed: AtlasTexture
+var tex_cross_normal: AtlasTexture
+var tex_cross_pressed: AtlasTexture
+var tex_minus_normal: AtlasTexture
+var tex_minus_pressed: AtlasTexture
+
+func setup(root: Phase2Resort, fac_container: Node2D, path_renderer: PathwaysRenderer) -> void:
+	phase2_root = root
 	facilities_container = fac_container
-	pathways_renderer = p_renderer
-	z_index = 50
+	pathways_renderer = path_renderer
 
 	initial_money = GameManager.money
 	initial_layout_snapshot = GameManager.resort_layout.duplicate(true)
 
-	_load_ui_textures()
-	_create_selection_pad()
-	_create_facility_hold_ring()
-	_create_path_cursor()
-	_create_floating_widget()
-	_build_ui()
+	_build_ui_atlas_textures()
+	_build_world_overlays()
+	_build_land_sale_signs()
+	_build_editor_ui()
+	_prepare_facilities_for_editing()
 	_refresh_money_and_counts()
-	_hide_all_facility_labels()
 
-	set_process_unhandled_input(true)
+# =============================================================================
+# AtlasTexture Builders (from assets/UI/UI_pack.png)
+# =============================================================================
 
-func _hide_all_facility_labels() -> void:
+func _build_ui_atlas_textures() -> void:
+	tex_tick_normal = UIPack.make_icon_atlas("tick", false)
+	tex_tick_pressed = UIPack.make_icon_atlas("tick", true)
+	tex_cross_normal = UIPack.make_icon_atlas("cross", false)
+	tex_cross_pressed = UIPack.make_icon_atlas("cross", true)
+	tex_minus_normal = UIPack.make_icon_atlas("minus", false)
+	tex_minus_pressed = UIPack.make_icon_atlas("minus", true)
+
+func _make_icon_button(
+	btn_name: String,
+	normal_tex: Texture2D,
+	pressed_tex: Texture2D,
+	min_size: Vector2,
+	tooltip: String
+) -> TextureButton:
+	var btn := TextureButton.new()
+	btn.name = btn_name
+	btn.texture_normal = normal_tex
+	btn.texture_pressed = pressed_tex
+	btn.texture_hover = normal_tex
+	btn.custom_minimum_size = min_size
+	btn.ignore_texture_size = true
+	btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	btn.tooltip_text = tooltip
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	return btn
+
+func _make_building_atlas(sheet_path: String, row: int) -> AtlasTexture:
+	var tex := load(sheet_path) as Texture2D
+	if not tex:
+		return null
+	var atlas := AtlasTexture.new()
+	atlas.atlas = tex
+	atlas.region = Rect2(0, row * 150, 150, 150)
+	return atlas
+
+# =============================================================================
+# World Overlays: Locked Land Shading, Combo Radius Ring & Floating Bar
+# =============================================================================
+
+func _build_world_overlays() -> void:
+	# 0. Subtle Land Boundary & Locked Quarter Shading Overlay
+	land_grid_overlay = Node2D.new()
+	land_grid_overlay.name = "LandGridOverlay"
+	land_grid_overlay.z_index = -2
+	land_grid_overlay.draw.connect(_draw_land_grid_overlay)
+	add_child(land_grid_overlay)
+
+	# 1. Selection Footprint Pad + 220px Combo Skill Radius Ring & Neighbor Synergy Highlights
+	selection_pad = Node2D.new()
+	selection_pad.name = "SelectionPad"
+	selection_pad.z_index = 45
+	selection_pad.visible = false
+	selection_pad.draw.connect(_draw_selection_pad_and_combo)
+	add_child(selection_pad)
+
+	# 2. Hold-to-Lift Radial Progress Ring
+	facility_hold_ring = Node2D.new()
+	facility_hold_ring.name = "FacilityHoldRing"
+	facility_hold_ring.z_index = 90
+	facility_hold_ring.visible = false
+	facility_hold_ring.draw.connect(_draw_facility_hold_ring)
+	add_child(facility_hold_ring)
+
+	# 3. Floating Confirmation Bar above Selected Facility ([✓] [✕] [-])
+	floating_widget = Node2D.new()
+	floating_widget.name = "FloatingConfirmWidget"
+	floating_widget.z_index = 100
+	floating_widget.visible = false
+	add_child(floating_widget)
+
+	var vbox_float := VBoxContainer.new()
+	vbox_float.position = Vector2(-95, -52)
+	vbox_float.custom_minimum_size = Vector2(190, 0)
+	vbox_float.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox_float.add_theme_constant_override("separation", 4)
+	floating_widget.add_child(vbox_float)
+
+	floating_combo_label = Label.new()
+	floating_combo_label.name = "FloatingComboLabel"
+	floating_combo_label.text = ""
+	floating_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	floating_combo_label.add_theme_font_size_override("font_size", 18)
+	floating_combo_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.55))
+	floating_combo_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	floating_combo_label.add_theme_constant_override("outline_size", 4)
+	vbox_float.add_child(floating_combo_label)
+
+	var pill_center := CenterContainer.new()
+	vbox_float.add_child(pill_center)
+
+	var pill_panel := PanelContainer.new()
+	pill_panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	UIPack.style_panel(pill_panel, "wood_frame_dark", Vector4(10, 6, 10, 6))
+	pill_center.add_child(pill_panel)
+
+	var hbox := HBoxContainer.new()
+	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	hbox.add_theme_constant_override("separation", 10)
+	pill_panel.add_child(hbox)
+
+	# Tick (✓) Button — Confirm Placement / Purchase
+	floating_btn_tick = _make_icon_button(
+		"ConfirmTickButton",
+		tex_tick_normal,
+		tex_tick_pressed,
+		Vector2(34, 34),
+		"Confirm Placement (✓)"
+	)
+	floating_btn_tick.pressed.connect(_on_confirm_facility_placement)
+	hbox.add_child(floating_btn_tick)
+
+	# Cross (✕) Button — Cancel Move / Discard Preview
+	floating_btn_cross = _make_icon_button(
+		"CancelCrossButton",
+		tex_cross_normal,
+		tex_cross_pressed,
+		Vector2(34, 34),
+		"Cancel (✕)"
+	)
+	floating_btn_cross.pressed.connect(_on_cancel_facility_placement)
+	hbox.add_child(floating_btn_cross)
+
+	# Minus (-) Button — Store Facility back into Owned Inventory (Not Sold)
+	floating_btn_minus = _make_icon_button(
+		"StoreFacilityMinusButton",
+		tex_minus_normal,
+		tex_minus_pressed,
+		Vector2(34, 34),
+		"Remove from Map & Store in Owned (+1)"
+	)
+	floating_btn_minus.pressed.connect(_on_store_selected_facility)
+	hbox.add_child(floating_btn_minus)
+
+	# 4. Pathway Brush Tile Cursor
+	path_cursor = Node2D.new()
+	path_cursor.name = "PathTileCursor"
+	path_cursor.z_index = 40
+	path_cursor.visible = false
+	path_cursor.draw.connect(_draw_path_cursor)
+	add_child(path_cursor)
+
+func _draw_land_grid_overlay() -> void:
+	for cy in range(GameManager.MAP_MIN_CELL_Y, GameManager.MAP_MAX_CELL_Y + 1):
+		for cx in range(GameManager.MAP_MIN_CELL_X, GameManager.MAP_MAX_CELL_X + 1):
+			var cell := Vector2i(cx, cy)
+			var rect := Rect2(Vector2(cx * CELL_SIZE, cy * CELL_SIZE), Vector2(CELL_SIZE, CELL_SIZE))
+			var owned := GameManager.is_land_cell_unlocked(cell)
+			if not owned:
+				var q_idx := GameManager.get_quarter_for_cell(cell)
+				var is_active_q := (q_idx == active_confirm_quarter and active_confirm_quarter > 0)
+				var fill_col := Color(0.2, 0.35, 0.2, 0.25) if is_active_q else Color(0.05, 0.07, 0.1, 0.42)
+				land_grid_overlay.draw_rect(rect, fill_col, true)
+				land_grid_overlay.draw_rect(rect, Color(1.0, 0.85, 0.4, 0.14), false, 1.0)
+
+	var map_rect := Rect2(
+		Vector2(GameManager.MAP_MIN_CELL_X * CELL_SIZE, GameManager.MAP_MIN_CELL_Y * CELL_SIZE),
+		Vector2(
+			(GameManager.MAP_MAX_CELL_X - GameManager.MAP_MIN_CELL_X + 1) * CELL_SIZE,
+			(GameManager.MAP_MAX_CELL_Y - GameManager.MAP_MIN_CELL_Y + 1) * CELL_SIZE
+		)
+	)
+	land_grid_overlay.draw_rect(map_rect, Color(1.0, 0.85, 0.4, 0.4), false, 2.0)
+
+func _draw_selection_pad_and_combo() -> void:
+	if not is_instance_valid(selected_facility):
+		return
+
+	var is_valid := is_facility_placement_valid(selected_facility, selected_facility.position)
+	var rect: Rect2 = selected_facility.get_selection_rect() if selected_facility.has_method("get_selection_rect") else Rect2(-45, -90, 90, 85)
+	var fill_col := Color(0.2, 0.95, 0.4, 0.22) if is_valid else Color(1.0, 0.25, 0.25, 0.32)
+	var border_col := Color(0.3, 1.0, 0.45, 0.95) if is_valid else Color(1.0, 0.3, 0.3, 0.95)
+	selection_pad.draw_rect(rect, fill_col, true)
+	selection_pad.draw_rect(rect, border_col, false, 3.0)
+
+	# Draw 220px Combo Skill Radius Circle (dashed segments)
+	var fac_id: String = selected_facility.facility_id
+	if fac_id != "main_building" and fac_id != "jail":
+		var radius: float = GameManager.COMBO_RANGE
+		var center := rect.get_center()
+		selection_pad.draw_circle(center, radius, Color(0.35, 0.85, 1.0, 0.08))
+		var segs: int = 48
+		for i in range(segs):
+			if i % 2 == 0:
+				var a1: float = (TAU * float(i)) / float(segs)
+				var a2: float = (TAU * float(i + 1)) / float(segs)
+				selection_pad.draw_arc(center, radius, a1, a2, 6, Color(0.45, 0.9, 1.0, 0.75), 2.5)
+
+		# Highlight affected nearby buildings (without connecting lines)
+		var all_facs: Array = facilities_container.get_children() if is_instance_valid(facilities_container) else []
+		var combo_res: Dictionary = GameManager.calculate_facility_combo(
+			fac_id,
+			selected_facility.position,
+			all_facs,
+			selected_facility
+		)
+		var neighbors: Array = combo_res.get("neighbors", [])
+		var font: Font = UIPack.get_font("base")
+		for item in neighbors:
+			var n_node: Node2D = item.get("node")
+			var delta_val: int = int(item.get("delta", 0))
+			if is_instance_valid(n_node):
+				var rel_pos: Vector2 = n_node.global_position - selection_pad.global_position
+				var is_pos: bool = delta_val >= 0
+				var syn_col := Color(0.25, 1.0, 0.45, 0.9) if is_pos else Color(1.0, 0.3, 0.3, 0.9)
+				var syn_fill := Color(0.25, 1.0, 0.45, 0.2) if is_pos else Color(1.0, 0.3, 0.3, 0.22)
+				
+				var n_sel_rect: Rect2 = n_node.get_selection_rect() if n_node.has_method("get_selection_rect") else Rect2(-45, -90, 90, 85)
+				var n_rect := Rect2(rel_pos + n_sel_rect.position, n_sel_rect.size)
+				selection_pad.draw_rect(n_rect, syn_fill, true)
+				selection_pad.draw_rect(n_rect, syn_col, false, 3.0)
+				if font:
+					var badge_str: String = ("+$%d" % delta_val) if delta_val >= 0 else ("-$%d" % abs(delta_val))
+					var badge_y := rel_pos.y + n_sel_rect.position.y - 12
+					selection_pad.draw_string_outline(
+						font,
+						Vector2(rel_pos.x - 28, badge_y),
+						badge_str,
+						HORIZONTAL_ALIGNMENT_CENTER,
+						-1,
+						20,
+						5,
+						Color(0, 0, 0, 0.95)
+					)
+					selection_pad.draw_string(
+						font,
+						Vector2(rel_pos.x - 28, badge_y),
+						badge_str,
+						HORIZONTAL_ALIGNMENT_CENTER,
+						-1,
+						20,
+						syn_col
+					)
+
+	# Corner brackets
+	var c_len: float = clampf(rect.size.x * 0.22, 10.0, 18.0)
+	var tl := rect.position
+	var tr := Vector2(rect.end.x, rect.position.y)
+	var bl := Vector2(rect.position.x, rect.end.y)
+	var br := rect.end
+
+	selection_pad.draw_line(tl, tl + Vector2(c_len, 0), Color.WHITE, 4.0)
+	selection_pad.draw_line(tl, tl + Vector2(0, c_len), Color.WHITE, 4.0)
+	selection_pad.draw_line(tr, tr + Vector2(-c_len, 0), Color.WHITE, 4.0)
+	selection_pad.draw_line(tr, tr + Vector2(0, c_len), Color.WHITE, 4.0)
+	selection_pad.draw_line(bl, bl + Vector2(c_len, 0), Color.WHITE, 4.0)
+	selection_pad.draw_line(bl, bl + Vector2(0, -c_len), Color.WHITE, 4.0)
+	selection_pad.draw_line(br, br + Vector2(-c_len, 0), Color.WHITE, 4.0)
+	selection_pad.draw_line(br, br + Vector2(0, -c_len), Color.WHITE, 4.0)
+
+func _draw_facility_hold_ring() -> void:
+	if facility_hold_progress <= 0.01:
+		return
+	var radius := 30.0
+	var center := Vector2(0, -45)
+	var bg_col := Color(0.08, 0.1, 0.14, 0.65)
+	var fg_col := Color(0.35, 0.95, 1.0, 0.95).lerp(Color(0.4, 1.0, 0.45, 1.0), facility_hold_progress)
+	facility_hold_ring.draw_circle(center, radius + 3.0, bg_col)
+	var start_angle := -PI * 0.5
+	var end_angle := start_angle + TAU * clampf(facility_hold_progress, 0.0, 1.0)
+	facility_hold_ring.draw_arc(center, radius, start_angle, end_angle, 32, fg_col, 5.0, true)
+
+func _draw_path_cursor() -> void:
+	var rect := Rect2(Vector2.ZERO, Vector2(CELL_SIZE, CELL_SIZE))
+	if current_tool == ToolMode.DRAW:
+		path_cursor.draw_rect(rect, Color(0.95, 0.8, 0.3, 0.35), true)
+		path_cursor.draw_rect(rect, Color(1.0, 0.9, 0.4, 0.95), false, 2.5)
+	elif current_tool == ToolMode.ERASE:
+		path_cursor.draw_rect(rect, Color(0.95, 0.25, 0.25, 0.35), true)
+		path_cursor.draw_rect(rect, Color(1.0, 0.35, 0.35, 0.95), false, 2.5)
+
+func _prepare_facilities_for_editing() -> void:
 	if not is_instance_valid(facilities_container):
 		return
 	for child in facilities_container.get_children():
 		if child is Facility:
+			child.set_process(false)
 			if is_instance_valid(child.name_label):
 				child.name_label.visible = false
 			if is_instance_valid(child.status_label):
 				child.status_label.visible = false
 
-func _load_ui_textures() -> void:
-	var ui_tex := load(UI_SPRITESHEET_PATH) as Texture2D
-	if not ui_tex:
+# =============================================================================
+# On-Map Land Expansion Signs (Click to Open Tick/Cross, Auto-Close on Mouse Leave)
+# =============================================================================
+
+func _build_land_sale_signs() -> void:
+	land_signs_root = Node2D.new()
+	land_signs_root.name = "LandSaleSignsRoot"
+	land_signs_root.z_index = 35
+	add_child(land_signs_root)
+
+	var sign_defs := {
+		2: {"pos": Vector2(240, 176), "title": "RIGHT BOTTOM"},
+		3: {"pos": Vector2(-240, -192), "title": "LEFT TOP"},
+		4: {"pos": Vector2(240, -192), "title": "RIGHT TOP"},
+	}
+
+	var sign_atlas := UIPack.make_region_atlas(UIPack.WOOD_SIGN_REGION)
+
+	for q_idx in sign_defs.keys():
+		var info: Dictionary = sign_defs[q_idx]
+		var sign_node := Node2D.new()
+		sign_node.name = "LandSign_Q%d" % q_idx
+		sign_node.position = info["pos"]
+		land_signs_root.add_child(sign_node)
+
+		# Clickable Wooden Sign Button
+		var sign_btn := TextureButton.new()
+		sign_btn.name = "SignButton"
+		sign_btn.texture_normal = sign_atlas
+		sign_btn.texture_hover = sign_atlas
+		sign_btn.texture_pressed = sign_atlas
+		sign_btn.ignore_texture_size = true
+		sign_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		sign_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		sign_btn.custom_minimum_size = Vector2(96, 112)
+		sign_btn.size = Vector2(96, 112)
+		sign_btn.position = Vector2(-48, -56)
+		sign_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		sign_btn.tooltip_text = "Click to buy %s" % info["title"]
+		sign_btn.pressed.connect(_on_land_sign_clicked.bind(q_idx))
+		sign_node.add_child(sign_btn)
+
+		# Upper Plank Text ("FOR SALE")
+		var sale_lbl := Label.new()
+		sale_lbl.text = "SALE"
+		sale_lbl.position = Vector2(-44, -48)
+		sale_lbl.size = Vector2(88, 28)
+		sale_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		sale_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		sale_lbl.add_theme_font_size_override("font_size", 18)
+		sale_lbl.add_theme_color_override("font_color", Color(0.24, 0.13, 0.05))
+		sale_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sign_node.add_child(sale_lbl)
+
+		# Lower Plank Price Text ("$100")
+		var price_lbl := Label.new()
+		price_lbl.name = "PriceLabel"
+		price_lbl.text = "$100"
+		price_lbl.position = Vector2(-44, -10)
+		price_lbl.size = Vector2(88, 30)
+		price_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		price_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		price_lbl.add_theme_font_size_override("font_size", 20)
+		price_lbl.add_theme_color_override("font_color", Color(0.14, 0.42, 0.14))
+		price_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sign_node.add_child(price_lbl)
+
+		# Confirmation Popup ([✓] [✕]) — Hidden until sign is clicked, auto-closes on mouse away
+		var confirm_box := PanelContainer.new()
+		confirm_box.name = "ConfirmBox"
+		confirm_box.visible = false
+		confirm_box.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		UIPack.style_panel(confirm_box, "wood_frame_dark", Vector4(8, 6, 8, 6))
+		confirm_box.position = Vector2(-50, -106)
+		sign_node.add_child(confirm_box)
+
+		var hbox := HBoxContainer.new()
+		hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		hbox.add_theme_constant_override("separation", 10)
+		confirm_box.add_child(hbox)
+
+		var btn_yes := _make_icon_button(
+			"ConfirmBuyLand_Q%d" % q_idx,
+			tex_tick_normal,
+			tex_tick_pressed,
+			Vector2(34, 34),
+			"Confirm Land Purchase (✓)"
+		)
+		btn_yes.pressed.connect(_on_confirm_buy_land_quarter.bind(q_idx))
+		hbox.add_child(btn_yes)
+
+		var btn_no := _make_icon_button(
+			"CancelBuyLand_Q%d" % q_idx,
+			tex_cross_normal,
+			tex_cross_pressed,
+			Vector2(34, 34),
+			"Cancel (✕)"
+		)
+		btn_no.pressed.connect(_close_land_sign_confirmations)
+		hbox.add_child(btn_no)
+
+		land_signs[q_idx] = {
+			"node": sign_node,
+			"price_label": price_lbl,
+			"confirm_box": confirm_box,
+		}
+
+	_refresh_land_signs()
+
+func _refresh_land_signs() -> void:
+	var next_cost: int = GameManager.get_next_quarter_cost()
+	for q_idx in land_signs.keys():
+		var data: Dictionary = land_signs[q_idx]
+		var sign_node: Node2D = data["node"]
+		var price_lbl: Label = data["price_label"]
+		var confirm_box: Control = data["confirm_box"]
+		var unlocked: bool = GameManager.is_quarter_unlocked(q_idx)
+		sign_node.visible = not unlocked
+		if unlocked and active_confirm_quarter == q_idx:
+			active_confirm_quarter = 0
+		confirm_box.visible = (active_confirm_quarter == q_idx and not unlocked)
+		price_lbl.text = "$%d" % next_cost
+	if is_instance_valid(land_grid_overlay):
+		land_grid_overlay.queue_redraw()
+
+func _on_land_sign_clicked(q_idx: int) -> void:
+	if GameManager.is_quarter_unlocked(q_idx):
+		return
+	var next_q: int = GameManager.get_next_locked_quarter()
+	if q_idx != next_q:
+		_show_status_toast("⚠ Must buy %s first!" % GameManager.QUARTER_NAMES[next_q - 1], Color(1.0, 0.45, 0.45))
+		return
+	active_confirm_quarter = q_idx
+	_refresh_land_signs()
+	var cost: int = GameManager.get_next_quarter_cost()
+	_show_status_toast("Buy %s for $%d? Click ✓ to confirm." % [GameManager.QUARTER_NAMES[q_idx - 1], cost], Color(1.0, 0.9, 0.45))
+
+func _close_land_sign_confirmations() -> void:
+	if active_confirm_quarter != 0:
+		active_confirm_quarter = 0
+		_refresh_land_signs()
+
+func _on_confirm_buy_land_quarter(q_idx: int) -> void:
+	if GameManager.is_quarter_unlocked(q_idx):
+		_close_land_sign_confirmations()
+		return
+	var cost: int = GameManager.get_next_quarter_cost()
+	if GameManager.money < cost:
+		_show_status_toast("⚠ Not enough money! Need $%d (Have $%d)" % [cost, GameManager.money], Color(1.0, 0.4, 0.4))
+		_close_land_sign_confirmations()
 		return
 
-	# Tick (✓) Confirm Move Button
-	tex_tick_normal = _make_atlas(ui_tex, REGION_TICK_NORMAL)
-	tex_tick_pressed = _make_atlas(ui_tex, REGION_TICK_PRESSED)
+	GameManager.money -= cost
+	GameManager.unlock_quarter(q_idx)
+	active_confirm_quarter = 0
 
-	# Cross (✖) Cancel Button
-	tex_cross_normal = _make_atlas(ui_tex, REGION_CROSS_NORMAL)
-	tex_cross_pressed = _make_atlas(ui_tex, REGION_CROSS_PRESSED)
+	if is_instance_valid(phase2_root):
+		phase2_root.rebuild_grass_tilemap()
+	_refresh_land_signs()
+	_refresh_money_and_counts()
+	_show_status_toast("✓ Purchased %s (-$%d)!" % [GameManager.QUARTER_NAMES[q_idx - 1], cost], Color(0.45, 1.0, 0.58))
 
-	# Plus (+) Button — NOTE: Uses REGION_PLUS_NORMAL / REGION_PLUS_PRESSED defined at top of file
-	tex_plus_normal = _make_atlas(ui_tex, REGION_PLUS_NORMAL)
-	tex_plus_pressed = _make_atlas(ui_tex, REGION_PLUS_PRESSED)
+# =============================================================================
+# Editor UI: Left Panel + Hover Description Panel (Matching Reference Image)
+# =============================================================================
 
-	# Minus (-) Button — NOTE: Uses REGION_MINUS_NORMAL / REGION_MINUS_PRESSED defined at top of file
-	tex_minus_normal = _make_atlas(ui_tex, REGION_MINUS_NORMAL)
-	tex_minus_pressed = _make_atlas(ui_tex, REGION_MINUS_PRESSED)
+func _build_editor_ui() -> void:
+	ui_layer = CanvasLayer.new()
+	ui_layer.name = "EditorUILayer"
+	ui_layer.layer = 20
+	add_child(ui_layer)
 
-	# Dollar ($) Confirm Purchase Button — NOTE: Uses REGION_DOLLAR_NORMAL / REGION_DOLLAR_PRESSED defined at top of file
-	tex_dollar_normal = _make_atlas(ui_tex, REGION_DOLLAR_NORMAL)
-	tex_dollar_pressed = _make_atlas(ui_tex, REGION_DOLLAR_PRESSED)
-
-func _make_atlas(sheet: Texture2D, region: Rect2) -> AtlasTexture:
-	var a := AtlasTexture.new()
-	a.atlas = sheet
-	a.region = region
-	return a
-
-func _create_selection_pad() -> void:
-	selection_pad = Node2D.new()
-	selection_pad.name = "SelectionPad"
-	selection_pad.visible = false
-	selection_pad.z_index = -1
-	add_child(selection_pad)
-	selection_pad.draw.connect(_on_selection_pad_draw)
-
-func _on_selection_pad_draw() -> void:
-	if not is_instance_valid(selected_facility):
-		return
-	var fill_col := Color(1.0, 0.85, 0.25, 0.24) if is_pending_purchase_facility else Color(0.2, 0.8, 1.0, 0.22)
-	var ring_col := Color(1.0, 0.9, 0.35, 0.9) if is_pending_purchase_facility else Color(0.3, 0.9, 1.0, 0.85)
-	selection_pad.draw_circle(Vector2(0, -10), 75.0, fill_col)
-	selection_pad.draw_arc(Vector2(0, -10), 75.0, 0, TAU, 36, ring_col, 3.0, true)
-
-func _create_facility_hold_ring() -> void:
-	facility_hold_ring = Node2D.new()
-	facility_hold_ring.name = "FacilityHoldRing"
-	facility_hold_ring.visible = false
-	facility_hold_ring.z_index = 65
-	add_child(facility_hold_ring)
-	facility_hold_ring.draw.connect(_on_facility_hold_ring_draw)
-
-func _on_facility_hold_ring_draw() -> void:
-	if facility_hold_progress <= 0.0 or not is_instance_valid(hold_target_facility):
-		return
-	var r: float = 70.0
-	var center := Vector2(0, -15)
-
-	# Soft ground shadow ring under building
-	facility_hold_ring.draw_circle(center, r + 4.0, Color(0.0, 0.0, 0.0, 0.3 * facility_hold_progress))
-	# Background track ring
-	facility_hold_ring.draw_arc(center, r, 0, TAU, 48, Color(0.12, 0.16, 0.22, 0.85), 5.0, true)
-	# Active fill arc (starting at -PI/2 = top 12 o'clock, clockwise)
-	var start_angle := -PI * 0.5
-	var end_angle := start_angle + facility_hold_progress * TAU
-	# Color shift: amber gold at 25% -> bright emerald/cyan at 100%
-	var ring_color: Color = Color(1.0, 0.78, 0.2).lerp(Color(0.2, 1.0, 0.55), clampf((facility_hold_progress - 0.25) / 0.75, 0.0, 1.0))
-	facility_hold_ring.draw_arc(center, r, start_angle, end_angle, 48, ring_color, 5.0, true)
-
-func _create_path_cursor() -> void:
-	path_cursor = Node2D.new()
-	path_cursor.name = "PathCursor"
-	path_cursor.visible = false
-	path_cursor.z_index = 10
-	add_child(path_cursor)
-	path_cursor.draw.connect(_on_path_cursor_draw)
-
-func _on_path_cursor_draw() -> void:
-	if current_tool == ToolMode.MOVE:
-		return
-	var col: Color = Color(0.3, 1.0, 0.5, 0.8) if current_tool == ToolMode.PAVE else Color(1.0, 0.35, 0.35, 0.8)
-	var fill_col: Color = Color(col.r, col.g, col.b, 0.25)
-	var rect := Rect2(Vector2.ZERO, Vector2(CELL_SIZE, CELL_SIZE))
-	path_cursor.draw_rect(rect, fill_col, true)
-	path_cursor.draw_rect(rect, col, false, 2.0)
-
-func _create_floating_widget() -> void:
-	floating_widget = Node2D.new()
-	floating_widget.name = "FloatingActionBar"
-	floating_widget.visible = false
-	floating_widget.z_index = 70
-	add_child(floating_widget)
-
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(140, 48)
-	panel.offset_left = -70.0
-	panel.offset_top = -24.0
-	panel.offset_right = 70.0
-	panel.offset_bottom = 24.0
-
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.14, 0.2, 0.95)
-	style.border_color = Color(0.85, 0.75, 0.45, 0.9)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
-	style.shadow_color = Color(0, 0, 0, 0.4)
-	style.shadow_size = 6
-	panel.add_theme_stylebox_override("panel", style)
-	floating_widget.add_child(panel)
-
-	var hbox := HBoxContainer.new()
-	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	hbox.add_theme_constant_override("separation", 10)
-	panel.add_child(hbox)
-
-	# Price tag shown when confirming a new $50 building purchase on the map
-	floating_price_label = Label.new()
-	floating_price_label.text = "$%d" % BUILDING_COST
-	floating_price_label.add_theme_font_size_override("font_size", 13)
-	floating_price_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.55))
-	floating_price_label.visible = false
-	hbox.add_child(floating_price_label)
-
-	# 1. Dollar ($) Button — Confirm purchasing a newly dragged building for $50
-	# NOTE: Uses tex_dollar_normal / tex_dollar_pressed from assets/Ui.png
-	floating_btn_dollar = _make_icon_button("ConfirmBuyBtn", tex_dollar_normal, tex_dollar_pressed, Vector2(30, 30), "Buy & Place Building ($%d)" % BUILDING_COST)
-	floating_btn_dollar.pressed.connect(_on_confirm_facility_placement)
-	floating_btn_dollar.visible = false
-	hbox.add_child(floating_btn_dollar)
-
-	# 2. Tick (✓) Button — Confirm moving an already-owned building
-	floating_btn_tick = _make_icon_button("ConfirmMoveBtn", tex_tick_normal, tex_tick_pressed, Vector2(30, 30), "Confirm New Position (✓)")
-	floating_btn_tick.pressed.connect(_on_confirm_facility_placement)
-	hbox.add_child(floating_btn_tick)
-
-	# 3. Minus (-) Button — Sell / Remove selected building (+$50 refund)
-	# NOTE: Uses tex_minus_normal / tex_minus_pressed from assets/Ui.png
-	floating_btn_minus = _make_icon_button("RemoveBuildingBtn", tex_minus_normal, tex_minus_pressed, Vector2(30, 30), "Remove / Sell Building (+$%d)" % BUILDING_COST)
-	floating_btn_minus.pressed.connect(_on_remove_selected_facility)
-	hbox.add_child(floating_btn_minus)
-
-	# 4. Cross (✖) Button — Cancel movement or cancel pending purchase
-	floating_btn_cross = _make_icon_button("CancelBtn", tex_cross_normal, tex_cross_pressed, Vector2(30, 30), "Cancel (✖)")
-	floating_btn_cross.pressed.connect(_on_cancel_facility_placement)
-	hbox.add_child(floating_btn_cross)
-
-func _make_icon_button(btn_name: String, normal_tex: Texture2D, pressed_tex: Texture2D, min_size: Vector2, tip: String) -> TextureButton:
-	var btn := TextureButton.new()
-	btn.name = btn_name
-	btn.texture_normal = normal_tex
-	btn.texture_pressed = pressed_tex
-	btn.texture_hover = pressed_tex
-	btn.custom_minimum_size = min_size
-	btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	btn.tooltip_text = tip
-	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	return btn
-
-func _build_ui() -> void:
-	canvas_layer = CanvasLayer.new()
-	canvas_layer.name = "LayoutEditorCanvas"
-	canvas_layer.layer = 15
-	add_child(canvas_layer)
-
-	_build_top_nav_bar()
-	_build_left_panel()
-
-func _build_top_nav_bar() -> void:
-	top_nav_bar = PanelContainer.new()
-	top_nav_bar.name = "TopNavBar"
-	top_nav_bar.position = Vector2(346, 16)
-	top_nav_bar.custom_minimum_size = Vector2(660, 44)
-	top_nav_bar.mouse_filter = Control.MOUSE_FILTER_STOP
-
-	var top_style := StyleBoxFlat.new()
-	top_style.bg_color = Color(0.09, 0.12, 0.18, 0.95)
-	top_style.border_color = Color(0.4, 0.6, 0.8, 0.85)
-	top_style.set_border_width_all(2)
-	top_style.set_corner_radius_all(8)
-	top_style.shadow_color = Color(0, 0, 0, 0.4)
-	top_style.shadow_size = 6
-	top_nav_bar.add_theme_stylebox_override("panel", top_style)
-	canvas_layer.add_child(top_nav_bar)
-
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_top", 6)
-	margin.add_theme_constant_override("margin_right", 14)
-	margin.add_theme_constant_override("margin_bottom", 6)
-	top_nav_bar.add_child(margin)
-
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 12)
-	margin.add_child(hb)
-
-	var title := Label.new()
-	title.text = "🏛️ RESORT ARCHITECT"
-	title.add_theme_font_size_override("font_size", 14)
-	title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35))
-	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	hb.add_child(title)
-
-	top_money_label = Label.new()
-	top_money_label.text = "💰 Funds: $%d" % GameManager.money
-	top_money_label.add_theme_font_size_override("font_size", 14)
-	top_money_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.55))
-	top_money_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top_money_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	hb.add_child(top_money_label)
-
-	var dev_money_btn := Button.new()
-	dev_money_btn.text = "+$100 (Dev)"
-	dev_money_btn.tooltip_text = "Dev helper: Add $100 to test buying buildings"
-	dev_money_btn.focus_mode = Control.FOCUS_NONE
-	dev_money_btn.pressed.connect(func():
-		GameManager.money += 100
-		_refresh_money_and_counts()
-		_show_status_toast("Added +$100 dev funds!", Color(0.4, 1.0, 0.55))
-	)
-	hb.add_child(dev_money_btn)
-
-	var top_btn_save := Button.new()
-	top_btn_save.text = "💾 Save & Exit"
-	top_btn_save.focus_mode = Control.FOCUS_NONE
-	var save_s := StyleBoxFlat.new()
-	save_s.bg_color = Color(0.18, 0.48, 0.28)
-	save_s.border_color = Color(0.4, 0.95, 0.55)
-	save_s.set_border_width_all(1)
-	save_s.set_corner_radius_all(4)
-	top_btn_save.add_theme_stylebox_override("normal", save_s)
-	top_btn_save.pressed.connect(_on_save_and_exit)
-	hb.add_child(top_btn_save)
-
-	var top_btn_cancel := Button.new()
-	top_btn_cancel.text = "✕ Back to Lobby"
-	top_btn_cancel.focus_mode = Control.FOCUS_NONE
-	var cancel_s := StyleBoxFlat.new()
-	cancel_s.bg_color = Color(0.35, 0.18, 0.18)
-	cancel_s.border_color = Color(0.9, 0.4, 0.4)
-	cancel_s.set_border_width_all(1)
-	cancel_s.set_corner_radius_all(4)
-	top_btn_cancel.add_theme_stylebox_override("normal", cancel_s)
-	top_btn_cancel.pressed.connect(_on_cancel_and_exit)
-	hb.add_child(top_btn_cancel)
-
-func _build_left_panel() -> void:
+	# -------------------------------------------------------------------------
+	# 1. Left Docked Panel (Matches Reference Image)
+	# -------------------------------------------------------------------------
 	left_panel = PanelContainer.new()
-	left_panel.name = "LeftPanel"
-	left_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-
-	# Set anchors to full vertical height along left edge
-	left_panel.anchor_left = 0.0
-	left_panel.anchor_top = 0.0
-	left_panel.anchor_right = 0.0
-	left_panel.anchor_bottom = 1.0
-	left_panel.offset_left = 16.0
-	left_panel.offset_top = 16.0
-	left_panel.offset_right = 334.0
-	left_panel.offset_bottom = -16.0
-	left_panel.custom_minimum_size = Vector2(318, 736)
-
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.09, 0.12, 0.17, 0.95)
-	panel_style.border_color = Color(0.4, 0.55, 0.7, 0.8)
-	panel_style.set_border_width_all(2)
-	panel_style.set_corner_radius_all(10)
-	panel_style.shadow_color = Color(0, 0, 0, 0.45)
-	panel_style.shadow_size = 8
-	left_panel.add_theme_stylebox_override("panel", panel_style)
-	canvas_layer.add_child(left_panel)
-
-	var margin := MarginContainer.new()
-	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_bottom", 12)
-	left_panel.add_child(margin)
-
-	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_child(scroll)
+	left_panel.name = "LeftEditorPanel"
+	left_panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	left_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	left_panel.position = Vector2(14, 14)
+	left_panel.custom_minimum_size = Vector2(416, 860)
+	UIPack.style_panel(left_panel, "wood_frame_dark", Vector4(16, 14, 16, 16))
+	ui_layer.add_child(left_panel)
 
 	var vb := VBoxContainer.new()
-	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vb.add_theme_constant_override("separation", 8)
-	scroll.add_child(vb)
+	vb.add_theme_constant_override("separation", 10)
+	left_panel.add_child(vb)
 
-	# 1. Header & Money Balance
+	# Header Title
 	var title_lbl := Label.new()
-	title_lbl.text = "🏛️ FACILITY SHOP & LAYOUT"
-	title_lbl.add_theme_font_size_override("font_size", 15)
-	title_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35))
+	title_lbl.text = "★ FACILITY SHOP & LAYOUT"
+	title_lbl.add_theme_font_size_override("font_size", 22)
+	title_lbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.4))
 	vb.add_child(title_lbl)
 
-	panel_money_label = Label.new()
-	panel_money_label.text = "💰 Balance: $%d  ($%d / building)" % [GameManager.money, BUILDING_COST]
-	panel_money_label.add_theme_font_size_override("font_size", 12)
-	panel_money_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.55))
-	vb.add_child(panel_money_label)
+	# Balance Row: [-50] [Coin Icon] [1500]
+	var balance_row := HBoxContainer.new()
+	balance_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	balance_row.add_theme_constant_override("separation", 12)
+	vb.add_child(balance_row)
 
-	var sub_lbl := Label.new()
-	sub_lbl.text = "Use [+]/[-] to choose amount & press [$] to buy.\nOr drag a card onto the map! Hold building ~1s to move."
-	sub_lbl.add_theme_font_size_override("font_size", 10)
-	sub_lbl.add_theme_color_override("font_color", Color(0.75, 0.82, 0.9))
-	vb.add_child(sub_lbl)
+	pending_cost_label = Label.new()
+	pending_cost_label.name = "PendingCostLabel"
+	pending_cost_label.text = "-50"
+	pending_cost_label.visible = false
+	pending_cost_label.add_theme_font_size_override("font_size", 32)
+	pending_cost_label.add_theme_color_override("font_color", Color(1.0, 0.35, 0.35))
+	balance_row.add_child(pending_cost_label)
 
+	var coin_icon := TextureRect.new()
+	coin_icon.texture = UIPack.make_region_atlas(UIPack.COIN_REGION)
+	coin_icon.custom_minimum_size = Vector2(36, 44)
+	coin_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	coin_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	coin_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	balance_row.add_child(coin_icon)
+
+	balance_label = Label.new()
+	balance_label.name = "BalanceLabel"
+	balance_label.text = "%d" % GameManager.money
+	balance_label.add_theme_font_size_override("font_size", 36)
+	balance_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.38))
+	balance_row.add_child(balance_label)
+
+	# Status Toast Feedback Label
 	status_toast_label = Label.new()
 	status_toast_label.text = ""
-	status_toast_label.visible = false
 	status_toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	status_toast_label.add_theme_font_size_override("font_size", 11)
+	status_toast_label.add_theme_font_size_override("font_size", 18)
+	status_toast_label.add_theme_color_override("font_color", Color(0.4, 1.0, 0.55))
+	status_toast_label.visible = false
 	vb.add_child(status_toast_label)
 
 	vb.add_child(_make_separator())
 
-	# 2. Facilities Shop Section
+	# 2. Facilities Section (2-Column Scrollable Grid of Square Beige Cards)
 	fac_header_label = Label.new()
-	fac_header_label.text = "BUY & PLACE FACILITIES ($%d EACH)" % BUILDING_COST
-	fac_header_label.add_theme_font_size_override("font_size", 11)
-	fac_header_label.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
+	fac_header_label.text = "FACILITIES IN RESORT (3)"
+	fac_header_label.add_theme_font_size_override("font_size", 20)
+	fac_header_label.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
 	vb.add_child(fac_header_label)
 
-	_build_facility_cards(vb)
+	var fac_scroll := ScrollContainer.new()
+	fac_scroll.custom_minimum_size = Vector2(0, 376)
+	fac_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	fac_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	vb.add_child(fac_scroll)
+
+	var fac_grid := GridContainer.new()
+	fac_grid.columns = 2
+	fac_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fac_grid.add_theme_constant_override("h_separation", 14)
+	fac_grid.add_theme_constant_override("v_separation", 14)
+	fac_scroll.add_child(fac_grid)
+
+	_build_facility_grid_cards(fac_grid)
 
 	vb.add_child(_make_separator())
 
-	# 3. Pathways Section
+	# 3. Pathway Builder Section ("Draw", "- Erase", "✕ Clear All")
 	var path_hdr := Label.new()
 	path_hdr.text = "PATHWAY BUILDER"
-	path_hdr.add_theme_font_size_override("font_size", 11)
-	path_hdr.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
+	path_hdr.add_theme_font_size_override("font_size", 20)
+	path_hdr.add_theme_color_override("font_color", Color(0.55, 0.85, 1.0))
 	vb.add_child(path_hdr)
 
-	var path_tools_box := HBoxContainer.new()
-	path_tools_box.add_theme_constant_override("separation", 6)
-	vb.add_child(path_tools_box)
+	var tool_box := HBoxContainer.new()
+	tool_box.add_theme_constant_override("separation", 10)
+	vb.add_child(tool_box)
 
-	btn_tool_move = Button.new()
-	btn_tool_move.text = "🖐️ Move"
-	btn_tool_move.focus_mode = Control.FOCUS_NONE
-	btn_tool_move.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_tool_move.pressed.connect(_set_tool_mode.bind(ToolMode.MOVE))
-	path_tools_box.add_child(btn_tool_move)
-
-	btn_tool_pave = Button.new()
-	btn_tool_pave.text = "🧱 Pave"
-	btn_tool_pave.focus_mode = Control.FOCUS_NONE
-	btn_tool_pave.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_tool_pave.pressed.connect(_set_tool_mode.bind(ToolMode.PAVE))
-	path_tools_box.add_child(btn_tool_pave)
+	btn_tool_draw = Button.new()
+	btn_tool_draw.text = "Draw"
+	btn_tool_draw.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_tool_draw.custom_minimum_size = Vector2(0, 38)
+	btn_tool_draw.focus_mode = Control.FOCUS_NONE
+	btn_tool_draw.add_theme_font_size_override("font_size", 20)
+	btn_tool_draw.pressed.connect(_on_toggle_tool_mode.bind(ToolMode.DRAW))
+	tool_box.add_child(btn_tool_draw)
 
 	btn_tool_erase = Button.new()
-	btn_tool_erase.text = "🧹 Erase"
-	btn_tool_erase.focus_mode = Control.FOCUS_NONE
+	btn_tool_erase.text = "- Erase"
 	btn_tool_erase.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_tool_erase.pressed.connect(_set_tool_mode.bind(ToolMode.ERASE))
-	path_tools_box.add_child(btn_tool_erase)
-
-	var path_actions_box := HBoxContainer.new()
-	path_actions_box.add_theme_constant_override("separation", 6)
-	vb.add_child(path_actions_box)
+	btn_tool_erase.custom_minimum_size = Vector2(0, 38)
+	btn_tool_erase.focus_mode = Control.FOCUS_NONE
+	btn_tool_erase.add_theme_font_size_override("font_size", 20)
+	btn_tool_erase.pressed.connect(_on_toggle_tool_mode.bind(ToolMode.ERASE))
+	tool_box.add_child(btn_tool_erase)
 
 	var btn_clear := Button.new()
-	btn_clear.text = "🗑️ Clear All"
-	btn_clear.focus_mode = Control.FOCUS_NONE
+	btn_clear.text = "✕ Clear All"
 	btn_clear.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn_clear.custom_minimum_size = Vector2(0, 38)
+	btn_clear.focus_mode = Control.FOCUS_NONE
+	btn_clear.add_theme_font_size_override("font_size", 20)
+	UIPack.style_button(btn_clear, Color(1.0, 0.78, 0.68))
 	btn_clear.pressed.connect(_clear_all_pathways)
-	path_actions_box.add_child(btn_clear)
-
-	var btn_reset := Button.new()
-	btn_reset.text = "🔄 Reset Promenade"
-	btn_reset.focus_mode = Control.FOCUS_NONE
-	btn_reset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn_reset.pressed.connect(_reset_pathways_default)
-	path_actions_box.add_child(btn_reset)
+	vb.add_child(btn_clear)
 
 	path_count_label = Label.new()
-	path_count_label.add_theme_font_size_override("font_size", 11)
-	path_count_label.add_theme_color_override("font_color", Color(0.7, 0.85, 0.7))
+	path_count_label.add_theme_font_size_override("font_size", 18)
+	path_count_label.add_theme_color_override("font_color", Color(0.75, 0.9, 0.75))
 	vb.add_child(path_count_label)
 	_refresh_path_count()
 
 	vb.add_child(_make_separator())
 
-	# 4. Save & Exit Actions
+	# 4. Save & Cancel Actions
 	var btn_save := Button.new()
-	btn_save.text = "💾 Save & Return to Desk"
+	btn_save.text = "✓ Save & Return to Desk"
 	btn_save.focus_mode = Control.FOCUS_NONE
-	btn_save.custom_minimum_size = Vector2(0, 38)
-	var save_style := StyleBoxFlat.new()
-	save_style.bg_color = Color(0.18, 0.48, 0.28)
-	save_style.border_color = Color(0.4, 0.95, 0.55)
-	save_style.set_border_width_all(2)
-	save_style.set_corner_radius_all(6)
-	btn_save.add_theme_stylebox_override("normal", save_style)
+	btn_save.custom_minimum_size = Vector2(0, 44)
+	btn_save.add_theme_font_size_override("font_size", 20)
+	UIPack.style_button(btn_save, Color(0.75, 1.0, 0.78))
 	btn_save.pressed.connect(_on_save_and_exit)
 	vb.add_child(btn_save)
 
 	var btn_cancel := Button.new()
 	btn_cancel.text = "✕ Cancel & Return"
 	btn_cancel.focus_mode = Control.FOCUS_NONE
-	btn_cancel.custom_minimum_size = Vector2(0, 30)
+	btn_cancel.custom_minimum_size = Vector2(0, 40)
+	btn_cancel.add_theme_font_size_override("font_size", 20)
+	UIPack.style_button(btn_cancel, Color(1.0, 0.78, 0.72))
 	btn_cancel.pressed.connect(_on_cancel_and_exit)
 	vb.add_child(btn_cancel)
 
+	# -------------------------------------------------------------------------
+	# 5. Hover Description Side Panel (Attached to Right of Left Panel)
+	# -------------------------------------------------------------------------
+	_build_hover_description_panel()
 	_update_tool_buttons()
 
-func _build_facility_cards(parent: VBoxContainer) -> void:
-	var fac_defs := [
-		{
-			"id": "cabin",
-			"display": "Cabin",
-			"sub": "Lodge • Row 0",
-			"row": 0,
-			"color": Color(1.0, 0.65, 0.25)
-		},
-		{
-			"id": "restaurant",
-			"display": "Restaurant",
-			"sub": "Dining • Row 7",
-			"row": 7,
-			"color": Color(0.35, 0.85, 0.45)
-		},
-		{
-			"id": "wool_salon",
-			"display": "Wool Salon",
-			"sub": "Salon • Row 13",
-			"row": 13,
-			"color": Color(0.75, 0.55, 1.0)
-		},
-		{
-			"id": "jail",
-			"display": "Jail",
-			"sub": "Deportation • Row 11",
-			"row": 11,
-			"color": Color(0.9, 0.35, 0.35)
-		},
-	]
+func _build_hover_description_panel() -> void:
+	hover_desc_panel = PanelContainer.new()
+	hover_desc_panel.name = "HoverDescriptionPanel"
+	hover_desc_panel.visible = false
+	hover_desc_panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	hover_desc_panel.position = Vector2(432, 14)
+	hover_desc_panel.custom_minimum_size = Vector2(310, 460)
+	hover_desc_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UIPack.style_panel(hover_desc_panel, "wood_frame_dark", Vector4(22, 20, 22, 22))
+	ui_layer.add_child(hover_desc_panel)
 
-	var bld_tex := load(BUILDINGS_PATH) as Texture2D
+	var vb := VBoxContainer.new()
+	vb.alignment = BoxContainer.ALIGNMENT_BEGIN
+	vb.add_theme_constant_override("separation", 14)
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hover_desc_panel.add_child(vb)
 
-	for def in fac_defs:
-		var fac_id: String = def["id"]
+	# Building Picture at Top
+	var icon_center := CenterContainer.new()
+	icon_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(icon_center)
+
+	hover_icon_rect = TextureRect.new()
+	hover_icon_rect.custom_minimum_size = Vector2(124, 124)
+	hover_icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hover_icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	hover_icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	hover_icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_center.add_child(hover_icon_rect)
+
+	# Facility Name
+	hover_name_label = Label.new()
+	hover_name_label.text = "Facility Name"
+	hover_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hover_name_label.add_theme_font_size_override("font_size", 24)
+	hover_name_label.add_theme_color_override("font_color", Color(1.0, 0.94, 0.78))
+	hover_name_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	hover_name_label.add_theme_constant_override("outline_size", 4)
+	vb.add_child(hover_name_label)
+
+	# Description (Payout & Cost)
+	hover_desc_label = Label.new()
+	hover_desc_label.text = "Description"
+	hover_desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hover_desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hover_desc_label.add_theme_font_size_override("font_size", 18)
+	hover_desc_label.add_theme_color_override("font_color", Color(0.85, 1.0, 0.85))
+	vb.add_child(hover_desc_label)
+
+	vb.add_child(_make_separator())
+
+	# Combo Skill Title & Description
+	hover_combo_title_label = Label.new()
+	hover_combo_title_label.text = "Combo Skill"
+	hover_combo_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hover_combo_title_label.add_theme_font_size_override("font_size", 20)
+	hover_combo_title_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35))
+	vb.add_child(hover_combo_title_label)
+
+	hover_combo_desc_label = Label.new()
+	hover_combo_desc_label.text = ""
+	hover_combo_desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hover_combo_desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hover_combo_desc_label.add_theme_font_size_override("font_size", 18)
+	hover_combo_desc_label.add_theme_color_override("font_color", Color(0.92, 0.92, 0.98))
+	vb.add_child(hover_combo_desc_label)
+
+	vb.add_child(_make_separator())
+
+	# Flavor Text
+	hover_flavor_label = Label.new()
+	hover_flavor_label.text = "Flavor text"
+	hover_flavor_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hover_flavor_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hover_flavor_label.add_theme_font_size_override("font_size", 16)
+	hover_flavor_label.add_theme_color_override("font_color", Color(0.8, 0.74, 0.86))
+	vb.add_child(hover_flavor_label)
+
+func _build_facility_grid_cards(grid: GridContainer) -> void:
+	for fac_id in GameManager.SHOP_FACILITY_ORDER:
+		var tmpl: Dictionary = GameManager.FACILITY_TEMPLATES.get(fac_id, {})
+		if tmpl.is_empty():
+			continue
+
 		var card := PanelContainer.new()
-		card.custom_minimum_size = Vector2(0, 82)
-		var c_style := StyleBoxFlat.new()
-		c_style.bg_color = Color(0.12, 0.16, 0.22, 0.92)
-		c_style.border_color = def["color"]
-		c_style.set_border_width_all(2)
-		c_style.set_corner_radius_all(6)
-		card.add_theme_stylebox_override("panel", c_style)
+		card.name = "Card_" + fac_id
+		card.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		card.custom_minimum_size = Vector2(178, 174)
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		UIPack.style_panel(card, "beige_raised", Vector4(10, 10, 10, 10))
 		card.mouse_filter = Control.MOUSE_FILTER_STOP
-		parent.add_child(card)
+		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		card.gui_input.connect(_on_facility_card_gui_input.bind(fac_id))
+		card.mouse_entered.connect(_on_facility_card_hover_entered.bind(fac_id))
+		card.mouse_exited.connect(_on_facility_card_hover_exited.bind(fac_id))
+		grid.add_child(card)
 
-		var card_margin := MarginContainer.new()
-		card_margin.add_theme_constant_override("margin_left", 8)
-		card_margin.add_theme_constant_override("margin_top", 6)
-		card_margin.add_theme_constant_override("margin_right", 8)
-		card_margin.add_theme_constant_override("margin_bottom", 6)
-		card.add_child(card_margin)
+		var vb := VBoxContainer.new()
+		vb.alignment = BoxContainer.ALIGNMENT_CENTER
+		vb.add_theme_constant_override("separation", 4)
+		vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.add_child(vb)
 
-		var hbox := HBoxContainer.new()
-		hbox.add_theme_constant_override("separation", 8)
-		card_margin.add_child(hbox)
-
-		# Thumbnail preview of row from Buildings1.png (draggable onto map!)
-		if bld_tex:
-			var icon_rect := TextureRect.new()
-			icon_rect.custom_minimum_size = Vector2(52, 52)
-			var atlas := AtlasTexture.new()
-			atlas.atlas = bld_tex
-			atlas.region = Rect2(0, def["row"] * 150, 150, 150)
-			icon_rect.texture = atlas
-			icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-			icon_rect.tooltip_text = "Drag onto map to place a new %s ($%d)" % [def["display"], BUILDING_COST]
-			icon_rect.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-			icon_rect.gui_input.connect(_on_facility_card_gui_input.bind(fac_id))
-			hbox.add_child(icon_rect)
-
-		var info := VBoxContainer.new()
-		info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		info.add_theme_constant_override("separation", 3)
-		hbox.add_child(info)
-
-		# Top row: Name + Owned count
-		var top_row := HBoxContainer.new()
-		info.add_child(top_row)
-
+		# 1. Facility Name
 		var name_lbl := Label.new()
-		name_lbl.text = def["display"]
-		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.add_theme_font_size_override("font_size", 13)
-		name_lbl.add_theme_color_override("font_color", Color.WHITE)
-		top_row.add_child(name_lbl)
+		name_lbl.text = tmpl.get("display_name", fac_id.capitalize())
+		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_lbl.add_theme_font_size_override("font_size", 18)
+		name_lbl.add_theme_color_override("font_color", Color(0.18, 0.1, 0.04))
+		name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(name_lbl)
 
+		# 2. Building Thumbnail Sprite
+		var icon_center := CenterContainer.new()
+		icon_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(icon_center)
+
+		var icon_rect := TextureRect.new()
+		icon_rect.custom_minimum_size = Vector2(68, 68)
+		icon_rect.texture = _make_building_atlas(
+			tmpl.get("sheet_path", "res://assets/PhaseII_Map/Buildings1.png"),
+			int(tmpl.get("building_row", 0))
+		)
+		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_center.add_child(icon_rect)
+
+		# 3. Price Label ("$50")
+		var price_lbl := Label.new()
+		price_lbl.text = "$%d" % int(tmpl.get("cost", 50))
+		price_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		price_lbl.add_theme_font_size_override("font_size", 18)
+		price_lbl.add_theme_color_override("font_color", Color(0.22, 0.14, 0.06))
+		price_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(price_lbl)
+
+		# 4. Owned Storage Count ("Owned : 0" or "Day X 🔒")
 		var owned_lbl := Label.new()
-		owned_lbl.text = "Owned: 1"
-		owned_lbl.add_theme_font_size_override("font_size", 11)
-		owned_lbl.add_theme_color_override("font_color", Color(0.75, 0.9, 1.0))
-		top_row.add_child(owned_lbl)
-		card_owned_labels[fac_id] = owned_lbl
+		owned_lbl.text = "Owned : 0"
+		owned_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		owned_lbl.add_theme_font_size_override("font_size", 18)
+		owned_lbl.add_theme_color_override("font_color", Color(0.24, 0.15, 0.07))
+		owned_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(owned_lbl)
 
-		# Bottom row: [-] [Qty & Price] [+] and [$] Confirm Purchase Button (from assets/Ui.png)
-		var buy_row := HBoxContainer.new()
-		buy_row.alignment = BoxContainer.ALIGNMENT_BEGIN
-		buy_row.add_theme_constant_override("separation", 6)
-		info.add_child(buy_row)
+		facility_cards[fac_id] = {
+			"card": card,
+			"name_lbl": name_lbl,
+			"icon_rect": icon_rect,
+			"price_lbl": price_lbl,
+			"owned_lbl": owned_lbl,
+		}
 
-		# Minus (-) Button — Placeholder from assets/Ui.png (see REGION_MINUS_NORMAL at top of script)
-		var btn_minus := _make_icon_button(
-			"MinusBtn_" + fac_id,
-			tex_minus_normal,
-			tex_minus_pressed,
-			Vector2(24, 24),
-			"Decrease quantity (-)"
-		)
-		btn_minus.pressed.connect(_on_adjust_buy_qty.bind(fac_id, -1))
-		buy_row.add_child(btn_minus)
-
-		# Quantity & Total Cost Label
-		var qty_lbl := Label.new()
-		qty_lbl.text = "x1 ($%d)" % BUILDING_COST
-		qty_lbl.custom_minimum_size = Vector2(72, 0)
-		qty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		qty_lbl.add_theme_font_size_override("font_size", 12)
-		qty_lbl.add_theme_color_override("font_color", Color(1.0, 0.92, 0.5))
-		buy_row.add_child(qty_lbl)
-		card_qty_labels[fac_id] = qty_lbl
-
-		# Plus (+) Button — Placeholder from assets/Ui.png (see REGION_PLUS_NORMAL at top of script)
-		var btn_plus := _make_icon_button(
-			"PlusBtn_" + fac_id,
-			tex_plus_normal,
-			tex_plus_pressed,
-			Vector2(24, 24),
-			"Increase quantity (+)"
-		)
-		btn_plus.pressed.connect(_on_adjust_buy_qty.bind(fac_id, 1))
-		buy_row.add_child(btn_plus)
-
-		# Spacer
-		var spacer := Control.new()
-		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		buy_row.add_child(spacer)
-
-		# Dollar ($) Button — Confirm Purchase from assets/Ui.png (see REGION_DOLLAR_NORMAL at top of script)
-		var btn_buy := _make_icon_button(
-			"DollarBuyBtn_" + fac_id,
-			tex_dollar_normal,
-			tex_dollar_pressed,
-			Vector2(28, 28),
-			"Confirm Purchase ($%d per building)" % BUILDING_COST
-		)
-		btn_buy.pressed.connect(_on_buy_facility_pressed.bind(fac_id))
-		buy_row.add_child(btn_buy)
-
-		facility_card_map[fac_id] = card
-
-func _on_adjust_buy_qty(fac_id: String, delta_qty: int) -> void:
-	var cur: int = pending_buy_counts.get(fac_id, 1)
-	var next_qty: int = clampi(cur + delta_qty, 1, 9)
-	pending_buy_counts[fac_id] = next_qty
-	if card_qty_labels.has(fac_id):
-		var lbl: Label = card_qty_labels[fac_id]
-		lbl.text = "x%d ($%d)" % [next_qty, next_qty * BUILDING_COST]
-
-func _on_buy_facility_pressed(fac_id: String) -> void:
-	var qty: int = pending_buy_counts.get(fac_id, 1)
-	var total_cost: int = qty * BUILDING_COST
-
-	if GameManager.money < total_cost:
-		_show_status_toast("⚠ Not enough money! Need $%d (Have $%d)" % [total_cost, GameManager.money], Color(1.0, 0.4, 0.4))
+func _on_facility_card_hover_entered(fac_id: String) -> void:
+	hovered_card_fac_id = fac_id
+	var tmpl: Dictionary = GameManager.FACILITY_TEMPLATES.get(fac_id, {})
+	if tmpl.is_empty() or not is_instance_valid(hover_desc_panel):
 		return
 
-	# If another facility was being moved/placed, confirm it first
+	hover_icon_rect.texture = _make_building_atlas(
+		tmpl.get("sheet_path", "res://assets/PhaseII_Map/Buildings1.png"),
+		int(tmpl.get("building_row", 0))
+	)
+	var unlocked := GameManager.is_facility_unlocked(fac_id)
+	var unlock_d: int = int(tmpl.get("unlock_day", 1))
+	hover_name_label.text = tmpl.get("display_name", fac_id.capitalize())
+	if not unlocked:
+		hover_name_label.text += " (Unlocks Day %d)" % unlock_d
+	hover_desc_label.text = tmpl.get("description", "")
+	hover_combo_title_label.text = tmpl.get("combo_title", "Combo Skill")
+	hover_combo_desc_label.text = tmpl.get("combo_desc", "")
+	hover_flavor_label.text = tmpl.get("flavor_text", "")
+	hover_desc_panel.visible = true
+
+func _on_facility_card_hover_exited(fac_id: String) -> void:
+	if hovered_card_fac_id == fac_id:
+		hovered_card_fac_id = ""
+		if is_instance_valid(hover_desc_panel):
+			hover_desc_panel.visible = false
+
+func _on_facility_card_gui_input(event: InputEvent, fac_id: String) -> void:
+	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
+		return
+
+	var tmpl: Dictionary = GameManager.FACILITY_TEMPLATES.get(fac_id, {})
+	if tmpl.is_empty():
+		return
+
+	# 1. Check Day Unlock Gate
+	if not GameManager.is_facility_unlocked(fac_id):
+		var unlock_d: int = int(tmpl.get("unlock_day", 1))
+		_show_status_toast("🔒 %s unlocks on Day %d!" % [tmpl.get("display_name", "Facility"), unlock_d], Color(1.0, 0.65, 0.35))
+		return
+
+	# Switch back to MOVE mode if in DRAW/ERASE
+	if current_tool != ToolMode.MOVE:
+		current_tool = ToolMode.MOVE
+		_update_tool_buttons()
+
+	# If another facility is currently being previewed or moved, cancel/confirm it first
 	if is_instance_valid(selected_facility):
-		_on_confirm_facility_placement()
+		if is_pending_purchase_facility or is_pending_stored_placement:
+			_on_cancel_facility_placement()
+		else:
+			_on_confirm_facility_placement()
 
-	# Deduct cost
-	GameManager.money -= total_cost
+	var stored_count: int = GameManager.get_stored_facility_count(fac_id)
+	var cost: int = GameManager.get_facility_cost(fac_id)
+	var spawn_pos := _get_center_spawn_pos(fac_id)
+	var new_fac := phase2_root.create_facility_instance(fac_id, spawn_pos)
+	new_fac.set_process(false)
+	if is_instance_valid(new_fac.name_label):
+		new_fac.name_label.visible = false
+	if is_instance_valid(new_fac.status_label):
+		new_fac.status_label.visible = false
 
-	# Spawn `qty` new instances of this building near the camera center
-	var last_spawned: Facility = null
-	var cam_center: Vector2 = phase2_root.camera.position if is_instance_valid(phase2_root) and is_instance_valid(phase2_root.camera) else Vector2(80, 50)
-	for i in range(qty):
-		var offset := Vector2((i % 3) * 96 - 48, int(i / 3.0) * 96)
-		var spawn_pos := (cam_center + offset).snapped(Vector2(16, 16))
-		last_spawned = phase2_root.create_facility_instance(fac_id, spawn_pos)
+	pending_facility_id = fac_id
 
-	# Reset card quantity back to 1
-	pending_buy_counts[fac_id] = 1
-	if card_qty_labels.has(fac_id):
-		card_qty_labels[fac_id].text = "x1 ($%d)" % BUILDING_COST
-
-	_sync_facilities_to_game_manager()
-	_refresh_money_and_counts()
-	_show_status_toast("✓ Purchased %dx %s (-$%d)! Move & press ✓ to place." % [qty, fac_id.capitalize(), total_cost], Color(0.4, 1.0, 0.55))
-
-	# Select the newly created building so the player can immediately position it
-	if is_instance_valid(last_spawned):
+	if stored_count > 0:
+		# Place from Owned storage (no money cost)
+		is_pending_stored_placement = true
 		is_pending_purchase_facility = false
-		_select_and_start_moving(last_spawned)
-		is_dragging_facility = false
-		_update_selection_visuals()
+		pending_purchase_cost = 0
+		_select_and_start_moving(new_fac, false)
+		_show_status_toast("Placing %s from Owned storage! Move & click ✓ to place." % new_fac.display_name, Color(0.45, 1.0, 0.58))
+	else:
+		# Owned is 0: Preview on map and show "-Cost" on the left of the money section
+		is_pending_purchase_facility = true
+		is_pending_stored_placement = false
+		pending_purchase_cost = cost
+		_select_and_start_moving(new_fac, false)
+		_show_status_toast("Previewing %s (-$%d). Move & click ✓ to buy!" % [new_fac.display_name, cost], Color(1.0, 0.9, 0.4))
 
-func _count_owned_facilities(fac_id: String) -> int:
-	if not is_instance_valid(facilities_container):
-		return 0
-	var count: int = 0
-	for child in facilities_container.get_children():
-		if child is Facility and phase2_root._matches_facility_id(child.facility_id, fac_id):
-			if is_pending_purchase_facility and child == selected_facility:
-				continue
-			count += 1
-	return count
+	_refresh_money_and_counts()
+
+func _get_center_spawn_pos(fac_id: String = "") -> Vector2:
+	var cam_center: Vector2 = phase2_root.camera.position if is_instance_valid(phase2_root) and is_instance_valid(phase2_root.camera) else Vector2(-240, 176)
+	var snapped := cam_center.snapped(Vector2(16, 16))
+	var dummy_rect := Rect2(-36, -85, 72, 75)
+	var test_offsets: Array[Vector2] = [
+		Vector2.ZERO,
+		Vector2(64, 0),
+		Vector2(-64, 0),
+		Vector2(0, 64),
+		Vector2(0, -64),
+		Vector2(64, 64),
+		Vector2(-64, 64),
+		Vector2(-64, -64),
+		Vector2(64, -64),
+	]
+	for off: Vector2 in test_offsets:
+		var p: Vector2 = snapped + off
+		if GameManager.is_facility_pos_on_land(p, dummy_rect):
+			var overlaps := false
+			if is_instance_valid(facilities_container):
+				var p_rect := Rect2(p + dummy_rect.position, dummy_rect.size).grow(-4.0)
+				for child in facilities_container.get_children():
+					if child is Facility and is_instance_valid(child):
+						var c_rect := Rect2(child.position + child.get_selection_rect().position, child.get_selection_rect().size).grow(-4.0)
+						if p_rect.intersects(c_rect):
+							overlaps = true
+							break
+			if not overlaps:
+				return p
+	return snapped
 
 func _refresh_money_and_counts() -> void:
-	if is_instance_valid(top_money_label):
-		top_money_label.text = "💰 Funds: $%d" % GameManager.money
-	if is_instance_valid(panel_money_label):
-		panel_money_label.text = "💰 Balance: $%d  ($%d / building)" % [GameManager.money, BUILDING_COST]
+	if is_instance_valid(balance_label):
+		balance_label.text = "%d" % GameManager.money
 
-	var total_buildings: int = 0
-	for fac_id in card_owned_labels.keys():
-		var c: int = _count_owned_facilities(fac_id)
-		total_buildings += c
-		var lbl: Label = card_owned_labels[fac_id]
-		if is_instance_valid(lbl):
-			lbl.text = "Owned: %d" % c
+	if is_instance_valid(pending_cost_label):
+		if is_pending_purchase_facility and pending_purchase_cost > 0:
+			pending_cost_label.text = "-%d" % pending_purchase_cost
+			pending_cost_label.visible = true
+		else:
+			pending_cost_label.visible = false
+
+	var map_buildings_count: int = 0
+	if is_instance_valid(facilities_container):
+		for child in facilities_container.get_children():
+			if child is Facility and child.facility_id != "main_building" and child.facility_id != "jail":
+				if (is_pending_purchase_facility or is_pending_stored_placement) and child == selected_facility:
+					continue
+				map_buildings_count += 1
 
 	if is_instance_valid(fac_header_label):
-		fac_header_label.text = "FACILITIES IN RESORT (%d) • $%d EACH" % [total_buildings, BUILDING_COST]
+		fac_header_label.text = "FACILITIES IN RESORT (%d)" % map_buildings_count
+
+	for fac_id in facility_cards.keys():
+		var ui: Dictionary = facility_cards[fac_id]
+		var card: PanelContainer = ui["card"]
+		var owned_lbl: Label = ui["owned_lbl"]
+		var price_lbl: Label = ui["price_lbl"]
+		var tmpl: Dictionary = GameManager.FACILITY_TEMPLATES.get(fac_id, {})
+		var unlocked: bool = GameManager.is_facility_unlocked(fac_id)
+		var unlock_d: int = int(tmpl.get("unlock_day", 1))
+		var stored: int = GameManager.get_stored_facility_count(fac_id)
+
+		price_lbl.text = "$%d" % int(tmpl.get("cost", 50))
+		if unlocked:
+			card.modulate = Color.WHITE
+			owned_lbl.text = "Owned : %d" % stored
+			owned_lbl.add_theme_color_override("font_color", Color(0.14, 0.45, 0.14) if stored > 0 else Color(0.24, 0.15, 0.07))
+		else:
+			# Greyed out locked facility
+			card.modulate = Color(0.52, 0.5, 0.54, 0.88)
+			owned_lbl.text = "Day %d 🔒" % unlock_d
+			owned_lbl.add_theme_color_override("font_color", Color(0.35, 0.2, 0.15))
 
 func _show_status_toast(msg: String, col: Color) -> void:
 	if not is_instance_valid(status_toast_label):
@@ -806,65 +1055,47 @@ func _show_status_toast(msg: String, col: Color) -> void:
 func _make_separator() -> HSeparator:
 	var sep := HSeparator.new()
 	var sep_style := StyleBoxLine.new()
-	sep_style.color = Color(0.3, 0.4, 0.52, 0.6)
+	sep_style.color = Color(0.45, 0.35, 0.48, 0.65)
 	sep.add_theme_stylebox_override("separator", sep_style)
 	return sep
 
-func _set_tool_mode(mode: ToolMode) -> void:
-	current_tool = mode
+func _on_toggle_tool_mode(mode: ToolMode) -> void:
+	if current_tool == mode:
+		current_tool = ToolMode.MOVE
+	else:
+		current_tool = mode
 	_update_tool_buttons()
 	if current_tool != ToolMode.MOVE and is_instance_valid(selected_facility):
-		_on_confirm_facility_placement()
+		if is_pending_purchase_facility or is_pending_stored_placement:
+			_on_cancel_facility_placement()
+		else:
+			_on_confirm_facility_placement()
 
 func _update_tool_buttons() -> void:
-	var active_style := StyleBoxFlat.new()
-	active_style.bg_color = Color(0.22, 0.45, 0.65)
-	active_style.border_color = Color(0.65, 0.95, 1.0)
-	active_style.set_border_width_all(2)
-	active_style.set_corner_radius_all(4)
-
-	var inactive_style := StyleBoxFlat.new()
-	inactive_style.bg_color = Color(0.12, 0.16, 0.22)
-	inactive_style.border_color = Color(0.3, 0.38, 0.48)
-	inactive_style.set_border_width_all(1)
-	inactive_style.set_corner_radius_all(4)
-
-	btn_tool_move.add_theme_stylebox_override("normal", active_style if current_tool == ToolMode.MOVE else inactive_style)
-	btn_tool_pave.add_theme_stylebox_override("normal", active_style if current_tool == ToolMode.PAVE else inactive_style)
-	btn_tool_erase.add_theme_stylebox_override("normal", active_style if current_tool == ToolMode.ERASE else inactive_style)
+	var active_tint := Color(0.72, 1.0, 0.78)
+	var inactive_tint := Color(0.95, 0.9, 0.82)
+	if is_instance_valid(btn_tool_draw):
+		UIPack.style_button(btn_tool_draw, active_tint if current_tool == ToolMode.DRAW else inactive_tint)
+	if is_instance_valid(btn_tool_erase):
+		UIPack.style_button(btn_tool_erase, active_tint if current_tool == ToolMode.ERASE else inactive_tint)
 
 # =============================================================================
-# Facility Relocation, Drag-to-Buy & Floating Confirmation Bar
+# Facility Placement, Relocation & Storage Inventory ("Owned : X")
 # =============================================================================
 
-func _on_facility_card_gui_input(event: InputEvent, fac_id: String) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			# Dragging from a card spawns a new unpurchased preview building to place & buy ($50)
-			if is_instance_valid(selected_facility):
-				_on_confirm_facility_placement()
-
-			var mouse_world := get_global_mouse_position()
-			var new_fac := phase2_root.create_facility_instance(fac_id, mouse_world.snapped(Vector2(16, 16)))
-			is_pending_purchase_facility = true
-			_select_and_start_moving(new_fac)
-			_show_status_toast("Drag to position, then click [$] above building to buy for $%d!" % BUILDING_COST, Color(1.0, 0.9, 0.4))
-		else:
-			if is_dragging_facility:
-				is_dragging_facility = false
-				_update_selection_visuals()
-
-func _select_and_start_moving(fac: Facility) -> void:
+func _select_and_start_moving(fac: Facility, start_dragging: bool = true) -> void:
 	if selected_facility == fac and is_dragging_facility:
 		return
 
-	# If another facility was already selected, finalize it first
 	if is_instance_valid(selected_facility) and selected_facility != fac:
-		_on_confirm_facility_placement()
+		if is_pending_purchase_facility or is_pending_stored_placement:
+			_on_cancel_facility_placement()
+		else:
+			_on_confirm_facility_placement()
 
 	selected_facility = fac
 	original_facility_pos = fac.position
-	is_dragging_facility = true
+	is_dragging_facility = start_dragging
 	drag_mouse_offset = Vector2.ZERO
 
 	selected_facility.z_index = 60
@@ -878,29 +1109,68 @@ func _lift_facility_up(fac: Facility) -> void:
 	hold_target_facility = null
 
 	is_pending_purchase_facility = false
-	_select_and_start_moving(fac)
+	is_pending_stored_placement = false
+	pending_purchase_cost = 0
+	_select_and_start_moving(fac, true)
 	drag_mouse_offset = fac.position - get_global_mouse_position()
+	_refresh_money_and_counts()
 
-	# Little bounce / squash to signal it has been lifted
 	if is_instance_valid(fac.visual_root):
 		var squish := create_tween()
 		squish.tween_property(fac.visual_root, "scale", Vector2(1.15, 1.15), 0.08)
 		squish.tween_property(fac.visual_root, "scale", Vector2(1.0, 1.0), 0.1)
 
+func does_facility_overlap_any(fac: Facility, pos: Vector2) -> bool:
+	if not is_instance_valid(fac) or not is_instance_valid(facilities_container):
+		return false
+	var fac_rect: Rect2 = fac.get_selection_rect() if fac.has_method("get_selection_rect") else Rect2(-45, -90, 90, 85)
+	var my_world_rect := Rect2(pos + fac_rect.position, fac_rect.size).grow(-4.0)
+	for other in facilities_container.get_children():
+		if other is Facility and other != fac and is_instance_valid(other):
+			if (is_pending_purchase_facility or is_pending_stored_placement) and other == selected_facility:
+				continue
+			var other_rect: Rect2 = other.get_selection_rect() if other.has_method("get_selection_rect") else Rect2(-45, -90, 90, 85)
+			var other_world_rect := Rect2(other.position + other_rect.position, other_rect.size).grow(-4.0)
+			if my_world_rect.intersects(other_world_rect):
+				return true
+	return false
+
+func is_facility_placement_valid(fac: Facility, pos: Vector2) -> bool:
+	if not is_instance_valid(fac):
+		return false
+	var fac_rect: Rect2 = fac.get_selection_rect() if fac.has_method("get_selection_rect") else Rect2(-45, -90, 90, 85)
+	if not GameManager.is_facility_pos_on_land(pos, fac_rect):
+		return false
+	if does_facility_overlap_any(fac, pos):
+		return false
+	return true
+
 func _on_confirm_facility_placement() -> void:
 	if not is_instance_valid(selected_facility):
 		return
 
-	# If this is a pending purchase dragged from the Left Panel, charge $50 now!
-	if is_pending_purchase_facility:
-		if GameManager.money < BUILDING_COST:
-			_show_status_toast("⚠ Not enough money! Need $%d (Have $%d)" % [BUILDING_COST, GameManager.money], Color(1.0, 0.4, 0.4))
-			return
-		GameManager.money -= BUILDING_COST
-		is_pending_purchase_facility = false
-		_show_status_toast("✓ Purchased %s (-$%d)!" % [selected_facility.display_name, BUILDING_COST], Color(0.4, 1.0, 0.55))
+	var fac_rect: Rect2 = selected_facility.get_selection_rect() if selected_facility.has_method("get_selection_rect") else Rect2(-45, -90, 90, 85)
+	if not GameManager.is_facility_pos_on_land(selected_facility.position, fac_rect):
+		_show_status_toast("⚠ Must place entirely on owned grass land!", Color(1.0, 0.4, 0.4))
+		return
 
-	# Bounce feedback animation
+	if does_facility_overlap_any(selected_facility, selected_facility.position):
+		_show_status_toast("⚠ Cannot place here! Facility overlaps another building.", Color(1.0, 0.4, 0.4))
+		return
+
+	if is_pending_purchase_facility:
+		if GameManager.money < pending_purchase_cost:
+			_show_status_toast("⚠ Not enough money! Need $%d (Have $%d)" % [pending_purchase_cost, GameManager.money], Color(1.0, 0.4, 0.4))
+			return
+		GameManager.money -= pending_purchase_cost
+		_show_status_toast("✓ Bought & placed %s (-$%d)!" % [selected_facility.display_name, pending_purchase_cost], Color(0.4, 1.0, 0.55))
+		is_pending_purchase_facility = false
+		pending_purchase_cost = 0
+	elif is_pending_stored_placement:
+		GameManager.add_stored_facility(selected_facility.facility_id, -1)
+		_show_status_toast("✓ Placed %s from Owned storage!" % selected_facility.display_name, Color(0.4, 1.0, 0.55))
+		is_pending_stored_placement = false
+
 	var t := create_tween()
 	t.tween_property(selected_facility.visual_root, "scale", Vector2(1.12, 0.9), 0.08)
 	t.tween_property(selected_facility.visual_root, "scale", Vector2(1.0, 1.0), 0.1)
@@ -916,21 +1186,21 @@ func _on_cancel_facility_placement() -> void:
 	if not is_instance_valid(selected_facility):
 		return
 
-	if is_pending_purchase_facility:
-		# Discard unpurchased preview building without charging money
+	if is_pending_purchase_facility or is_pending_stored_placement:
 		var to_remove := selected_facility
 		selected_facility = null
 		is_dragging_facility = false
 		is_pending_purchase_facility = false
+		is_pending_stored_placement = false
+		pending_purchase_cost = 0
 		_hide_selection_visuals()
 		if is_instance_valid(facilities_container):
 			facilities_container.remove_child(to_remove)
 		to_remove.queue_free()
 		_refresh_money_and_counts()
-		_show_status_toast("Purchase cancelled.", Color(0.8, 0.8, 0.85))
+		_show_status_toast("Placement cancelled.", Color(0.85, 0.85, 0.9))
 		return
 
-	# Owned building: slide back to original position
 	var t := create_tween()
 	t.tween_property(selected_facility, "position", original_facility_pos, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
@@ -938,13 +1208,19 @@ func _on_cancel_facility_placement() -> void:
 	selected_facility = null
 	is_dragging_facility = false
 	_hide_selection_visuals()
+	_refresh_money_and_counts()
 
-func _on_remove_selected_facility() -> void:
+func _on_store_selected_facility() -> void:
 	if not is_instance_valid(selected_facility):
 		return
 
-	if is_pending_purchase_facility:
+	if is_pending_purchase_facility or is_pending_stored_placement:
 		_on_cancel_facility_placement()
+		return
+
+	var fac_id: String = selected_facility.facility_id
+	if fac_id == "main_building" or fac_id == "jail":
+		_show_status_toast("⚠ %s must remain in the resort!" % selected_facility.display_name, Color(1.0, 0.55, 0.35))
 		return
 
 	var fac_name := selected_facility.display_name
@@ -957,10 +1233,11 @@ func _on_remove_selected_facility() -> void:
 		facilities_container.remove_child(to_remove)
 	to_remove.queue_free()
 
-	GameManager.money += BUILDING_COST
+	# Facility cannot be sold — removing it from the map returns it to Owned storage (+1)
+	GameManager.add_stored_facility(fac_id, 1)
 	_sync_facilities_to_game_manager()
 	_refresh_money_and_counts()
-	_show_status_toast("Sold %s (+$%d refunded)." % [fac_name, BUILDING_COST], Color(1.0, 0.85, 0.35))
+	_show_status_toast("Stored %s (Owned : %d)." % [fac_name, GameManager.get_stored_facility_count(fac_id)], Color(0.55, 0.9, 1.0))
 
 func _update_selection_visuals() -> void:
 	if not is_instance_valid(selected_facility):
@@ -971,18 +1248,48 @@ func _update_selection_visuals() -> void:
 	selection_pad.global_position = selected_facility.global_position
 	selection_pad.queue_redraw()
 
-	# Toggle floating buttons depending on whether this is a new $50 purchase or a free move
-	if is_instance_valid(floating_price_label):
-		floating_price_label.visible = is_pending_purchase_facility
-	if is_instance_valid(floating_btn_dollar):
-		floating_btn_dollar.visible = is_pending_purchase_facility
-	if is_instance_valid(floating_btn_tick):
-		floating_btn_tick.visible = not is_pending_purchase_facility
-	if is_instance_valid(floating_btn_minus):
-		floating_btn_minus.visible = not is_pending_purchase_facility
+	# Update live Combo Skill delta label above the selected building
+	if is_instance_valid(floating_combo_label):
+		var fac_id: String = selected_facility.facility_id
+		if fac_id != "main_building" and fac_id != "jail":
+			var all_facs: Array = facilities_container.get_children() if is_instance_valid(facilities_container) else []
+			var combo_res: Dictionary = GameManager.calculate_facility_combo(
+				fac_id,
+				selected_facility.position,
+				all_facs,
+				selected_facility
+			)
+			var bonus: int = int(combo_res.get("bonus", 0))
+			if bonus > 0:
+				floating_combo_label.text = "Combo Bonus: +$%d / visit" % bonus
+				floating_combo_label.add_theme_color_override("font_color", Color(0.35, 1.0, 0.5))
+				floating_combo_label.visible = true
+			elif bonus < 0:
+				floating_combo_label.text = "Combo Penalty: -$%d / visit" % abs(bonus)
+				floating_combo_label.add_theme_color_override("font_color", Color(1.0, 0.38, 0.38))
+				floating_combo_label.visible = true
+			else:
+				floating_combo_label.visible = false
+		else:
+			floating_combo_label.visible = false
 
+	# Show minus (store) button only for already-placed removable facilities
+	if is_instance_valid(floating_btn_minus):
+		var is_removable_existing := (
+			not is_pending_purchase_facility
+			and not is_pending_stored_placement
+			and selected_facility.facility_id != "main_building"
+			and selected_facility.facility_id != "jail"
+		)
+		floating_btn_minus.visible = is_removable_existing
+
+	var fac_rect: Rect2 = selected_facility.get_selection_rect() if selected_facility.has_method("get_selection_rect") else Rect2(-45, -90, 90, 85)
 	floating_widget.visible = true
-	floating_widget.global_position = selected_facility.global_position + Vector2(0, -145.0)
+	floating_widget.global_position = selected_facility.global_position + Vector2(0, fac_rect.position.y - 18.0)
+
+	var is_valid := is_facility_placement_valid(selected_facility, selected_facility.position)
+	if is_instance_valid(floating_btn_tick):
+		floating_btn_tick.modulate = Color.WHITE if is_valid else Color(1.0, 0.45, 0.45, 0.65)
 
 func _hide_selection_visuals() -> void:
 	if is_instance_valid(selection_pad):
@@ -997,15 +1304,17 @@ func _sync_facilities_to_game_manager() -> void:
 	var fac_list: Array = []
 	for child in facilities_container.get_children():
 		if child is Facility:
-			if is_pending_purchase_facility and child == selected_facility:
+			if (is_pending_purchase_facility or is_pending_stored_placement) and child == selected_facility:
 				continue
 			fac_dict[child.name] = child.position
 			fac_dict[child.facility_id] = child.position
+			var tmpl: Dictionary = GameManager.FACILITY_TEMPLATES.get(child.facility_id, {})
 			fac_list.append({
 				"name": child.name,
 				"facility_id": child.facility_id,
 				"display_name": child.display_name,
 				"position": child.position,
+				"sheet_path": tmpl.get("sheet_path", "res://assets/PhaseII_Map/Buildings1.png"),
 				"building_row": child.building_row,
 				"base_cycle_time": child.base_cycle_time,
 				"base_payout": child.base_payout,
@@ -1014,7 +1323,7 @@ func _sync_facilities_to_game_manager() -> void:
 	GameManager.resort_layout["facility_instances"] = fac_list
 
 # =============================================================================
-# Input Processing: Facility Clicking, Dragging & Pathway Painting
+# Input Processing: Facility Dragging, Sign Auto-Close & Pathway Painting
 # =============================================================================
 
 func _process(delta: float) -> void:
@@ -1023,16 +1332,24 @@ func _process(delta: float) -> void:
 
 	var mouse_world := get_global_mouse_position()
 
-	# 1. Update hold-to-lift charge
+	# 1. Auto-close Land Sale Sign confirmation if mouse moves away
+	if active_confirm_quarter > 0 and land_signs.has(active_confirm_quarter):
+		var s_node: Node2D = land_signs[active_confirm_quarter]["node"]
+		if is_instance_valid(s_node):
+			var sign_center := s_node.global_position + Vector2(0, -35)
+			if mouse_world.distance_to(sign_center) > SIGN_AUTO_CLOSE_RADIUS:
+				_close_land_sign_confirmations()
+
+	# 2. Update hold-to-lift charge
 	_handle_facility_hold(delta)
 
-	# 2. Update dragged facility position
+	# 3. Update dragged facility position
 	if is_dragging_facility and is_instance_valid(selected_facility):
 		selected_facility.position = (mouse_world + drag_mouse_offset).snapped(Vector2(16, 16))
 		_update_selection_visuals()
 
-	# 3. Update path cursor in Pave / Erase mode
-	if current_tool != ToolMode.MOVE:
+	# 4. Update path cursor in Draw / Erase mode
+	if current_tool == ToolMode.DRAW or current_tool == ToolMode.ERASE:
 		var cell := GameManager.world_to_path_cell(mouse_world)
 		path_cursor.visible = true
 		path_cursor.global_position = Vector2(cell.x * CELL_SIZE, cell.y * CELL_SIZE)
@@ -1040,7 +1357,7 @@ func _process(delta: float) -> void:
 	else:
 		path_cursor.visible = false
 
-	# 4. Update facility hover label pop-up
+	# 5. Update facility hover label on map
 	_update_facility_hover(mouse_world)
 
 func _update_facility_hover(mouse_world: Vector2) -> void:
@@ -1096,35 +1413,34 @@ func _unhandled_input(event: InputEvent) -> void:
 		var mouse_world := get_global_mouse_position()
 
 		if event.pressed:
-			if current_tool == ToolMode.MOVE:
-				var clicked_fac := _get_facility_at_point(mouse_world)
-				if clicked_fac:
-					# If already selected and floating bar is active, allow immediate drag
-					if selected_facility == clicked_fac:
-						is_dragging_facility = true
-						drag_mouse_offset = clicked_fac.position - mouse_world
-						get_viewport().set_input_as_handled()
-						return
+			# If a facility is currently selected and the player clicks it, drag immediately
+			var clicked_fac := _get_facility_at_point(mouse_world)
+			if clicked_fac and selected_facility == clicked_fac:
+				is_dragging_facility = true
+				drag_mouse_offset = clicked_fac.position - mouse_world
+				get_viewport().set_input_as_handled()
+				return
 
-					# Otherwise start the 1.0s hold-to-lift charge
-					hold_target_facility = clicked_fac
-					is_holding_facility = true
-					facility_hold_progress = 0.25 # starts at 25% like sheep
-					facility_hold_ring.global_position = clicked_fac.global_position
-					facility_hold_ring.visible = true
-					facility_hold_ring.queue_redraw()
-					get_viewport().set_input_as_handled()
-					return
-
-			if current_tool == ToolMode.PAVE:
+			if current_tool == ToolMode.DRAW:
 				_paint_path_tile(mouse_world)
 				get_viewport().set_input_as_handled()
+				return
 			elif current_tool == ToolMode.ERASE:
 				_erase_path_tile(mouse_world)
 				get_viewport().set_input_as_handled()
+				return
+
+			if clicked_fac:
+				hold_target_facility = clicked_fac
+				is_holding_facility = true
+				facility_hold_progress = 0.25
+				facility_hold_ring.global_position = clicked_fac.global_position
+				facility_hold_ring.visible = true
+				facility_hold_ring.queue_redraw()
+				get_viewport().set_input_as_handled()
+				return
 
 		else:
-			# Mouse released: cancel hold or stop dragging
 			if is_holding_facility:
 				is_holding_facility = false
 			if is_dragging_facility:
@@ -1134,7 +1450,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		var mouse_world := get_global_mouse_position()
-		if current_tool == ToolMode.PAVE:
+		if current_tool == ToolMode.DRAW:
 			_paint_path_tile(mouse_world)
 		elif current_tool == ToolMode.ERASE:
 			_erase_path_tile(mouse_world)
@@ -1142,12 +1458,29 @@ func _unhandled_input(event: InputEvent) -> void:
 func _get_facility_at_point(point: Vector2) -> Facility:
 	if not is_instance_valid(facilities_container):
 		return null
-	var facs := facilities_container.get_children()
-	facs.reverse()
-	for child in facs:
-		if child is Facility and child.is_point_inside(point):
-			return child
-	return null
+	var candidates: Array[Facility] = []
+	for child in facilities_container.get_children():
+		if child is Facility and is_instance_valid(child) and child.is_point_inside(point):
+			candidates.append(child)
+	if candidates.is_empty():
+		return null
+	if candidates.size() == 1:
+		return candidates[0]
+
+	# Multiple candidates contain point (e.g. adjacent/overlapping):
+	# Pick the one whose visual center is closest to click point, tiebreak with frontmost Y
+	candidates.sort_custom(func(a: Facility, b: Facility) -> bool:
+		var rect_a: Rect2 = a.get_selection_rect() if a.has_method("get_selection_rect") else Rect2(-45, -90, 90, 85)
+		var rect_b: Rect2 = b.get_selection_rect() if b.has_method("get_selection_rect") else Rect2(-45, -90, 90, 85)
+		var center_a: Vector2 = a.global_position + rect_a.get_center()
+		var center_b: Vector2 = b.global_position + rect_b.get_center()
+		var dist_a: float = point.distance_squared_to(center_a)
+		var dist_b: float = point.distance_squared_to(center_b)
+		if absf(dist_a - dist_b) > 36.0:
+			return dist_a < dist_b
+		return a.global_position.y > b.global_position.y
+	)
+	return candidates[0]
 
 # =============================================================================
 # Pathway Operations
@@ -1155,6 +1488,9 @@ func _get_facility_at_point(point: Vector2) -> Facility:
 
 func _paint_path_tile(world_pos: Vector2) -> void:
 	var cell := GameManager.world_to_path_cell(world_pos)
+	if not GameManager.is_land_cell_unlocked(cell):
+		_show_status_toast("⚠ Unlock this land quarter first via its For Sale sign!", Color(1.0, 0.4, 0.4))
+		return
 	if not GameManager.path_cell_lookup.has(cell):
 		GameManager.path_cell_lookup[cell] = true
 		if not GameManager.resort_layout.has("pathways"):
@@ -1181,16 +1517,6 @@ func _clear_all_pathways() -> void:
 		pathways_renderer.refresh()
 	_refresh_path_count()
 
-func _reset_pathways_default() -> void:
-	var saved_instances: Array = GameManager.resort_layout.get("facility_instances", []).duplicate(true)
-	GameManager.resort_layout.clear()
-	GameManager.init_default_layout()
-	if not saved_instances.is_empty():
-		GameManager.resort_layout["facility_instances"] = saved_instances
-	if is_instance_valid(pathways_renderer):
-		pathways_renderer.refresh()
-	_refresh_path_count()
-
 func _refresh_path_count() -> void:
 	if is_instance_valid(path_count_label):
 		var count: int = GameManager.path_cell_lookup.size()
@@ -1202,27 +1528,33 @@ func _refresh_path_count() -> void:
 
 func _on_save_and_exit() -> void:
 	if is_instance_valid(selected_facility):
-		if is_pending_purchase_facility:
-			# Cancel unconfirmed drag preview before saving
+		if is_pending_purchase_facility or is_pending_stored_placement:
 			_on_cancel_facility_placement()
 		else:
+			if not is_facility_placement_valid(selected_facility, selected_facility.position):
+				selected_facility.position = original_facility_pos
 			_on_confirm_facility_placement()
 
 	_sync_facilities_to_game_manager()
 
 	layout_saved.emit()
 	GameManager.is_layout_edit_mode = false
+	GameManager.returned_from_layout_editor = true
 	GameManager.change_scene("res://scene/front_desk.tscn")
 
 func _on_cancel_and_exit() -> void:
-	# Restore money & layout snapshot from before opening the editor
 	GameManager.money = initial_money
 	GameManager.resort_layout = initial_layout_snapshot.duplicate(true)
 	GameManager.path_cell_lookup.clear()
 	for cell in GameManager.resort_layout.get("pathways", []):
 		if cell is Vector2i:
 			GameManager.path_cell_lookup[cell] = true
+	GameManager.land_cell_lookup.clear()
+	for cell in GameManager.resort_layout.get("land_cells", []):
+		if cell is Vector2i:
+			GameManager.land_cell_lookup[cell] = true
 
 	layout_cancelled.emit()
 	GameManager.is_layout_edit_mode = false
+	GameManager.returned_from_layout_editor = true
 	GameManager.change_scene("res://scene/front_desk.tscn")

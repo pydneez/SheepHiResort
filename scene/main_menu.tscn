@@ -38,6 +38,11 @@ region = Rect2(402, 198, 334, 130)
 atlas = ExtResource("5_btn_press")
 region = Rect2(402, 198, 334, 130)
 
+[sub_resource type="SystemFont" id="SystemFont_menu"]
+
+[sub_resource type="Theme" id="Theme_menu"]
+default_font = SubResource("SystemFont_menu")
+
 [node name="MainMenu" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -45,6 +50,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = SubResource("Theme_menu")
 script = ExtResource("1_script")
 
 [node name="Background" type="TextureRect" parent="."]

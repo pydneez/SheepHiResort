@@ -16,7 +16,6 @@ var _grab := Vector2.ZERO
 @onready var _list: ItemList = %BookingList
 @onready var _count: Label = %BookingCount
 @onready var _details: GridContainer = %Details
-@onready var _tab_layout_btn: Button = %TabLayoutButton
 
 func _ready() -> void:
 	%Title.gui_input.connect(_on_title_input)
@@ -24,8 +23,6 @@ func _ready() -> void:
 	_search.text_changed.connect(func(_t): _refresh())
 	_list.item_selected.connect(_on_booking_selected)
 	_count.gui_input.connect(_on_count_input)
-	if is_instance_valid(_tab_layout_btn):
-		_tab_layout_btn.pressed.connect(func(): open_resort_layout.emit())
 
 ## Load a new day's bookings. rules decides which booking fields are shown.
 func show_bookings(bookings: Array, rules: Dictionary) -> void:
@@ -68,9 +65,11 @@ func _on_booking_selected(idx: int) -> void:
 		var k := Label.new()
 		k.text = f.label + ":"
 		k.add_theme_color_override("font_color", Color(0.5, 0.75, 0.7))
+		k.add_theme_font_size_override("font_size", 22)
 		_details.add_child(k)
 		var v := DeskDocument.make_field_label(f, "db")
 		v.add_theme_color_override("font_color", Color(0.85, 1, 0.95))
+		v.add_theme_font_size_override("font_size", 22)
 		v.mouse_filter = Control.MOUSE_FILTER_STOP
 		v.gui_input.connect(func(e):
 			if DeskDocument.is_compare_click(e):

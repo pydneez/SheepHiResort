@@ -32,10 +32,10 @@ var wolves_escaped_unharmed: int = 0
 # Species facility affinity mapping
 const PREFERRED_FACILITIES := {
 	"Merino": "wool_salon",
-	"Shetland": "wool_salon",
+	"Shetland": "clock_tower",
 	"Suffolk": "restaurant",
-	"Dorper": "restaurant",
-	"Cheviot": "cabin",
+	"Dorper": "gift_shop",
+	"Cheviot": "bakery",
 	"Jacob": "cabin",
 	"Texel": "restaurant",
 	"Romney": "cabin",
@@ -44,48 +44,151 @@ const PREFERRED_FACILITIES := {
 # Resort Layout & Pathway Planning (Phase 3 Desk Tool)
 const PATH_CELL_SIZE: float = 32.0
 const BUILDING_COST: int = 50
+const LAND_TILE_COST: int = 5
+const COMBO_RANGE: float = 220.0
+
+const SHOP_FACILITY_ORDER: Array[String] = [
+	"cabin",
+	"restaurant",
+	"wool_salon",
+	"bakery",
+	"gift_shop",
+	"clock_tower",
+]
+
+# Full resort map grid bounds in 32x32 cells (32x24 cells = 64x48 16x16 grass tiles)
+const MAP_MIN_CELL_X: int = -16
+const MAP_MAX_CELL_X: int = 15
+const MAP_MIN_CELL_Y: int = -12
+const MAP_MAX_CELL_Y: int = 11
+
+# Quarter-based land expansion pricing (1st quarter owned on Day 1; 2nd -> 4th quarter increase in price)
+# Quadrants: Q1 (Left Bottom) -> Q2 (Right Bottom) -> Q3 (Left Top) -> Q4 (Right Top)
+const QUARTER_PRICES: Array[int] = [0, 100, 200, 300]
+const QUARTER_NAMES: Array[String] = [
+	"Quarter 1 (Left Bottom)",
+	"Quarter 2 (Right Bottom)",
+	"Quarter 3 (Left Top)",
+	"Quarter 4 (Right Top)",
+]
 
 const FACILITY_TEMPLATES := {
 	"cabin": {
 		"facility_id": "cabin",
 		"display_name": "Cabin",
-		"base_cycle_time": 7.5,
-		"base_payout": 35,
+		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
 		"building_row": 0,
-		"cost": BUILDING_COST,
+		"base_cycle_time": 7.0,
+		"base_payout": 30,
+		"cost": 40,
+		"unlock_day": 1,
+		"preferred_species": ["Cheviot", "Jacob", "Romney"],
+		"description": "Gains +$30 / visit (7.0s)\nCost: $40",
+		"combo_title": "Combo: Peace & Quiet",
+		"combo_desc": "-$10 payout for each other Cabin nearby.\nKeep Cabins spread apart!",
+		"flavor_text": "\"Comes with a fluffy hay mattress and 0% wolf-proof locks.\"",
 	},
 	"restaurant": {
 		"facility_id": "restaurant",
 		"display_name": "Restaurant",
-		"base_cycle_time": 4.5,
-		"base_payout": 15,
+		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
 		"building_row": 7,
-		"cost": BUILDING_COST,
+		"base_cycle_time": 4.5,
+		"base_payout": 20,
+		"cost": 50,
+		"unlock_day": 1,
+		"preferred_species": ["Suffolk", "Dorper", "Texel"],
+		"description": "Gains +$20 / visit (4.5s)\nCost: $50",
+		"combo_title": "Combo: Bed & Breakfast",
+		"combo_desc": "+$10 payout for each nearby Cabin\n(up to +$30 max from 3 Cabins).",
+		"flavor_text": "\"Today's special: Pan-seared clover with dandelion sauce.\"",
 	},
 	"wool_salon": {
 		"facility_id": "wool_salon",
 		"display_name": "Wool Salon",
-		"base_cycle_time": 11.0,
-		"base_payout": 65,
+		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
 		"building_row": 13,
-		"cost": BUILDING_COST,
+		"base_cycle_time": 9.5,
+		"base_payout": 55,
+		"cost": 75,
+		"unlock_day": 2,
+		"preferred_species": ["Merino", "Shetland"],
+		"description": "Gains +$55 / visit (9.5s)\nCost: $75 • Unlocks Day 2",
+		"combo_title": "Combo: Dinner & Style",
+		"combo_desc": "+$15 payout when placed near a\nRestaurant or Bakery.",
+		"flavor_text": "\"From frizzy pasture fleece to runway curls in one snip!\"",
+	},
+	"bakery": {
+		"facility_id": "bakery",
+		"display_name": "Bakery",
+		"sheet_path": "res://assets/PhaseII_Map/Buildings2.png",
+		"building_row": 1,
+		"base_cycle_time": 5.5,
+		"base_payout": 35,
+		"cost": 65,
+		"unlock_day": 3,
+		"preferred_species": ["Cheviot", "Romney", "Suffolk"],
+		"description": "Gains +$35 / visit (5.5s)\nCost: $65 • Unlocks Day 3",
+		"combo_title": "Combo: Sweet Aroma",
+		"combo_desc": "+$10 payout for each different\nfacility type nearby (up to +$30).",
+		"flavor_text": "\"Fresh oat muffins! Please stop eating the paper wrappers.\"",
+	},
+	"gift_shop": {
+		"facility_id": "gift_shop",
+		"display_name": "Gift Shop",
+		"sheet_path": "res://assets/PhaseII_Map/Buildings2.png",
+		"building_row": 0,
+		"base_cycle_time": 6.5,
+		"base_payout": 50,
+		"cost": 90,
+		"unlock_day": 4,
+		"preferred_species": ["Dorper", "Texel", "Jacob"],
+		"description": "Gains +$50 / visit (6.5s)\nCost: $90 • Unlocks Day 4",
+		"combo_title": "Combo: Tourist Trap",
+		"combo_desc": "+$20 payout if placed near the\nMain Building or Clock Tower.",
+		"flavor_text": "\"Selling 'I Survived Sheep Hi Resort' mugs at a 400% markup.\"",
+	},
+	"clock_tower": {
+		"facility_id": "clock_tower",
+		"display_name": "Clock Tower",
+		"sheet_path": "res://assets/PhaseII_Map/Buildings2.png",
+		"building_row": 14,
+		"base_cycle_time": 8.5,
+		"base_payout": 75,
+		"cost": 120,
+		"unlock_day": 5,
+		"preferred_species": ["Shetland", "Merino", "Jacob"],
+		"description": "Gains +$75 / visit (8.5s)\nCost: $120 • Unlocks Day 5",
+		"combo_title": "Combo: Grand Landmark",
+		"combo_desc": "Boosts ALL nearby facilities by +$10\nand gains +$5 per neighbor!",
+		"flavor_text": "\"Chimes on the hour—unless a sheep gets stuck in the gears.\"",
 	},
 	"jail": {
 		"facility_id": "jail",
 		"display_name": "Jail",
+		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
+		"building_row": 11,
 		"base_cycle_time": 3.5,
 		"base_payout": 0,
-		"building_row": 11,
-		"cost": BUILDING_COST,
+		"cost": 50,
+		"unlock_day": 1,
+		"preferred_species": [],
+		"description": "Screens & deports wolves (3.5s)",
+		"combo_title": "Security Post",
+		"combo_desc": "Drag suspect wolves here during Rush Hour.",
+		"flavor_text": "\"Reinforced iron bars. Surprisingly cozy!\"",
 	},
 }
 
+# Day 1 starting facilities: Main Building at bottom of cross pathway,
+# Cabin at top, Restaurant on left, Jail on right.
 const DEFAULT_FACILITY_INSTANCES := [
 	{
 		"name": "MainBuilding",
 		"facility_id": "main_building",
 		"display_name": "Main Building",
-		"position": Vector2(0, -170),
+		"position": Vector2(-240, 260),
+		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
 		"building_row": 8,
 		"base_cycle_time": 0.0,
 		"base_payout": 0,
@@ -94,34 +197,28 @@ const DEFAULT_FACILITY_INSTANCES := [
 		"name": "CabinFacility",
 		"facility_id": "cabin",
 		"display_name": "Cabin",
-		"position": Vector2(0, 70),
+		"position": Vector2(-240, 88),
+		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
 		"building_row": 0,
-		"base_cycle_time": 7.5,
-		"base_payout": 35,
+		"base_cycle_time": 7.0,
+		"base_payout": 30,
 	},
 	{
 		"name": "CloverMeadow",
 		"facility_id": "restaurant",
 		"display_name": "Restaurant",
-		"position": Vector2(-260, -90),
+		"position": Vector2(-350, 176),
+		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
 		"building_row": 7,
 		"base_cycle_time": 4.5,
-		"base_payout": 15,
-	},
-	{
-		"name": "ShearingBoutique",
-		"facility_id": "wool_salon",
-		"display_name": "Wool Salon",
-		"position": Vector2(260, -90),
-		"building_row": 13,
-		"base_cycle_time": 11.0,
-		"base_payout": 65,
+		"base_payout": 20,
 	},
 	{
 		"name": "JailFacility",
 		"facility_id": "jail",
 		"display_name": "Jail",
-		"position": Vector2(-310, 110),
+		"position": Vector2(-130, 176),
+		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
 		"building_row": 11,
 		"base_cycle_time": 3.5,
 		"base_payout": 0,
@@ -129,21 +226,21 @@ const DEFAULT_FACILITY_INSTANCES := [
 ]
 
 const DEFAULT_FACILITY_POSITIONS := {
-	"MainBuilding": Vector2(0, -170),
-	"CabinFacility": Vector2(0, 70),
-	"Cabin": Vector2(0, 70),
-	"CloverMeadow": Vector2(-260, -90),
-	"ThermalMudBath": Vector2(0, 70),
-	"ShearingBoutique": Vector2(260, -90),
-	"Restaurant": Vector2(-260, -90),
-	"WoolSalon": Vector2(260, -90),
-	"Jail": Vector2(-310, 110),
-	"JailFacility": Vector2(-310, 110),
+	"MainBuilding": Vector2(-240, 260),
+	"CabinFacility": Vector2(-240, 88),
+	"Cabin": Vector2(-240, 88),
+	"CloverMeadow": Vector2(-350, 176),
+	"ThermalMudBath": Vector2(-240, 88),
+	"Restaurant": Vector2(-350, 176),
+	"Jail": Vector2(-130, 176),
+	"JailFacility": Vector2(-130, 176),
 }
 
 var resort_layout: Dictionary = {}
 var path_cell_lookup: Dictionary = {}
+var land_cell_lookup: Dictionary = {}
 var is_layout_edit_mode: bool = false
+var returned_from_layout_editor: bool = false
 var dev_pending_week_report: Dictionary = {}
 var dev_menu: CanvasLayer = null
 
@@ -208,25 +305,28 @@ func change_scene(target_path: String, fade_duration: float = 0.35) -> void:
 	transition_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	is_transitioning = false
 
-func init_default_layout() -> void:
-	if resort_layout.is_empty():
-		var paths: Array = []
-		# Default central boulevard from entrance (y=310 -> cell y=9) up to crossroads (y=-90 -> cell y=-3)
-		for y in range(-3, 11):
-			paths.append(Vector2i(0, y))
-		# Default horizontal promenade connecting left to right facilities
-		for x in range(-8, 9):
-			paths.append(Vector2i(x, -3))
-		# Default spur leading up to Thermal Mud Bath
-		for y in range(-6, -3):
-			paths.append(Vector2i(0, y))
-		# Default path branch leading left to the Jail
-		for x in range(-9, 1):
-			paths.append(Vector2i(x, 3))
+func init_default_layout(force_reset: bool = false) -> void:
+	if force_reset or resort_layout.is_empty():
+		var paths: Array = _make_default_cross_pathways()
+		var land: Array = _make_default_starting_land()
+		resort_layout.clear()
+		save_resort_layout(DEFAULT_FACILITY_POSITIONS.duplicate(), paths, DEFAULT_FACILITY_INSTANCES.duplicate(true), land)
 
-		save_resort_layout(DEFAULT_FACILITY_POSITIONS.duplicate(), paths, DEFAULT_FACILITY_INSTANCES.duplicate(true))
+func _make_default_cross_pathways() -> Array:
+	var paths: Array = []
+	# Horizontal arm of cross pathway in Q1 (Left Bottom) connecting Restaurant to Jail
+	for x in range(-12, -3):
+		paths.append(Vector2i(x, 5))
+	# Vertical arm of cross pathway connecting Cabin (top) to Main Building (bottom)
+	for y in range(2, 9):
+		if y != 5:
+			paths.append(Vector2i(-8, y))
+	return paths
 
-func save_resort_layout(fac_positions: Dictionary, paths: Array, fac_instances: Array = []) -> void:
+func _make_default_starting_land() -> Array:
+	return get_cells_for_quarter(1)
+
+func save_resort_layout(fac_positions: Dictionary, paths: Array, fac_instances: Array = [], land_cells: Array = []) -> void:
 	var instances_copy: Array = []
 	if not fac_instances.is_empty():
 		instances_copy = fac_instances.duplicate(true)
@@ -235,15 +335,34 @@ func save_resort_layout(fac_positions: Dictionary, paths: Array, fac_instances: 
 	else:
 		instances_copy = DEFAULT_FACILITY_INSTANCES.duplicate(true)
 
+	var land_copy: Array = []
+	if not land_cells.is_empty():
+		land_copy = land_cells.duplicate()
+	elif resort_layout.has("land_cells") and not resort_layout["land_cells"].is_empty():
+		land_copy = resort_layout["land_cells"].duplicate()
+	else:
+		land_copy = _make_default_starting_land()
+
+	var stored_copy: Dictionary = {}
+	if resort_layout.has("stored_facilities") and resort_layout["stored_facilities"] is Dictionary:
+		stored_copy = resort_layout["stored_facilities"].duplicate(true)
+
 	resort_layout = {
 		"facilities": fac_positions.duplicate(),
 		"pathways": paths.duplicate(),
 		"facility_instances": instances_copy,
+		"land_cells": land_copy,
+		"stored_facilities": stored_copy,
 	}
 	path_cell_lookup.clear()
 	for cell in paths:
 		if cell is Vector2i:
 			path_cell_lookup[cell] = true
+
+	land_cell_lookup.clear()
+	for lcell in land_copy:
+		if lcell is Vector2i:
+			land_cell_lookup[lcell] = true
 
 func get_facility_position(fac_name: String) -> Vector2:
 	if resort_layout.has("facilities"):
@@ -259,6 +378,199 @@ func get_facility_position(fac_name: String) -> Vector2:
 func is_world_pos_on_path(world_pos: Vector2) -> bool:
 	var cell := world_to_path_cell(world_pos)
 	return path_cell_lookup.has(cell)
+
+func is_land_cell_unlocked(cell: Vector2i) -> bool:
+	return land_cell_lookup.has(cell)
+
+func is_world_pos_on_land(world_pos: Vector2) -> bool:
+	var cell := world_to_path_cell(world_pos)
+	return land_cell_lookup.has(cell)
+
+func is_cell_in_map_bounds(cell: Vector2i) -> bool:
+	return cell.x >= MAP_MIN_CELL_X and cell.x <= MAP_MAX_CELL_X and cell.y >= MAP_MIN_CELL_Y and cell.y <= MAP_MAX_CELL_Y
+
+func is_facility_pos_on_land(world_pos: Vector2, fac_rect: Rect2 = Rect2(-35, -85, 70, 75)) -> bool:
+	# Check that all 4 corners and center of the facility footprint sit on owned land
+	var sample_points := [
+		world_pos + Vector2(fac_rect.position.x + 8.0, fac_rect.position.y + 8.0),
+		world_pos + Vector2(fac_rect.end.x - 8.0, fac_rect.position.y + 8.0),
+		world_pos + Vector2(fac_rect.position.x + 8.0, fac_rect.end.y - 8.0),
+		world_pos + Vector2(fac_rect.end.x - 8.0, fac_rect.end.y - 8.0),
+		world_pos + fac_rect.get_center(),
+	]
+	for pt in sample_points:
+		var c := world_to_path_cell(pt)
+		if not land_cell_lookup.has(c):
+			return false
+	return true
+
+func unlock_land_cell(cell: Vector2i) -> bool:
+	if not is_cell_in_map_bounds(cell) or land_cell_lookup.has(cell):
+		return false
+	land_cell_lookup[cell] = true
+	if not resort_layout.has("land_cells"):
+		resort_layout["land_cells"] = []
+	resort_layout["land_cells"].append(cell)
+	return true
+
+## Returns which map quarter (1..4) a cell belongs to, or 0 if out of map bounds.
+## Quadrants:
+## Quarter 1: Left Bottom (x < 0, y >= 0)
+## Quarter 2: Right Bottom (x >= 0, y >= 0)
+## Quarter 3: Left Top (x < 0, y < 0)
+## Quarter 4: Right Top (x >= 0, y < 0)
+func get_quarter_for_cell(cell: Vector2i) -> int:
+	if not is_cell_in_map_bounds(cell):
+		return 0
+	if cell.x < 0:
+		return 1 if cell.y >= 0 else 3
+	else:
+		return 2 if cell.y >= 0 else 4
+
+func get_cells_for_quarter(quarter_idx: int) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for cy in range(MAP_MIN_CELL_Y, MAP_MAX_CELL_Y + 1):
+		for cx in range(MAP_MIN_CELL_X, MAP_MAX_CELL_X + 1):
+			var c := Vector2i(cx, cy)
+			if get_quarter_for_cell(c) == quarter_idx:
+				cells.append(c)
+	return cells
+
+func is_quarter_unlocked(quarter_idx: int) -> bool:
+	var cells := get_cells_for_quarter(quarter_idx)
+	if cells.is_empty():
+		return false
+	return land_cell_lookup.has(cells[0])
+
+func get_unlocked_quarters_count() -> int:
+	var count: int = 0
+	for q in range(1, 5):
+		if is_quarter_unlocked(q):
+			count += 1
+	return maxi(count, 1)
+
+func get_next_quarter_cost() -> int:
+	var unlocked := get_unlocked_quarters_count()
+	if unlocked >= 4:
+		return 0
+	return QUARTER_PRICES[unlocked]
+
+func get_next_locked_quarter() -> int:
+	for q in range(2, 5):
+		if not is_quarter_unlocked(q):
+			return q
+	return 0
+
+func unlock_quarter(quarter_idx: int) -> bool:
+	if quarter_idx < 1 or quarter_idx > 4 or is_quarter_unlocked(quarter_idx):
+		return false
+	var cells := get_cells_for_quarter(quarter_idx)
+	for c in cells:
+		unlock_land_cell(c)
+	return true
+
+func get_total_map_cells() -> int:
+	return (MAP_MAX_CELL_X - MAP_MIN_CELL_X + 1) * (MAP_MAX_CELL_Y - MAP_MIN_CELL_Y + 1)
+
+func is_facility_unlocked(fac_id: String) -> bool:
+	var tmpl: Dictionary = FACILITY_TEMPLATES.get(fac_id, {})
+	var unlock_d: int = tmpl.get("unlock_day", 1)
+	return current_day >= unlock_d
+
+func get_facility_cost(fac_id: String) -> int:
+	var tmpl: Dictionary = FACILITY_TEMPLATES.get(fac_id, {})
+	return tmpl.get("cost", BUILDING_COST)
+
+func get_stored_facility_count(fac_id: String) -> int:
+	if not resort_layout.has("stored_facilities") or not (resort_layout["stored_facilities"] is Dictionary):
+		return 0
+	return int(resort_layout["stored_facilities"].get(fac_id, 0))
+
+func add_stored_facility(fac_id: String, delta: int) -> void:
+	if not resort_layout.has("stored_facilities") or not (resort_layout["stored_facilities"] is Dictionary):
+		resort_layout["stored_facilities"] = {}
+	var cur: int = int(resort_layout["stored_facilities"].get(fac_id, 0))
+	resort_layout["stored_facilities"][fac_id] = maxi(0, cur + delta)
+
+## Evaluates the Combo Skill payout delta and affected nearby buildings for a facility at `fac_pos`.
+## Returns {"bonus": int, "neighbors": Array[Dictionary]} where each neighbor is {"node": Node2D, "delta": int}.
+func calculate_facility_combo(fac_id: String, fac_pos: Vector2, all_facilities: Array, ignore_node: Object = null) -> Dictionary:
+	var bonus: int = 0
+	var neighbors: Array = []
+	var nearby_nodes: Array = []
+
+	for other in all_facilities:
+		if not is_instance_valid(other) or other == ignore_node:
+			continue
+		var dist: float = fac_pos.distance_to(other.position)
+		if dist <= COMBO_RANGE and dist > 0.01:
+			nearby_nodes.append(other)
+
+	# 1. Check nearby Clock Towers buffing this facility (+$10 per Clock Tower)
+	if fac_id != "main_building" and fac_id != "jail" and fac_id != "clock_tower":
+		for n in nearby_nodes:
+			if n.facility_id == "clock_tower":
+				bonus += 10
+				neighbors.append({"node": n, "delta": 10})
+
+	# 2. Check this facility's own Combo Skill
+	match fac_id:
+		"cabin":
+			# Peace & Quiet: -$10 for each other Cabin nearby
+			for n in nearby_nodes:
+				if n.facility_id == "cabin":
+					bonus -= 10
+					neighbors.append({"node": n, "delta": -10})
+		"restaurant":
+			# Bed & Breakfast: +$10 for each nearby Cabin (up to 3)
+			var cabin_hits: int = 0
+			for n in nearby_nodes:
+				if n.facility_id == "cabin" and cabin_hits < 3:
+					cabin_hits += 1
+					bonus += 10
+					neighbors.append({"node": n, "delta": 10})
+		"wool_salon":
+			# Dinner & Style: +$15 if near a Restaurant or Bakery
+			var boosted := false
+			for n in nearby_nodes:
+				if n.facility_id == "restaurant" or n.facility_id == "bakery":
+					if not boosted:
+						bonus += 15
+						boosted = true
+					neighbors.append({"node": n, "delta": 15})
+		"bakery":
+			# Sweet Aroma: +$10 per distinct facility type nearby (max +$30)
+			var seen_types := {}
+			for n in nearby_nodes:
+				var nid: String = n.facility_id
+				if nid != "bakery" and nid != "main_building" and nid != "jail":
+					if not seen_types.has(nid) and seen_types.size() < 3:
+						seen_types[nid] = true
+						bonus += 10
+						neighbors.append({"node": n, "delta": 10})
+		"gift_shop":
+			# Tourist Trap: +$20 if near Main Building or Clock Tower
+			var trap_boosted := false
+			for n in nearby_nodes:
+				if n.facility_id == "main_building" or n.facility_id == "clock_tower":
+					if not trap_boosted:
+						bonus += 20
+						trap_boosted = true
+					neighbors.append({"node": n, "delta": 20})
+		"clock_tower":
+			# Grand Landmark: boosts all nearby revenue facilities by +$10 and gains +$5 per neighbor
+			var buffed_count: int = 0
+			for n in nearby_nodes:
+				var nid: String = n.facility_id
+				if nid != "main_building" and nid != "jail":
+					buffed_count += 1
+					neighbors.append({"node": n, "delta": 10})
+			bonus += mini(buffed_count, 5) * 5
+
+	return {
+		"bonus": bonus,
+		"neighbors": neighbors,
+	}
 
 func world_to_path_cell(world_pos: Vector2) -> Vector2i:
 	return Vector2i(int(floor(world_pos.x / PATH_CELL_SIZE)), int(floor(world_pos.y / PATH_CELL_SIZE)))

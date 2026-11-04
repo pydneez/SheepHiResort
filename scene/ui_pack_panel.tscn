@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://script/ui_pack_panel.gd" id="1_uipack_panel"]
+[ext_resource type="Texture2D" uid="uid://tq5mvwqjkxsd" path="res://assets/UI/UI_pack.png" id="2_ui_pack_tex"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_default"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 14.0
+texture = ExtResource("2_ui_pack_tex")
+texture_margin_left = 7.0
+texture_margin_top = 7.0
+texture_margin_right = 7.0
+texture_margin_bottom = 8.0
+region_rect = Rect2(11, 59, 26, 28)
+
+[node name="UIPackPanel" type="PanelContainer"]
+texture_filter = 1
+custom_minimum_size = Vector2(240, 120)
+theme_override_styles/panel = SubResource("StyleBoxTexture_default")
+script = ExtResource("1_uipack_panel")
+
