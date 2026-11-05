@@ -185,7 +185,7 @@ func _build_world_overlays() -> void:
 	facility_hold_ring.draw.connect(_draw_facility_hold_ring)
 	add_child(facility_hold_ring)
 
-	# 3. Floating Confirmation Bar above Selected Facility ([✓] [✕] [-])
+	# 3. Floating Confirmation Bar above Selected Facility (Combo text above, buttons below)
 	floating_widget = Node2D.new()
 	floating_widget.name = "FloatingConfirmWidget"
 	floating_widget.z_index = 100
@@ -193,10 +193,10 @@ func _build_world_overlays() -> void:
 	add_child(floating_widget)
 
 	var vbox_float := VBoxContainer.new()
-	vbox_float.position = Vector2(-95, -52)
-	vbox_float.custom_minimum_size = Vector2(190, 0)
+	vbox_float.position = Vector2(-130, -78)
+	vbox_float.custom_minimum_size = Vector2(260, 0)
 	vbox_float.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox_float.add_theme_constant_override("separation", 4)
+	vbox_float.add_theme_constant_override("separation", 6)
 	floating_widget.add_child(vbox_float)
 
 	floating_combo_label = Label.new()
@@ -457,12 +457,12 @@ func _build_land_sale_signs() -> void:
 		sale_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		sign_node.add_child(sale_lbl)
 
-		# Lower Plank Price Text ("$100")
+		# Lower Plank Price Text ("$100") — overlaying the bottom sign plank
 		var price_lbl := Label.new()
 		price_lbl.name = "PriceLabel"
 		price_lbl.text = "$100"
-		price_lbl.position = Vector2(-44, -10)
-		price_lbl.size = Vector2(88, 30)
+		price_lbl.position = Vector2(-44, 20)
+		price_lbl.size = Vector2(88, 26)
 		price_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		price_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		price_lbl.add_theme_font_size_override("font_size", 20)
@@ -511,6 +511,25 @@ func _build_land_sale_signs() -> void:
 		}
 
 	_refresh_land_signs()
+
+func update_text_zoom(zoom_val: float) -> void:
+	var s: float = clampf(1.0 / zoom_val, 0.55, 1.6)
+	var scale_vec := Vector2(s, s)
+	for q_idx in land_signs.keys():
+		var data: Dictionary = land_signs[q_idx]
+		var s_node: Node2D = data.get("node")
+		var p_lbl: Label = data.get("price_label")
+		if is_instance_valid(p_lbl):
+			p_lbl.pivot_offset = p_lbl.size * 0.5
+			p_lbl.scale = scale_vec
+		if is_instance_valid(s_node):
+			var sale_l: Label = s_node.get_node_or_null("Label")
+			if is_instance_valid(sale_l):
+				sale_l.pivot_offset = sale_l.size * 0.5
+				sale_l.scale = scale_vec
+	if is_instance_valid(floating_combo_label):
+		floating_combo_label.pivot_offset = floating_combo_label.size * 0.5
+		floating_combo_label.scale = scale_vec
 
 func _refresh_land_signs() -> void:
 	var next_cost: int = GameManager.get_next_quarter_cost()
@@ -598,19 +617,11 @@ func _build_editor_ui() -> void:
 	title_lbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.4))
 	vb.add_child(title_lbl)
 
-	# Balance Row: [-50] [Coin Icon] [1500]
+	# Balance Row: [Coin Icon] [1500] [-50]
 	var balance_row := HBoxContainer.new()
 	balance_row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	balance_row.add_theme_constant_override("separation", 12)
 	vb.add_child(balance_row)
-
-	pending_cost_label = Label.new()
-	pending_cost_label.name = "PendingCostLabel"
-	pending_cost_label.text = "-50"
-	pending_cost_label.visible = false
-	pending_cost_label.add_theme_font_size_override("font_size", 32)
-	pending_cost_label.add_theme_color_override("font_color", Color(1.0, 0.35, 0.35))
-	balance_row.add_child(pending_cost_label)
 
 	var coin_icon := TextureRect.new()
 	coin_icon.texture = UIPack.make_region_atlas(UIPack.COIN_REGION)
@@ -626,6 +637,14 @@ func _build_editor_ui() -> void:
 	balance_label.add_theme_font_size_override("font_size", 36)
 	balance_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.38))
 	balance_row.add_child(balance_label)
+
+	pending_cost_label = Label.new()
+	pending_cost_label.name = "PendingCostLabel"
+	pending_cost_label.text = "-50"
+	pending_cost_label.visible = false
+	pending_cost_label.add_theme_font_size_override("font_size", 32)
+	pending_cost_label.add_theme_color_override("font_color", Color(1.0, 0.35, 0.35))
+	balance_row.add_child(pending_cost_label)
 
 	# Status Toast Feedback Label
 	status_toast_label = Label.new()
@@ -960,14 +979,12 @@ func _on_facility_card_gui_input(event: InputEvent, fac_id: String) -> void:
 		is_pending_purchase_facility = false
 		pending_purchase_cost = 0
 		_select_and_start_moving(new_fac, false)
-		_show_status_toast("Placing %s from Owned storage! Move & click ✓ to place." % new_fac.display_name, Color(0.45, 1.0, 0.58))
 	else:
-		# Owned is 0: Preview on map and show "-Cost" on the left of the money section
+		# Owned is 0: Preview on map and show "-Cost" on the right of the money section
 		is_pending_purchase_facility = true
 		is_pending_stored_placement = false
 		pending_purchase_cost = cost
 		_select_and_start_moving(new_fac, false)
-		_show_status_toast("Previewing %s (-$%d). Move & click ✓ to buy!" % [new_fac.display_name, cost], Color(1.0, 0.9, 0.4))
 
 	_refresh_money_and_counts()
 
@@ -1163,12 +1180,10 @@ func _on_confirm_facility_placement() -> void:
 			_show_status_toast("⚠ Not enough money! Need $%d (Have $%d)" % [pending_purchase_cost, GameManager.money], Color(1.0, 0.4, 0.4))
 			return
 		GameManager.money -= pending_purchase_cost
-		_show_status_toast("✓ Bought & placed %s (-$%d)!" % [selected_facility.display_name, pending_purchase_cost], Color(0.4, 1.0, 0.55))
 		is_pending_purchase_facility = false
 		pending_purchase_cost = 0
 	elif is_pending_stored_placement:
 		GameManager.add_stored_facility(selected_facility.facility_id, -1)
-		_show_status_toast("✓ Placed %s from Owned storage!" % selected_facility.display_name, Color(0.4, 1.0, 0.55))
 		is_pending_stored_placement = false
 
 	var t := create_tween()
@@ -1198,7 +1213,6 @@ func _on_cancel_facility_placement() -> void:
 			facilities_container.remove_child(to_remove)
 		to_remove.queue_free()
 		_refresh_money_and_counts()
-		_show_status_toast("Placement cancelled.", Color(0.85, 0.85, 0.9))
 		return
 
 	var t := create_tween()
@@ -1285,7 +1299,7 @@ func _update_selection_visuals() -> void:
 
 	var fac_rect: Rect2 = selected_facility.get_selection_rect() if selected_facility.has_method("get_selection_rect") else Rect2(-45, -90, 90, 85)
 	floating_widget.visible = true
-	floating_widget.global_position = selected_facility.global_position + Vector2(0, fac_rect.position.y - 18.0)
+	floating_widget.global_position = selected_facility.global_position + Vector2(0, fac_rect.position.y - 12.0)
 
 	var is_valid := is_facility_placement_valid(selected_facility, selected_facility.position)
 	if is_instance_valid(floating_btn_tick):

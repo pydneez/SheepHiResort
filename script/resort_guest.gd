@@ -25,6 +25,11 @@ var target_pos: Vector2 = Vector2.ZERO
 var target_facility: Node2D = null
 var last_facility: Node2D = null
 var wander_timer: float = 0.0
+var nav_waypoints: Array[Vector2] = []
+var nav_destination: Vector2 = Vector2.INF
+var nav_repath_timer: float = 0.0
+var last_checked_pos: Vector2 = Vector2.ZERO
+var stuck_timer: float = 0.0
 
 # Mouse hold & pickup variables
 var is_holding: bool = false
@@ -48,6 +53,7 @@ func setup(data: Dictionary) -> void:
 	# Name label
 	var sheep_name: String = truth.get("name", "Sheep")
 	name_label.text = sheep_name
+	name_label.visible = GameManager.show_resort_sheep_names
 
 	# The pixel version of the sheep they were at the front desk.
 	var pixel := SheepCharacters.shared().pixel_for(data)
@@ -63,8 +69,21 @@ func setup(data: Dictionary) -> void:
 	deport_bar.visible = false
 	tell_label.visible = false
 
+func update_text_zoom(zoom_val: float) -> void:
+	var s: float = clampf(1.0 / zoom_val, 0.55, 1.6) * 0.85
+	var scale_vec := Vector2(s, s)
+	if is_instance_valid(name_label):
+		name_label.pivot_offset = Vector2(name_label.size.x * 0.5, name_label.size.y * 0.5)
+		name_label.scale = scale_vec
+	if is_instance_valid(tell_label):
+		tell_label.pivot_offset = Vector2(tell_label.size.x * 0.5, tell_label.size.y * 0.5)
+		tell_label.scale = scale_vec
+
 func _ready() -> void:
+	add_to_group("resort_guests")
 	deport_bar.visible = false
+	if is_instance_valid(name_label):
+		name_label.visible = GameManager.show_resort_sheep_names
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if is_instance_valid(hold_ring):
 		hold_ring.draw.connect(_on_hold_ring_draw)
@@ -125,16 +144,95 @@ func _physics_process(delta: float) -> void:
 			if global_position.distance_to(target_pos) < 20.0:
 				queue_free()
 
-func _move_towards(dest: Vector2, _delta: float) -> void:
-	var dir := (dest - global_position).normalized()
+func _move_towards(dest: Vector2, delta: float) -> void:
+	nav_repath_timer -= delta
+	var ignore_fac: Node2D = target_facility if state == State.SEEKING_FACILITY else null
+
+	# 1. Option 3: AStarGrid2D Waypoint Pathfinding around buildings and along paved paths
+	if nav_waypoints.is_empty() or nav_destination.distance_to(dest) > 18.0 or nav_repath_timer <= 0.0:
+		nav_repath_timer = 0.65
+		nav_destination = dest
+		if global_position.distance_to(dest) > 24.0:
+			var facs := get_tree().get_nodes_in_group("facilities")
+			nav_waypoints = GameManager.find_resort_path(global_position, dest, facs, ignore_fac)
+		else:
+			nav_waypoints = [dest]
+
+	while nav_waypoints.size() > 1 and global_position.distance_to(nav_waypoints[0]) < 18.0:
+		nav_waypoints.pop_front()
+
+	var current_step: Vector2 = nav_waypoints[0] if not nav_waypoints.is_empty() else dest
+	var dir := (current_step - global_position).normalized()
 	var on_path := GameManager.is_world_pos_on_path(global_position)
 	var speed := move_speed * 1.45 if on_path else move_speed
+
+	# Check if stuck oscillating in a tight gap between buildings
+	if global_position.distance_to(last_checked_pos) < 3.5:
+		stuck_timer += delta
+	else:
+		stuck_timer = maxf(stuck_timer - delta * 2.0, 0.0)
+		last_checked_pos = global_position
+
+	# 2. Option 2: Corner-Sliding Soft Avoidance if a sheep touches a facility's soft area
+	# (Bypassed if the sheep has been stuck in a narrow gap for > 0.45s so it can slip past)
+	var overlapping_fac := _get_blocking_facility_at(global_position, 2.0, ignore_fac)
+	if is_instance_valid(overlapping_fac) and stuck_timer < 0.45 and not (state == State.ENTERING and overlapping_fac.get("facility_id") == "main_building"):
+		var obs_r: Rect2 = overlapping_fac.call("get_obstacle_rect").grow(2.0)
+		var world_r := Rect2(overlapping_fac.global_position + obs_r.position, obs_r.size)
+		var d_bottom: float = absf(world_r.end.y - global_position.y)
+		var d_top: float = absf(global_position.y - world_r.position.y)
+		var d_left: float = absf(global_position.x - world_r.position.x)
+		var d_right: float = absf(world_r.end.x - global_position.x)
+		var normal := Vector2(0, 1)
+		if d_bottom <= d_left + 10.0 and d_bottom <= d_right + 10.0 and d_bottom <= d_top:
+			normal = Vector2(0, 1)
+		elif d_left <= d_right and d_left <= d_top:
+			normal = Vector2(-1, 0)
+		elif d_right <= d_top:
+			normal = Vector2(1, 0)
+		else:
+			normal = Vector2(0, -1)
+
+		# Slide along the edge toward the current waypoint instead of bouncing backward
+		var to_step := (current_step - global_position).normalized()
+		var t1 := Vector2(-normal.y, normal.x)
+		var t2 := Vector2(normal.y, -normal.x)
+		var slide_tangent := t1 if t1.dot(to_step) >= t2.dot(to_step) else t2
+		dir = (normal * 0.45 + slide_tangent * 0.9).normalized()
+		speed *= 1.25
+		if state == State.WANDERING:
+			target_pos = global_position + dir * 36.0
+			nav_waypoints = [target_pos]
+			nav_destination = target_pos
+	elif stuck_timer >= 1.1 and state == State.SEEKING_FACILITY:
+		# If still completely blocked after 1.1s, switch to wandering in open space
+		stuck_timer = 0.0
+		target_facility = null
+		wander_for(randf_range(1.5, 3.0))
+		return
+
 	velocity = dir * speed
 	move_and_slide()
 	if dir.x != 0.0:
 		sprite.flip_h = dir.x < 0.0
 	var bob_freq := 0.022 if on_path else 0.015
 	visual_root.position.y = sin(Time.get_ticks_msec() * bob_freq) * 2.0
+
+func _get_blocking_facility_at(pt: Vector2, margin: float = 8.0, ignore_fac: Node2D = null) -> Node2D:
+	var facs := get_tree().get_nodes_in_group("facilities")
+	for f in facs:
+		if not is_instance_valid(f) or f == ignore_fac:
+			continue
+		if f is Node2D and f.has_method("get_obstacle_rect"):
+			var fn: Node2D = f as Node2D
+			var r: Rect2 = fn.call("get_obstacle_rect").grow(margin)
+			var world_r := Rect2(fn.global_position + r.position, r.size)
+			if world_r.has_point(pt):
+				return fn
+	return null
+
+func _is_point_in_any_facility(pt: Vector2, margin: float = 10.0, ignore_fac: Node2D = null) -> bool:
+	return is_instance_valid(_get_blocking_facility_at(pt, margin, ignore_fac))
 
 func _animate_enter_facility(fac: Node2D) -> void:
 	# Walk into the doorway and fade in
@@ -152,42 +250,54 @@ func wander_for(duration: float) -> void:
 	state = State.WANDERING
 	input_pickable = true
 	wander_timer = duration
+	nav_waypoints.clear()
 	_pick_wander_target()
 
 func _pick_wander_target() -> void:
-	# Prefer nearby pathways if available, or nearby open ground
-	var nearby_paths: Array = []
+	# Prefer nearby pathways if available, or nearby open ground, strictly avoiding building sprites
+	var nearby_paths: Array[Vector2] = []
 	var cur_cell := GameManager.world_to_path_cell(global_position)
-	for dx in range(-3, 4):
-		for dy in range(-3, 4):
+	for dx in range(-4, 5):
+		for dy in range(-4, 5):
 			var c := cur_cell + Vector2i(dx, dy)
 			if GameManager.path_cell_lookup.has(c):
-				nearby_paths.append(GameManager.path_cell_to_world(c))
-	
-	if not nearby_paths.is_empty() and randf() < 0.7:
-		target_pos = nearby_paths.pick_random() + Vector2(randf_range(-6, 6), randf_range(-6, 6))
+				var wp := GameManager.path_cell_to_world(c)
+				if not _is_point_in_any_facility(wp, 10.0):
+					nearby_paths.append(wp)
+
+	if not nearby_paths.is_empty() and randf() < 0.75:
+		var cand: Vector2 = nearby_paths.pick_random() + Vector2(randf_range(-5, 5), randf_range(-5, 5))
+		if not _is_point_in_any_facility(cand, 6.0):
+			target_pos = cand
+			return
+
+	var nearby_land: Array[Vector2] = []
+	for dx in range(-4, 5):
+		for dy in range(-4, 5):
+			var c := cur_cell + Vector2i(dx, dy)
+			if GameManager.is_land_cell_unlocked(c):
+				var wp := GameManager.path_cell_to_world(c)
+				if not _is_point_in_any_facility(wp, 10.0):
+					nearby_land.append(wp)
+	if not nearby_land.is_empty():
+		var cand: Vector2 = nearby_land.pick_random() + Vector2(randf_range(-6, 6), randf_range(-6, 6))
+		if not _is_point_in_any_facility(cand, 6.0):
+			target_pos = cand
+			return
+		target_pos = nearby_land.pick_random()
 	else:
-		var nearby_land: Array = []
-		for dx in range(-3, 4):
-			for dy in range(-3, 4):
-				var c := cur_cell + Vector2i(dx, dy)
-				if GameManager.is_land_cell_unlocked(c):
-					nearby_land.append(GameManager.path_cell_to_world(c))
-		if not nearby_land.is_empty():
-			target_pos = nearby_land.pick_random() + Vector2(randf_range(-8, 8), randf_range(-8, 8))
-		else:
-			target_pos = Vector2(16, 16) + Vector2(randf_range(-40, 40), randf_range(-40, 40))
+		target_pos = global_position + Vector2(0, 28)
 
 func on_service_finished() -> void:
 	# Emerge from the facility entrance door
 	if is_instance_valid(last_facility):
 		global_position = last_facility.global_position + Vector2(0, -6)
-	
+
 	visual_root.visible = true
 	visual_root.modulate.a = 0.0
 	visual_root.scale = Vector2(0.5, 0.5)
-	
-	var step_out_pos := global_position + Vector2(randf_range(-16, 16), 28)
+
+	var step_out_pos := global_position + Vector2(randf_range(-14, 14), 30)
 	var t := create_tween()
 	t.set_parallel(true)
 	t.tween_property(self, "global_position", step_out_pos, 0.35).set_trans(Tween.TRANS_SINE)
@@ -228,9 +338,9 @@ func _handle_hold_progress(delta: float) -> void:
 		if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 			is_holding = false
 		else:
-			var mouse_dist := global_position.distance_to(get_global_mouse_position())
+			var mouse_dist := (global_position + Vector2(0, -4)).distance_to(get_global_mouse_position())
 			# Held inside circle hitbox?
-			if mouse_dist <= HITBOX_RADIUS + 4.0:
+			if mouse_dist <= HITBOX_RADIUS + 6.0:
 				hold_progress = minf(hold_progress + delta * CHARGE_SPEED, 1.0)
 				if hold_progress >= 1.0:
 					_pick_up()
@@ -280,12 +390,26 @@ func _drop_sheep() -> void:
 			if jail.process_deportation(self):
 				return
 
+	# Ensure dropped sheep is pushed out in front if dropped over any building sprite
+	var blocking := _get_blocking_facility_at(global_position, 4.0)
+	if is_instance_valid(blocking) and blocking.has_method("get_obstacle_rect"):
+		var obs_r: Rect2 = blocking.get_obstacle_rect()
+		global_position.y = blocking.global_position.y + obs_r.end.y + 14.0
+
 	# Dropped onto pasture / pathway: bounce and resume wandering
 	var bounce := create_tween()
 	bounce.tween_property(visual_root, "scale", Vector2(1.05, 0.7), 0.08)
 	bounce.tween_property(visual_root, "scale", Vector2(0.85, 0.85), 0.12)
 
 	wander_for(randf_range(2.0, 4.0))
+
+func _start_holding() -> void:
+	is_holding = true
+	if hold_progress < 0.25:
+		hold_progress = 0.25
+	if is_instance_valid(hold_ring):
+		hold_ring.visible = true
+		hold_ring.queue_redraw()
 
 func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> void:
 	# Inside a facility or exiting? Cannot pick up
@@ -294,17 +418,31 @@ func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> vo
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed and state != State.PICKED_UP:
-			is_holding = true
-			# Starts at 25% as requested
-			if hold_progress < 0.25:
-				hold_progress = 0.25
-			if is_instance_valid(hold_ring):
-				hold_ring.visible = true
-				hold_ring.queue_redraw()
+			_start_holding()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-		if state == State.PICKED_UP:
-			_drop_sheep()
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			if state == State.IN_FACILITY or state == State.EXITING or state == State.PICKED_UP:
+				return
+			var mouse_pos := get_global_mouse_position()
+			var my_dist := (global_position + Vector2(0, -4)).distance_to(mouse_pos)
+			if my_dist <= HITBOX_RADIUS + 6.0:
+				# Only start holding if this is the closest valid sheep to the cursor
+				var closest_guest: ResortGuest = self
+				var closest_dist: float = my_dist
+				for g in get_tree().get_nodes_in_group("resort_guests"):
+					if is_instance_valid(g) and g is ResortGuest and g != self:
+						var other_guest: ResortGuest = g as ResortGuest
+						if other_guest.state != State.IN_FACILITY and other_guest.state != State.EXITING and other_guest.state != State.PICKED_UP:
+							var d: float = (other_guest.global_position + Vector2(0, -4)).distance_to(mouse_pos)
+							if d < closest_dist:
+								closest_dist = d
+								closest_guest = other_guest
+				if closest_guest == self:
+					_start_holding()
 		else:
-			is_holding = false
+			if state == State.PICKED_UP:
+				_drop_sheep()
+			else:
+				is_holding = false

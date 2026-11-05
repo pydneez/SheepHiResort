@@ -3,10 +3,12 @@ extends Camera2D
 ## Top-down resort camera with WASD / Arrow keys panning, Right-Click drag,
 ## and smooth mouse wheel zooming.
 
+signal zoom_changed(current_zoom: float)
+
 @export var pan_speed: float = 600.0
 @export var min_zoom: float = 0.5
-@export var max_zoom: float = 1.6
-@export var zoom_step: float = 0.1
+@export var max_zoom: float = 3.2
+@export var zoom_step: float = 0.15
 @export var zoom_smooth: float = 12.0
 
 # Map boundary limits
@@ -19,6 +21,17 @@ var _drag_start_pos: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	_target_zoom = zoom.x
+
+func set_zoom_level(val: float) -> void:
+	val = clampf(val, min_zoom, max_zoom)
+	_target_zoom = val
+	zoom = Vector2(val, val)
+	zoom_changed.emit(val)
+
+## Helper returning inverse scale for in-world labels so text scales cleanly with zoom
+func get_text_scale() -> Vector2:
+	var s: float = clampf(1.0 / zoom.x, 0.45, 1.8)
+	return Vector2(s, s)
 
 func _process(delta: float) -> void:
 	# Keyboard pan (WASD or Arrow keys)
@@ -37,8 +50,11 @@ func _process(delta: float) -> void:
 		_clamp_position()
 
 	# Smooth zoom
+	var old_z: float = zoom.x
 	var new_zoom: float = lerpf(zoom.x, _target_zoom, zoom_smooth * delta)
 	zoom = Vector2(new_zoom, new_zoom)
+	if absf(new_zoom - old_z) > 0.001:
+		zoom_changed.emit(new_zoom)
 
 func _unhandled_input(event: InputEvent) -> void:
 	# Right-click drag to pan

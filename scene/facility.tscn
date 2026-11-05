@@ -32,6 +32,7 @@ offset_left = -110.0
 offset_top = -108.0
 offset_right = 110.0
 offset_bottom = -86.0
+mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.98, 0.9, 1)
 theme_override_colors/font_outline_color = Color(0.08, 0.08, 0.08, 0.95)
 theme_override_constants/outline_size = 4
@@ -45,6 +46,7 @@ offset_left = -120.0
 offset_top = -86.0
 offset_right = 120.0
 offset_bottom = -64.0
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.7, 0.95, 0.7, 1)
 theme_override_colors/font_outline_color = Color(0.08, 0.08, 0.08, 0.95)
 theme_override_constants/outline_size = 4
@@ -70,8 +72,10 @@ offset_left = -75.0
 offset_top = -140.0
 offset_right = 75.0
 offset_bottom = 10.0
+mouse_filter = 2
 
 [node name="WarningOverlay" type="ColorRect" parent="VisualRoot/RepairPanel" unique_id=851552043]
+visible = false
 layout_mode = 0
 offset_right = 150.0
 offset_bottom = 150.0
@@ -80,10 +84,11 @@ color = Color(0.75, 0.15, 0.15, 0.75)
 
 [node name="RepairTimeLabel" type="Label" parent="VisualRoot/RepairPanel" unique_id=608396641]
 layout_mode = 0
-offset_left = 4.0
+offset_left = -5.0
 offset_top = 42.0
-offset_right = 146.0
+offset_right = 155.0
 offset_bottom = 102.0
+mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4

@@ -18,12 +18,12 @@
 [ext_resource type="PackedScene" path="res://scene/speech_bubble.tscn" id="16_8r1ro"]
 [ext_resource type="PackedScene" path="res://scene/computer_window.tscn" id="17_xfqts"]
 [ext_resource type="PackedScene" path="res://scene/day_popup.tscn" id="18_ak4hr"]
-[ext_resource type="PackedScene" uid="uid://b46lh3kv7apid" path="res://scene/week_summary.tscn" id="19_78e58"]
+[ext_resource type="PackedScene" path="res://scene/week_summary.tscn" id="19_78e58"]
 [ext_resource type="Texture2D" uid="uid://tq5mvwqjkxsd" path="res://assets/UI/UI_pack.png" id="20_ui_pack"]
-[ext_resource type="Texture2D" path="res://assets/lobby/computerBG.png" id="21_comp_bg"]
-[ext_resource type="Texture2D" path="res://assets/lobby/file_icon.png" id="22_file_icon"]
-[ext_resource type="Texture2D" path="res://assets/lobby/fix_icon.png" id="23_fix_icon"]
-[ext_resource type="Texture2D" path="res://assets/lobby/upward_icon.png" id="24_upward_icon"]
+[ext_resource type="Texture2D" uid="uid://c0kwk7ydhc8nd" path="res://assets/lobby/computerBG.png" id="21_comp_bg"]
+[ext_resource type="Texture2D" uid="uid://yg5bbquicok0" path="res://assets/lobby/file_icon.png" id="22_file_icon"]
+[ext_resource type="Texture2D" uid="uid://vw0d7b5qdyri" path="res://assets/lobby/fix_icon.png" id="23_fix_icon"]
+[ext_resource type="Texture2D" uid="uid://ceqqvcrb5a1od" path="res://assets/lobby/upward_icon.png" id="24_upward_icon"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_monitor_clip"]
 bg_color = Color(0, 0, 0, 1)
@@ -249,10 +249,10 @@ texture = ExtResource("8_7dd4j")
 [node name="ClockTime" type="Label" parent="Lobby/Clock" unique_id=2105081276]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 85.0
-offset_top = 73.0
-offset_right = 310.0
-offset_bottom = 132.0
+offset_left = 81.0
+offset_top = 87.0
+offset_right = 306.0
+offset_bottom = 146.0
 theme_override_colors/font_color = Color(1, 0.8, 0.25, 1)
 theme_override_font_sizes/font_size = 40
 text = "08:00"
@@ -352,6 +352,7 @@ offset_bottom = 140.0
 
 [node name="Papers" type="Control" parent="." unique_id=2055691435]
 unique_name_in_owner = true
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -362,12 +363,11 @@ mouse_filter = 2
 
 [node name="ComputerWindow" parent="." unique_id=1932729627 instance=ExtResource("17_xfqts")]
 unique_name_in_owner = true
-visible = false
 layout_mode = 0
-offset_left = 700.0
-offset_top = 60.0
-offset_right = 700.0
-offset_bottom = 60.0
+offset_left = 611.0
+offset_top = 73.0
+offset_right = 1420.0
+offset_bottom = 605.0
 
 [node name="TopBar" type="PanelContainer" parent="." unique_id=1287662619]
 custom_minimum_size = Vector2(1440, 56)
@@ -388,8 +388,6 @@ text = "DAY 1/7"
 [node name="DateLabel" type="Label" parent="TopBar/Labels" unique_id=551582011]
 unique_name_in_owner = true
 layout_mode = 2
-tooltip_theme_override_font_sizes/font_size = 22
-text = "Today's date — right-click to compare"
 mouse_filter = 0
 theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
 text = "[11 MAR]"

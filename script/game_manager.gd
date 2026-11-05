@@ -187,7 +187,7 @@ const DEFAULT_FACILITY_INSTANCES := [
 		"name": "MainBuilding",
 		"facility_id": "main_building",
 		"display_name": "Main Building",
-		"position": Vector2(-240, 260),
+		"position": Vector2(-240, 328),
 		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
 		"building_row": 8,
 		"base_cycle_time": 0.0,
@@ -226,7 +226,7 @@ const DEFAULT_FACILITY_INSTANCES := [
 ]
 
 const DEFAULT_FACILITY_POSITIONS := {
-	"MainBuilding": Vector2(-240, 260),
+	"MainBuilding": Vector2(-240, 256),
 	"CabinFacility": Vector2(-240, 88),
 	"Cabin": Vector2(-240, 88),
 	"CloverMeadow": Vector2(-350, 176),
@@ -241,6 +241,7 @@ var path_cell_lookup: Dictionary = {}
 var land_cell_lookup: Dictionary = {}
 var is_layout_edit_mode: bool = false
 var returned_from_layout_editor: bool = false
+var show_resort_sheep_names: bool = true
 var dev_pending_week_report: Dictionary = {}
 var dev_menu: CanvasLayer = null
 
@@ -318,7 +319,8 @@ func _make_default_cross_pathways() -> Array:
 	for x in range(-12, -3):
 		paths.append(Vector2i(x, 5))
 	# Vertical arm of cross pathway connecting Cabin (top) to Main Building (bottom)
-	for y in range(2, 9):
+	# Ends at y = 7 so the Main Building sits at the very end of the path without sticking out below
+	for y in range(2, 8):
 		if y != 5:
 			paths.append(Vector2i(-8, y))
 	return paths
@@ -520,7 +522,7 @@ func calculate_facility_combo(fac_id: String, fac_pos: Vector2, all_facilities: 
 			for n in nearby_nodes:
 				if n.facility_id == "cabin":
 					bonus -= 10
-					neighbors.append({"node": n, "delta": -10})
+					neighbors.append({"node": n, "delta": - 10})
 		"restaurant":
 			# Bed & Breakfast: +$10 for each nearby Cabin (up to 3)
 			var cabin_hits: int = 0
@@ -577,6 +579,81 @@ func world_to_path_cell(world_pos: Vector2) -> Vector2i:
 
 func path_cell_to_world(cell: Vector2i) -> Vector2:
 	return Vector2(cell.x * PATH_CELL_SIZE + PATH_CELL_SIZE * 0.5, cell.y * PATH_CELL_SIZE + PATH_CELL_SIZE * 0.5)
+
+## Computes a waypoint path around facilities (and preferring paved pathways) using AStarGrid2D.
+func find_resort_path(from_world: Vector2, to_world: Vector2, facilities: Array, ignore_fac: Node2D = null) -> Array[Vector2]:
+	var astar := AStarGrid2D.new()
+	var region := Rect2i(
+		MAP_MIN_CELL_X,
+		MAP_MIN_CELL_Y,
+		MAP_MAX_CELL_X - MAP_MIN_CELL_X + 1,
+		MAP_MAX_CELL_Y - MAP_MIN_CELL_Y + 1
+	)
+	astar.region = region
+	astar.cell_size = Vector2(PATH_CELL_SIZE, PATH_CELL_SIZE)
+	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
+	astar.default_compute_heuristic = AStarGrid2D.HEURISTIC_OCTILE
+	astar.default_estimate_heuristic = AStarGrid2D.HEURISTIC_OCTILE
+	astar.update()
+
+	# 1. Weight paved pathway cells lower so sheep naturally prefer walking on paths
+	for cy in range(MAP_MIN_CELL_Y, MAP_MAX_CELL_Y + 1):
+		for cx in range(MAP_MIN_CELL_X, MAP_MAX_CELL_X + 1):
+			var c := Vector2i(cx, cy)
+			if path_cell_lookup.has(c):
+				astar.set_point_weight_scale(c, 1.0)
+			elif land_cell_lookup.has(c):
+				astar.set_point_weight_scale(c, 2.2)
+			else:
+				astar.set_point_solid(c, true)
+
+	# 2. Mark facility sprite footprints as solid obstacles
+	for f in facilities:
+		if not is_instance_valid(f) or f == ignore_fac:
+			continue
+		if f is Node2D and f.has_method("get_obstacle_rect"):
+			var fn: Node2D = f as Node2D
+			var obs_r: Rect2 = fn.call("get_obstacle_rect")
+			var world_r := Rect2(fn.global_position + obs_r.position, obs_r.size)
+			var min_c := world_to_path_cell(world_r.position + Vector2(4, 4))
+			var max_c := world_to_path_cell(world_r.end - Vector2(4, 4))
+			for cy in range(min_c.y, max_c.y + 1):
+				for cx in range(min_c.x, max_c.x + 1):
+					var c := Vector2i(cx, cy)
+					if region.has_point(c):
+						astar.set_point_solid(c, true)
+
+	var start_cell := world_to_path_cell(from_world)
+	var end_cell := world_to_path_cell(to_world)
+	start_cell.x = clampi(start_cell.x, MAP_MIN_CELL_X, MAP_MAX_CELL_X)
+	start_cell.y = clampi(start_cell.y, MAP_MIN_CELL_Y, MAP_MAX_CELL_Y)
+	end_cell.x = clampi(end_cell.x, MAP_MIN_CELL_X, MAP_MAX_CELL_X)
+	end_cell.y = clampi(end_cell.y, MAP_MIN_CELL_Y, MAP_MAX_CELL_Y)
+
+	# Ensure start cell and target facility doorway (end cell + approach cell) are walkable
+	astar.set_point_solid(start_cell, false)
+	astar.set_point_solid(end_cell, false)
+	var south_of_end := end_cell + Vector2i(0, 1)
+	if region.has_point(south_of_end):
+		astar.set_point_solid(south_of_end, false)
+
+	var id_path: Array[Vector2i] = astar.get_id_path(start_cell, end_cell)
+	if id_path.is_empty():
+		# Fallback if a facility is completely boxed in by other buildings: allow high-cost traversal through obstacles
+		for cy in range(MAP_MIN_CELL_Y, MAP_MAX_CELL_Y + 1):
+			for cx in range(MAP_MIN_CELL_X, MAP_MAX_CELL_X + 1):
+				var c := Vector2i(cx, cy)
+				if land_cell_lookup.has(c) and astar.is_point_solid(c):
+					astar.set_point_solid(c, false)
+					astar.set_point_weight_scale(c, 15.0)
+		id_path = astar.get_id_path(start_cell, end_cell)
+
+	var waypoints: Array[Vector2] = []
+	if id_path.size() > 1:
+		for i in range(1, id_path.size() - 1):
+			waypoints.append(path_cell_to_world(id_path[i]))
+	waypoints.append(to_world)
+	return waypoints
 
 func reset_day_pool() -> void:
 	admitted_guests.clear()

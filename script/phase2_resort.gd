@@ -20,6 +20,7 @@ var wolves_caught: int = 0
 var guest_queue: Array = []
 var active_guests: Array = []
 var facilities: Array = []
+var layout_editor: Node2D = null
 
 # Node references
 @onready var camera: Camera2D = $ResortCamera
@@ -37,9 +38,16 @@ var facilities: Array = []
 @onready var ledger_text: RichTextLabel = $UILayer/LedgerPanel/VBoxContainer/LedgerText
 @onready var next_day_button: Button = $UILayer/LedgerPanel/VBoxContainer/NextDayButton
 
+var toggle_names_button: TextureButton = null
+
 func _ready() -> void:
 	ledger_panel.visible = false
 	next_day_button.pressed.connect(_on_next_day_pressed)
+
+	if camera.has_signal("zoom_changed"):
+		camera.zoom_changed.connect(_on_camera_zoom_changed)
+
+	_setup_toggle_names_button()
 
 	# Apply custom resort layout, unlocked grass land, and pathways
 	_apply_resort_layout()
@@ -69,19 +77,84 @@ func _ready() -> void:
 	is_active = true
 	_refresh_hud()
 
+	_on_camera_zoom_changed(camera.zoom.x)
+
 	# Start spawning queue sequentially
 	_spawn_next_guest()
+
+func _setup_toggle_names_button() -> void:
+	toggle_names_button = TextureButton.new()
+	toggle_names_button.name = "ToggleNamesButton"
+	toggle_names_button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	toggle_names_button.ignore_texture_size = true
+	toggle_names_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	toggle_names_button.custom_minimum_size = Vector2(44, 44)
+	toggle_names_button.size = Vector2(44, 44)
+
+	# Position in bottom-right corner of screen
+	toggle_names_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	toggle_names_button.anchor_left = 1.0
+	toggle_names_button.anchor_top = 1.0
+	toggle_names_button.anchor_right = 1.0
+	toggle_names_button.anchor_bottom = 1.0
+	toggle_names_button.offset_left = -60.0
+	toggle_names_button.offset_top = -60.0
+	toggle_names_button.offset_right = -16.0
+	toggle_names_button.offset_bottom = -16.0
+
+	var bubble_atlas := UIPack.make_region_atlas(UIPack.PANEL_REGIONS["speech_bubble"])
+	toggle_names_button.texture_normal = bubble_atlas
+	toggle_names_button.texture_hover = bubble_atlas
+	toggle_names_button.texture_pressed = bubble_atlas
+	toggle_names_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	toggle_names_button.tooltip_text = "Toggle Sheep Names On/Off"
+	toggle_names_button.pressed.connect(_on_toggle_names_pressed)
+
+	$UILayer.add_child(toggle_names_button)
+	_refresh_toggle_names_button()
+
+func _on_toggle_names_pressed() -> void:
+	GameManager.show_resort_sheep_names = not GameManager.show_resort_sheep_names
+	_refresh_toggle_names_button()
+	for g in get_tree().get_nodes_in_group("resort_guests"):
+		if is_instance_valid(g) and g is ResortGuest and is_instance_valid(g.name_label):
+			g.name_label.visible = GameManager.show_resort_sheep_names
+
+func _refresh_toggle_names_button() -> void:
+	if is_instance_valid(toggle_names_button):
+		if GameManager.show_resort_sheep_names:
+			toggle_names_button.modulate = Color.WHITE
+			toggle_names_button.tooltip_text = "Sheep Names: Visible (Click to Hide)"
+		else:
+			toggle_names_button.modulate = Color(0.55, 0.55, 0.55, 0.65)
+			toggle_names_button.tooltip_text = "Sheep Names: Hidden (Click to Show)"
 
 func _init_layout_edit_mode(pathways: PathwaysRenderer) -> void:
 	is_active = false
 	$UILayer.visible = false
 	camera.position = Vector2(-240, 180)
-	camera.zoom = Vector2(0.85, 0.85)
+	if camera.has_method("set_zoom_level"):
+		camera.set_zoom_level(0.85)
+	else:
+		camera.zoom = Vector2(0.85, 0.85)
 
-	var editor = RESORT_LAYOUT_EDITOR.new()
-	editor.name = "ResortLayoutEditor"
-	add_child(editor)
-	editor.setup(self, facilities_container, pathways)
+	layout_editor = RESORT_LAYOUT_EDITOR.new()
+	layout_editor.name = "ResortLayoutEditor"
+	add_child(layout_editor)
+	layout_editor.setup(self, facilities_container, pathways)
+	_on_camera_zoom_changed(camera.zoom.x)
+
+func _on_camera_zoom_changed(current_zoom: float) -> void:
+	if is_instance_valid(facilities_container):
+		for child in facilities_container.get_children():
+			if child is Facility and is_instance_valid(child) and child.has_method("update_text_zoom"):
+				child.update_text_zoom(current_zoom)
+	if is_instance_valid(guests_container):
+		for g in guests_container.get_children():
+			if g is ResortGuest and is_instance_valid(g) and g.has_method("update_text_zoom"):
+				g.update_text_zoom(current_zoom)
+	if is_instance_valid(layout_editor) and layout_editor.has_method("update_text_zoom"):
+		layout_editor.update_text_zoom(current_zoom)
 
 func _apply_resort_layout() -> void:
 	if GameManager.resort_layout.has("facility_instances") and not GameManager.resort_layout["facility_instances"].is_empty():
@@ -146,6 +219,8 @@ func create_facility_instance(fac_id: String, pos: Vector2, custom_node_name: St
 				count += 1
 		fac.name = "%s_%d" % [fac_id.to_pascal_case(), count]
 	facilities_container.add_child(fac)
+	if fac.has_method("update_text_zoom") and is_instance_valid(camera):
+		fac.update_text_zoom(camera.zoom.x)
 	return fac
 
 func rebuild_grass_tilemap() -> void:
@@ -245,6 +320,8 @@ func spawn_guest_from_data(data: Dictionary) -> ResortGuest:
 
 	guest.guest_ready_for_facility.connect(_assign_guest_to_facility)
 	guest.wolf_deported.connect(_on_wolf_deported)
+	if guest.has_method("update_text_zoom") and is_instance_valid(camera):
+		guest.update_text_zoom(camera.zoom.x)
 	active_guests.append(guest)
 	_refresh_hud()
 	return guest
