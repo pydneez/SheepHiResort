@@ -1,0 +1,71 @@
+[gd_scene format=3 uid="uid://bab4ftrh0x5j5"]
+
+[ext_resource type="Script" uid="uid://bb5itv73xhqqp" path="res://scene/audio_panel.gd" id="1_bmp42"]
+
+[node name="AudioPanel" type="PanelContainer" unique_id=702994137]
+custom_minimum_size = Vector2(360, 155)
+offset_left = 432.0
+offset_top = 409.0
+offset_right = 1017.0
+offset_bottom = 577.0
+script = ExtResource("1_bmp42")
+metadata/_custom_type_script = "uid://dn54eotw4cptn"
+
+[node name="AudioContainer" type="VBoxContainer" parent="." unique_id=686344729]
+layout_mode = 2
+
+[node name="AudioText" type="Label" parent="AudioContainer" unique_id=2033092026]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "Audio"
+horizontal_alignment = 1
+
+[node name="Master" type="HBoxContainer" parent="AudioContainer" unique_id=970795597]
+layout_mode = 2
+
+[node name="MasterLabel" type="Label" parent="AudioContainer/Master" unique_id=1296011654]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "Master Volume"
+
+[node name="MasterHSlider" type="HSlider" parent="AudioContainer/Master" unique_id=1642103452]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+value = 100.0
+
+[node name="Music" type="HBoxContainer" parent="AudioContainer" unique_id=1161440117]
+layout_mode = 2
+
+[node name="MusicLabel" type="Label" parent="AudioContainer/Music" unique_id=205846602]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "Music"
+
+[node name="MusicHSlider" type="HSlider" parent="AudioContainer/Music" unique_id=56257398]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+value = 100.0
+
+[node name="SFX" type="HBoxContainer" parent="AudioContainer" unique_id=1078666199]
+layout_mode = 2
+
+[node name="SFXLabel" type="Label" parent="AudioContainer/SFX" unique_id=1355890259]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "SFX"
+
+[node name="SFXHSlider" type="HSlider" parent="AudioContainer/SFX" unique_id=932570638]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+value = 100.0
+
+[node name="BackButton" type="Button" parent="AudioContainer" unique_id=724263649]
+layout_mode = 2
+text = "Back
+"

@@ -1,45 +1,8 @@
-[gd_resource type="Theme" format=3]
+[gd_resource type="Theme" format=3 uid="uid://k74tt7bvaql5"]
 
 [ext_resource type="FontFile" uid="uid://jwso4tijjeht" path="res://fonts/Peaberry Base/PeaberryBase.ttf" id="1_peaberry_base"]
 [ext_resource type="FontFile" uid="uid://j3d4k6axu6jv" path="res://fonts/Peaberry Monospace/PeaberryMono.ttf" id="2_peaberry_mono"]
 [ext_resource type="Texture2D" uid="uid://tq5mvwqjkxsd" path="res://assets/UI/UI_pack.png" id="3_ui_pack"]
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_btn_normal"]
-content_margin_left = 12.0
-content_margin_top = 6.0
-content_margin_right = 12.0
-content_margin_bottom = 8.0
-texture = ExtResource("3_ui_pack")
-texture_margin_left = 6.0
-texture_margin_top = 6.0
-texture_margin_right = 6.0
-texture_margin_bottom = 7.0
-region_rect = Rect2(163, 178, 90, 27)
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_btn_hover"]
-content_margin_left = 12.0
-content_margin_top = 6.0
-content_margin_right = 12.0
-content_margin_bottom = 8.0
-texture = ExtResource("3_ui_pack")
-texture_margin_left = 6.0
-texture_margin_top = 6.0
-texture_margin_right = 6.0
-texture_margin_bottom = 7.0
-region_rect = Rect2(163, 178, 90, 27)
-modulate_color = Color(1.06, 1.04, 0.96, 1)
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_btn_pressed"]
-content_margin_left = 12.0
-content_margin_top = 8.0
-content_margin_right = 12.0
-content_margin_bottom = 6.0
-texture = ExtResource("3_ui_pack")
-texture_margin_left = 6.0
-texture_margin_top = 6.0
-texture_margin_right = 6.0
-texture_margin_bottom = 6.0
-region_rect = Rect2(259, 180, 90, 25)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_btn_disabled"]
 content_margin_left = 12.0
@@ -56,17 +19,42 @@ modulate_color = Color(0.7, 0.68, 0.65, 0.75)
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_focus"]
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_panel_beige"]
-content_margin_left = 14.0
-content_margin_top = 12.0
-content_margin_right = 14.0
-content_margin_bottom = 14.0
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_btn_hover"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
 texture = ExtResource("3_ui_pack")
-texture_margin_left = 7.0
-texture_margin_top = 7.0
-texture_margin_right = 7.0
-texture_margin_bottom = 8.0
-region_rect = Rect2(11, 59, 26, 28)
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 7.0
+region_rect = Rect2(163, 178, 90, 27)
+modulate_color = Color(1.06, 1.04, 0.96, 1)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_btn_normal"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+texture = ExtResource("3_ui_pack")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 7.0
+region_rect = Rect2(163, 178, 90, 27)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_btn_pressed"]
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+texture = ExtResource("3_ui_pack")
+texture_margin_left = 6.0
+texture_margin_top = 6.0
+texture_margin_right = 6.0
+texture_margin_bottom = 6.0
+region_rect = Rect2(259, 180, 90, 25)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_inset_tan"]
 content_margin_left = 10.0
@@ -80,17 +68,17 @@ texture_margin_right = 6.0
 texture_margin_bottom = 6.0
 region_rect = Rect2(107, 59, 26, 26)
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_wood_frame"]
-content_margin_left = 12.0
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_panel_beige"]
+content_margin_left = 14.0
 content_margin_top = 12.0
-content_margin_right = 12.0
-content_margin_bottom = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 14.0
 texture = ExtResource("3_ui_pack")
-texture_margin_left = 8.0
-texture_margin_top = 8.0
-texture_margin_right = 8.0
+texture_margin_left = 7.0
+texture_margin_top = 7.0
+texture_margin_right = 7.0
 texture_margin_bottom = 8.0
-region_rect = Rect2(153, 105, 30, 30)
+region_rect = Rect2(11, 59, 26, 28)
 
 [resource]
 default_font = ExtResource("1_peaberry_base")
@@ -106,8 +94,8 @@ Button/styles/focus = SubResource("StyleBoxEmpty_focus")
 Button/styles/hover = SubResource("StyleBoxTexture_btn_hover")
 Button/styles/normal = SubResource("StyleBoxTexture_btn_normal")
 Button/styles/pressed = SubResource("StyleBoxTexture_btn_pressed")
-ItemList/colors/font_color = Color(0.24, 0.14, 0.07, 1)
 ItemList/colors/font_Hovered_color = Color(0.12, 0.06, 0.02, 1)
+ItemList/colors/font_color = Color(0.24, 0.14, 0.07, 1)
 ItemList/colors/font_selected_color = Color(0.1, 0.35, 0.15, 1)
 ItemList/styles/focus = SubResource("StyleBoxEmpty_focus")
 ItemList/styles/panel = SubResource("StyleBoxTexture_inset_tan")

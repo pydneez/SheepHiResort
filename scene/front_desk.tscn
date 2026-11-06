@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://ba8l7ymtqdpgc"]
 
-[ext_resource type="Theme" path="res://ui/game_theme.tres" id="1_dypvc"]
+[ext_resource type="Theme" uid="uid://k74tt7bvaql5" path="res://ui/game_theme.tres" id="1_dypvc"]
 [ext_resource type="Script" uid="uid://cngg0h8btpvaa" path="res://script/front_desk.gd" id="2_teqvl"]
 [ext_resource type="Texture2D" uid="uid://cox1hq5alydgt" path="res://assets/lobby/lobby_background.png" id="3_lll3t"]
 [ext_resource type="PackedScene" path="res://scene/guest.tscn" id="4_6nch0"]
@@ -18,12 +18,13 @@
 [ext_resource type="PackedScene" path="res://scene/speech_bubble.tscn" id="16_8r1ro"]
 [ext_resource type="PackedScene" path="res://scene/computer_window.tscn" id="17_xfqts"]
 [ext_resource type="PackedScene" path="res://scene/day_popup.tscn" id="18_ak4hr"]
-[ext_resource type="PackedScene" uid="uid://b46lh3kv7apid" path="res://scene/week_summary.tscn" id="19_78e58"]
+[ext_resource type="PackedScene" path="res://scene/week_summary.tscn" id="19_78e58"]
 [ext_resource type="Texture2D" uid="uid://tq5mvwqjkxsd" path="res://assets/UI/UI_pack.png" id="20_ui_pack"]
-[ext_resource type="Texture2D" path="res://assets/lobby/computerBG.png" id="21_comp_bg"]
-[ext_resource type="Texture2D" path="res://assets/lobby/file_icon.png" id="22_file_icon"]
-[ext_resource type="Texture2D" path="res://assets/lobby/fix_icon.png" id="23_fix_icon"]
-[ext_resource type="Texture2D" path="res://assets/lobby/upward_icon.png" id="24_upward_icon"]
+[ext_resource type="Texture2D" uid="uid://c0kwk7ydhc8nd" path="res://assets/lobby/computerBG.png" id="21_comp_bg"]
+[ext_resource type="Texture2D" uid="uid://yg5bbquicok0" path="res://assets/lobby/file_icon.png" id="22_file_icon"]
+[ext_resource type="Texture2D" uid="uid://vw0d7b5qdyri" path="res://assets/lobby/fix_icon.png" id="23_fix_icon"]
+[ext_resource type="Texture2D" uid="uid://ceqqvcrb5a1od" path="res://assets/lobby/upward_icon.png" id="24_upward_icon"]
+[ext_resource type="PackedScene" uid="uid://b8lrmlub5lmml" path="res://scene/pause_menu.tscn" id="25_qkg7q"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_monitor_clip"]
 bg_color = Color(0, 0, 0, 1)
@@ -388,8 +389,6 @@ text = "DAY 1/7"
 [node name="DateLabel" type="Label" parent="TopBar/Labels" unique_id=551582011]
 unique_name_in_owner = true
 layout_mode = 2
-tooltip_theme_override_font_sizes/font_size = 22
-text = "Today's date — right-click to compare"
 mouse_filter = 0
 theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
 text = "[11 MAR]"
@@ -448,3 +447,6 @@ layout_mode = 1
 anchors_preset = 15
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="PauseMenu" parent="." unique_id=225123426 instance=ExtResource("25_qkg7q")]
+layout_mode = 1

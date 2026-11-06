@@ -419,8 +419,9 @@ func _on_open_resort_layout() -> void:
 	GameManager.change_scene("res://scene/phase2_resort.tscn")
 
 func _on_open_upgrades() -> void:
-	_toast("Upgrade window coming soon!", Color(0.75, 0.9, 1.0))
-
+	#_toast("Upgrade window coming soon!", Color(0.75, 0.9, 1.0))
+	pass
+	
 func _refresh_monitor_icons() -> void:
 	if not is_instance_valid(fix_icon_btn):
 		return

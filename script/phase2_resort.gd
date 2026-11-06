@@ -323,7 +323,7 @@ func _end_rush_hour() -> void:
 		if is_instance_valid(g) and g.is_wolf:
 			escaped_wolves += 1
 	GameManager.wolves_escaped_unharmed = escaped_wolves
-
+	
 	# Update total economy in GameManager
 	var net_profit: int = resort_revenue + resort_tips - resort_damages
 	GameManager.money += net_profit
@@ -353,6 +353,7 @@ func _on_next_day_pressed() -> void:
 	GameManager.current_day += 1
 	GameManager.reset_day_pool()
 	GameManager.change_scene("res://scene/front_desk.tscn")
+	SaveLoad.save_game()
 
 func _generate_fallback_pool() -> void:
 	# Generates a quick test queue when running Phase 2 directly from editor:

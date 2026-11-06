@@ -29,6 +29,82 @@ var phase2_damages: int = 0
 var wolves_caught_in_resort: int = 0
 var wolves_escaped_unharmed: int = 0
 
+
+func get_save_data() -> Dictionary:
+	return {
+		"run_started": run_started,
+		"run_seed": run_seed,
+		"current_day": current_day,
+		"money": money,
+		"reputation": reputation,
+		"residents": residents,
+		"wolves_admitted_total": wolves_admitted_total,
+		"guest_book": guest_book.duplicate(true),
+		"week": week.duplicate(true),
+		"resort_layout": resort_layout.duplicate(true)
+	}
+
+
+func load_save_data(data: Dictionary) -> void:
+	run_started = data.get("run_started", false)
+	run_seed = data.get("run_seed", 0)
+	current_day = data.get("current_day", 1)
+	money = data.get("money", 150)
+	reputation = data.get("reputation", 70)
+	residents = data.get("residents", 0)
+	wolves_admitted_total = data.get("wolves_admitted_total", 0)
+	guest_book = data.get("guest_book", []).duplicate(true)
+	week = data.get("week", week.duplicate(true))
+
+	resort_layout = data.get("resort_layout", {}).duplicate(true)
+
+	# Rebuild lookup dictionaries from the restored layout.
+	path_cell_lookup.clear()
+	land_cell_lookup.clear()
+
+	for cell in resort_layout.get("pathways", []):
+		if cell is Vector2i:
+			path_cell_lookup[cell] = true
+
+	for cell in resort_layout.get("land_cells", []):
+		if cell is Vector2i:
+			land_cell_lookup[cell] = true
+
+
+func start_new_game() -> void:
+	# Run progression
+	run_started = true
+	run_seed = randi()
+	current_day = 1
+
+	# Player economy and reputation
+	money = 150
+	reputation = 70
+	residents = 0
+	wolves_admitted_total = 0
+
+	# Records and weekly statistics
+	guest_book.clear()
+	week = {
+		"processed": 0,
+		"correct": 0,
+		"wolves_caught": 0,
+		"residents": 0,
+		"quota_days": 0,
+		"earned": 0
+	}
+
+	# Phase 2 daily state
+	reset_day_pool()
+
+	# Reset resort layout
+	resort_layout.clear()
+	path_cell_lookup.clear()
+	land_cell_lookup.clear()
+	init_default_layout()
+
+	print("New game started!")
+
 # Species facility affinity mapping
 const PREFERRED_FACILITIES := {
 	"Merino": "wool_salon",
