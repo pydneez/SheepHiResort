@@ -51,8 +51,16 @@ func update_display(cur_money: int = -1, cur_rep: int = -1) -> void:
 
 	# Set thumbnail icon if available
 	if is_instance_valid(icon_rect):
-		var icon_key: String = info.get("icon", "house")
-		icon_rect.texture = UIPack.make_standalone_icon_atlas(icon_key)
+		if info.has("powerup_index"):
+			var idx: int = int(info["powerup_index"])
+			var atlas := AtlasTexture.new()
+			atlas.atlas = preload("res://assets/UI/Powerups.png")
+			# 34x34 px per icon, sampling inner 30x30 to trim borders cleanly
+			atlas.region = Rect2(idx * 34 + 2, 2, 30, 30)
+			icon_rect.texture = atlas
+		else:
+			var icon_key: String = info.get("icon", "house")
+			icon_rect.texture = UIPack.make_standalone_icon_atlas(icon_key)
 
 	if not is_instance_valid(title_label) or not is_instance_valid(buy_button):
 		return
@@ -121,4 +129,3 @@ func update_display(cur_money: int = -1, cur_rep: int = -1) -> void:
 				buy_button.tooltip_text = "Not enough reputation"
 			else:
 				buy_button.tooltip_text = "Not enough coins"
-

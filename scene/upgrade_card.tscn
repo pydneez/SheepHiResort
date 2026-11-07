@@ -28,9 +28,12 @@ texture_margin_right = 8.0
 texture_margin_bottom = 8.0
 region_rect = Rect2(153, 105, 30, 30)
 
-[sub_resource type="AtlasTexture" id="AtlasTexture_house_icon"]
-atlas = ExtResource("2_uipack")
-region = Rect2(817, 226, 14, 12)
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_o61gs"]
+load_path = "res://.godot/imported/Powerups.png-5d54aec3e0a1b1f5b48b30a21125f24e.ctex"
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_p2xdg"]
+atlas = SubResource("CompressedTexture2D_o61gs")
+region = Rect2(2, 2, 30, 30)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_star"]
 atlas = ExtResource("2_uipack")
@@ -76,7 +79,7 @@ texture_filter = 1
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
 mouse_filter = 2
-texture = SubResource("AtlasTexture_house_icon")
+texture = SubResource("AtlasTexture_p2xdg")
 expand_mode = 1
 stretch_mode = 5
 
