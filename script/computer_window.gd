@@ -4,7 +4,6 @@ extends PanelContainer
 ## search. Drag it by its title; right-click a value to compare it.
 
 signal field_clicked(field: Dictionary, label: Control)
-signal open_resort_layout()
 
 const DRAG_BOUNDS := Rect2(0, 48, 1440, 1032)   # anywhere below the top bar
 

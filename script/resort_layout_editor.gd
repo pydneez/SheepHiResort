@@ -357,15 +357,15 @@ func _draw_selection_pad_and_combo() -> void:
 
 	# Corner brackets
 	var c_len: float = clampf(rect.size.x * 0.22, 10.0, 18.0)
-	var tl := rect.position
-	var tr := Vector2(rect.end.x, rect.position.y)
-	var bl := Vector2(rect.position.x, rect.end.y)
+	var top_left := rect.position
+	var top_right := Vector2(rect.end.x, rect.position.y)
+	var bl := rect.position + Vector2(0, rect.size.y)
 	var br := rect.end
 
-	selection_pad.draw_line(tl, tl + Vector2(c_len, 0), Color.WHITE, 4.0)
-	selection_pad.draw_line(tl, tl + Vector2(0, c_len), Color.WHITE, 4.0)
-	selection_pad.draw_line(tr, tr + Vector2(-c_len, 0), Color.WHITE, 4.0)
-	selection_pad.draw_line(tr, tr + Vector2(0, c_len), Color.WHITE, 4.0)
+	selection_pad.draw_line(top_left, top_left + Vector2(c_len, 0), Color.WHITE, 4.0)
+	selection_pad.draw_line(top_left, top_left + Vector2(0, c_len), Color.WHITE, 4.0)
+	selection_pad.draw_line(top_right, top_right + Vector2(-c_len, 0), Color.WHITE, 4.0)
+	selection_pad.draw_line(top_right, top_right + Vector2(0, c_len), Color.WHITE, 4.0)
 	selection_pad.draw_line(bl, bl + Vector2(c_len, 0), Color.WHITE, 4.0)
 	selection_pad.draw_line(bl, bl + Vector2(0, -c_len), Color.WHITE, 4.0)
 	selection_pad.draw_line(br, br + Vector2(-c_len, 0), Color.WHITE, 4.0)
@@ -414,9 +414,9 @@ func _build_land_sale_signs() -> void:
 	add_child(land_signs_root)
 
 	var sign_defs := {
-		2: {"pos": Vector2(240, 176), "title": "RIGHT BOTTOM"},
-		3: {"pos": Vector2(-240, -192), "title": "LEFT TOP"},
-		4: {"pos": Vector2(240, -192), "title": "RIGHT TOP"},
+		2: {"pos": Vector2(224, 160), "title": "RIGHT BOTTOM"},
+		3: {"pos": Vector2(-224, -160), "title": "LEFT TOP"},
+		4: {"pos": Vector2(224, -160), "title": "RIGHT TOP"},
 	}
 
 	var sign_atlas := UIPack.make_region_atlas(UIPack.WOOD_SIGN_REGION)
@@ -556,8 +556,6 @@ func _on_land_sign_clicked(q_idx: int) -> void:
 		return
 	active_confirm_quarter = q_idx
 	_refresh_land_signs()
-	var cost: int = GameManager.get_next_quarter_cost()
-	_show_status_toast("Buy %s for $%d? Click ✓ to confirm." % [GameManager.QUARTER_NAMES[q_idx - 1], cost], Color(1.0, 0.9, 0.45))
 
 func _close_land_sign_confirmations() -> void:
 	if active_confirm_quarter != 0:
@@ -570,7 +568,7 @@ func _on_confirm_buy_land_quarter(q_idx: int) -> void:
 		return
 	var cost: int = GameManager.get_next_quarter_cost()
 	if GameManager.money < cost:
-		_show_status_toast("⚠ Not enough money! Need $%d (Have $%d)" % [cost, GameManager.money], Color(1.0, 0.4, 0.4))
+		_show_status_toast("⚠ Not enough money!", Color(1.0, 0.4, 0.4))
 		_close_land_sign_confirmations()
 		return
 
@@ -582,7 +580,6 @@ func _on_confirm_buy_land_quarter(q_idx: int) -> void:
 		phase2_root.rebuild_grass_tilemap()
 	_refresh_land_signs()
 	_refresh_money_and_counts()
-	_show_status_toast("✓ Purchased %s (-$%d)!" % [GameManager.QUARTER_NAMES[q_idx - 1], cost], Color(0.45, 1.0, 0.58))
 
 # =============================================================================
 # Editor UI: Left Panel + Hover Description Panel (Matching Reference Image)
@@ -988,9 +985,9 @@ func _on_facility_card_gui_input(event: InputEvent, fac_id: String) -> void:
 
 	_refresh_money_and_counts()
 
-func _get_center_spawn_pos(fac_id: String = "") -> Vector2:
+func _get_center_spawn_pos(_fac_id: String = "") -> Vector2:
 	var cam_center: Vector2 = phase2_root.camera.position if is_instance_valid(phase2_root) and is_instance_valid(phase2_root.camera) else Vector2(-240, 176)
-	var snapped := cam_center.snapped(Vector2(16, 16))
+	var snapped_pos := cam_center.snapped(Vector2(16, 16))
 	var dummy_rect := Rect2(-36, -85, 72, 75)
 	var test_offsets: Array[Vector2] = [
 		Vector2.ZERO,
@@ -1004,7 +1001,7 @@ func _get_center_spawn_pos(fac_id: String = "") -> Vector2:
 		Vector2(64, -64),
 	]
 	for off: Vector2 in test_offsets:
-		var p: Vector2 = snapped + off
+		var p: Vector2 = snapped_pos + off
 		if GameManager.is_facility_pos_on_land(p, dummy_rect):
 			var overlaps := false
 			if is_instance_valid(facilities_container):
@@ -1017,7 +1014,7 @@ func _get_center_spawn_pos(fac_id: String = "") -> Vector2:
 							break
 			if not overlaps:
 				return p
-	return snapped
+	return snapped_pos
 
 func _refresh_money_and_counts() -> void:
 	if is_instance_valid(balance_label):
@@ -1177,7 +1174,7 @@ func _on_confirm_facility_placement() -> void:
 
 	if is_pending_purchase_facility:
 		if GameManager.money < pending_purchase_cost:
-			_show_status_toast("⚠ Not enough money! Need $%d (Have $%d)" % [pending_purchase_cost, GameManager.money], Color(1.0, 0.4, 0.4))
+			_show_status_toast("⚠ Not enough money!", Color(1.0, 0.4, 0.4))
 			return
 		GameManager.money -= pending_purchase_cost
 		is_pending_purchase_facility = false
@@ -1237,7 +1234,6 @@ func _on_store_selected_facility() -> void:
 		_show_status_toast("⚠ %s must remain in the resort!" % selected_facility.display_name, Color(1.0, 0.55, 0.35))
 		return
 
-	var fac_name := selected_facility.display_name
 	var to_remove := selected_facility
 	selected_facility = null
 	is_dragging_facility = false
@@ -1251,7 +1247,6 @@ func _on_store_selected_facility() -> void:
 	GameManager.add_stored_facility(fac_id, 1)
 	_sync_facilities_to_game_manager()
 	_refresh_money_and_counts()
-	_show_status_toast("Stored %s (Owned : %d)." % [fac_name, GameManager.get_stored_facility_count(fac_id)], Color(0.55, 0.9, 1.0))
 
 func _update_selection_visuals() -> void:
 	if not is_instance_valid(selected_facility):
@@ -1410,14 +1405,25 @@ func _handle_facility_hold(delta: float) -> void:
 					return
 			else:
 				facility_hold_progress = maxf(facility_hold_progress - delta * FACILITY_DECAY_SPEED, 0.0)
+				if is_instance_valid(facility_hold_ring):
+					if facility_hold_progress <= 0.01:
+						facility_hold_ring.visible = false
+						is_holding_facility = false
+						hold_target_facility = null
+					else:
+						facility_hold_ring.queue_redraw()
 	else:
 		if facility_hold_progress > 0.0:
 			facility_hold_progress = maxf(facility_hold_progress - delta * FACILITY_DECAY_SPEED, 0.0)
 			if is_instance_valid(facility_hold_ring):
-				facility_hold_ring.queue_redraw()
-				if facility_hold_progress <= 0.0:
+				if facility_hold_progress <= 0.01:
 					facility_hold_ring.visible = false
 					hold_target_facility = null
+				else:
+					facility_hold_ring.queue_redraw()
+		elif is_instance_valid(facility_hold_ring) and facility_hold_ring.visible:
+			facility_hold_ring.visible = false
+			hold_target_facility = null
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
@@ -1445,9 +1451,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 
 			if clicked_fac:
+				if hold_target_facility != clicked_fac:
+					facility_hold_progress = 0.25
 				hold_target_facility = clicked_fac
 				is_holding_facility = true
-				facility_hold_progress = 0.25
 				facility_hold_ring.global_position = clicked_fac.global_position
 				facility_hold_ring.visible = true
 				facility_hold_ring.queue_redraw()

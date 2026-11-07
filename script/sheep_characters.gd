@@ -5,12 +5,16 @@ extends RefCounted
 
 const ROOT := "res://data/sheep_characters"
 const PIXEL_ROOT := "res://assets/sheep_character_pixel"
+const RARE_IDS := ["imposter_sheep", "influ_sheep"]
 
 ## id -> SheepCharacter
 var all := {}
-## Ids of the sheep the generator may pick: they have a normal face and a
-## pixel sprite (so they can carry on into Phase 2).
+## Ids of all playable sheep the generator may pick (includes normal and rare).
 var playable: Array[String] = []
+## Ids of the normal sheep the generator picks from (includes epic_sheep).
+var normal_playable: Array[String] = []
+## Ids of rare special guests (1 in 20 chance: imposter_sheep, influ_sheep).
+var rare_playable: Array[String] = []
 
 static var _shared: SheepCharacters
 
@@ -31,7 +35,13 @@ func _init(dir := ROOT) -> void:
 		all[c.id] = c
 		if c.body != null and c.pixel != null and not c.normal_faces().is_empty():
 			playable.append(c.id)
+			if c.id in RARE_IDS:
+				rare_playable.append(c.id)
+			else:
+				normal_playable.append(c.id)
 	playable.sort()
+	normal_playable.sort()
+	rare_playable.sort()
 
 func get_character(id: String) -> SheepCharacter:
 	return all.get(id)

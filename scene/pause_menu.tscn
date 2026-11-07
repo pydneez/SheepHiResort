@@ -1,0 +1,160 @@
+[gd_scene format=3 uid="uid://b8lrmlub5lmml"]
+
+[ext_resource type="Script" uid="uid://d1r411yesbpkt" path="res://script/pause_menu.gd" id="1_me6vf"]
+[ext_resource type="Script" uid="uid://dn54eotw4cptn" path="res://script/ui_pack_panel.gd" id="2_cq4tv"]
+[ext_resource type="Texture2D" uid="uid://tq5mvwqjkxsd" path="res://assets/UI/UI_pack.png" id="2_ug2vv"]
+[ext_resource type="Script" uid="uid://bb5itv73xhqqp" path="res://scene/audio_panel.gd" id="4_ug2vv"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4q2vw"]
+atlas = ExtResource("2_ug2vv")
+region = Rect2(645, 68, 22, 24)
+
+[node name="PauseMenu" type="Control" unique_id=225123426]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_me6vf")
+
+[node name="Pause" type="TextureButton" parent="." unique_id=1929233994]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 0
+offset_left = 1383.0
+offset_right = 1439.0
+offset_bottom = 56.0
+texture_normal = SubResource("AtlasTexture_4q2vw")
+ignore_texture_size = true
+stretch_mode = 0
+
+[node name="PausePanel" type="PanelContainer" parent="." unique_id=209382112]
+custom_minimum_size = Vector2(500, 250)
+layout_mode = 0
+offset_left = 475.0
+offset_top = 371.0
+offset_right = 975.0
+offset_bottom = 621.0
+script = ExtResource("2_cq4tv")
+metadata/_custom_type_script = "uid://dn54eotw4cptn"
+
+[node name="PauseContainer" type="VBoxContainer" parent="PausePanel" unique_id=462410809]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="PauseText" type="Label" parent="PausePanel/PauseContainer" unique_id=998064333]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "PAUSED"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="PausePanel/PauseContainer" unique_id=694505713]
+custom_minimum_size = Vector2(280, 52)
+layout_mode = 2
+text = "Resume"
+
+[node name="SettingsButton" type="Button" parent="PausePanel/PauseContainer" unique_id=795853594]
+custom_minimum_size = Vector2(280, 52)
+layout_mode = 2
+text = "Setting"
+
+[node name="MainMenuButton" type="Button" parent="PausePanel/PauseContainer" unique_id=1492521429]
+custom_minimum_size = Vector2(280, 52)
+layout_mode = 2
+text = "Return to Main Menu"
+
+[node name="ConfirmPanel" type="PanelContainer" parent="." unique_id=395264848]
+custom_minimum_size = Vector2(360, 155)
+layout_mode = 0
+offset_left = 455.0
+offset_top = 406.0
+offset_right = 993.0
+offset_bottom = 574.0
+script = ExtResource("2_cq4tv")
+metadata/_custom_type_script = "uid://dn54eotw4cptn"
+
+[node name="ConfirmContainer" type="VBoxContainer" parent="ConfirmPanel" unique_id=1125308533]
+layout_mode = 2
+
+[node name="Warning" type="Label" parent="ConfirmPanel/ConfirmContainer" unique_id=646224247]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "
+Progress made during day shift won't be saved.
+"
+
+[node name="YesButton" type="Button" parent="ConfirmPanel/ConfirmContainer" unique_id=1658180556]
+layout_mode = 2
+text = "Yes, take me to Main Menu."
+
+[node name="NoButton" type="Button" parent="ConfirmPanel/ConfirmContainer" unique_id=820810220]
+layout_mode = 2
+text = "Nevermind."
+
+[node name="AudioPanel" type="PanelContainer" parent="." unique_id=1476331500]
+custom_minimum_size = Vector2(360, 155)
+layout_mode = 0
+offset_left = 405.0
+offset_top = 409.0
+offset_right = 1037.0
+offset_bottom = 577.0
+script = ExtResource("4_ug2vv")
+metadata/_custom_type_script = "uid://dn54eotw4cptn"
+
+[node name="AudioContainer" type="VBoxContainer" parent="AudioPanel" unique_id=1008575857]
+layout_mode = 2
+
+[node name="AudioText" type="Label" parent="AudioPanel/AudioContainer" unique_id=1982678052]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "Audio"
+horizontal_alignment = 1
+
+[node name="Master" type="HBoxContainer" parent="AudioPanel/AudioContainer" unique_id=367722904]
+layout_mode = 2
+
+[node name="MasterLabel" type="Label" parent="AudioPanel/AudioContainer/Master" unique_id=1785238003]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "Master Volume"
+
+[node name="MasterHSlider" type="HSlider" parent="AudioPanel/AudioContainer/Master" unique_id=1512834529]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+value = 100.0
+
+[node name="Music" type="HBoxContainer" parent="AudioPanel/AudioContainer" unique_id=932885075]
+layout_mode = 2
+
+[node name="MusicLabel" type="Label" parent="AudioPanel/AudioContainer/Music" unique_id=2061220510]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "Music"
+
+[node name="MusicHSlider" type="HSlider" parent="AudioPanel/AudioContainer/Music" unique_id=1599645862]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+value = 100.0
+
+[node name="SFX" type="HBoxContainer" parent="AudioPanel/AudioContainer" unique_id=1902717214]
+layout_mode = 2
+
+[node name="SFXLabel" type="Label" parent="AudioPanel/AudioContainer/SFX" unique_id=1498506931]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+text = "SFX"
+
+[node name="SFXHSlider" type="HSlider" parent="AudioPanel/AudioContainer/SFX" unique_id=982414583]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+value = 100.0
+
+[node name="BackButton" type="Button" parent="AudioPanel/AudioContainer" unique_id=65975670]
+layout_mode = 2
+text = "Back"

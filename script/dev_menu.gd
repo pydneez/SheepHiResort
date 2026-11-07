@@ -519,4 +519,3 @@ func _make_box(bg: Color, border: Color, bw: int, pad: int) -> StyleBoxFlat:
 	s.set_corner_radius_all(5)
 	s.set_content_margin_all(pad)
 	return s
-

@@ -17,8 +17,9 @@ const DECAY_SPEED: float = 0.85    # Gradually decays if not held or outside hit
 
 var guest_data: Dictionary = {}
 var is_wolf: bool = false
+var is_influencer: bool = false
 var species: String = "Merino"
-var preferred_facility_id: String = "clover_meadow"
+var preferred_facility_id: String = "restaurant"
 
 var state: State = State.ENTERING
 var target_pos: Vector2 = Vector2.ZERO
@@ -34,18 +35,18 @@ var stuck_timer: float = 0.0
 # Mouse hold & pickup variables
 var is_holding: bool = false
 var hold_progress: float = 0.0
+var freeze_timer: float = 0.0
 
 # Node references
 @onready var hold_ring: Node2D = $HoldRing if has_node("HoldRing") else null
 @onready var visual_root: Node2D = $VisualRoot
 @onready var sprite: Sprite2D = $VisualRoot/Sprite2D
 @onready var name_label: Label = $VisualRoot/NameLabel
-@onready var deport_bar: ProgressBar = $VisualRoot/DeportBar
-@onready var tell_label: Label = $VisualRoot/TellLabel
 
 func setup(data: Dictionary) -> void:
 	guest_data = data
 	is_wolf = data.get("is_wolf", false)
+	is_influencer = data.get("is_influencer", false)
 	var truth: Dictionary = data.get("truth", {})
 	species = truth.get("species", "Merino")
 	preferred_facility_id = GameManager.get_preferred_facility(species)
@@ -66,23 +67,17 @@ func setup(data: Dictionary) -> void:
 	# Subtle wolf tell
 	sprite.modulate = Color(1.0, 0.82, 0.82) if is_wolf else Color.WHITE
 
-	deport_bar.visible = false
-	tell_label.visible = false
-
 func update_text_zoom(zoom_val: float) -> void:
 	var s: float = clampf(1.0 / zoom_val, 0.55, 1.6) * 0.85
 	var scale_vec := Vector2(s, s)
 	if is_instance_valid(name_label):
 		name_label.pivot_offset = Vector2(name_label.size.x * 0.5, name_label.size.y * 0.5)
 		name_label.scale = scale_vec
-	if is_instance_valid(tell_label):
-		tell_label.pivot_offset = Vector2(tell_label.size.x * 0.5, tell_label.size.y * 0.5)
-		tell_label.scale = scale_vec
 
 func _ready() -> void:
 	add_to_group("resort_guests")
-	deport_bar.visible = false
 	if is_instance_valid(name_label):
+		name_label.pivot_offset = Vector2(name_label.size.x * 0.5, name_label.size.y * 0.5)
 		name_label.visible = GameManager.show_resort_sheep_names
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	if is_instance_valid(hold_ring):
@@ -102,15 +97,30 @@ func _physics_process(delta: float) -> void:
 	# 2. Handle hold progress increase / decay
 	_handle_hold_progress(delta)
 
+	# 3. Frozen by Freeze Bomb: stay in place while still pickable
+	if freeze_timer > 0.0:
+		freeze_timer = maxf(freeze_timer - delta, 0.0)
+		velocity = Vector2.ZERO
+		_update_freeze_visual()
+		if is_instance_valid(hold_ring):
+			hold_ring.visible = (hold_progress > 0.0 or freeze_timer > 0.0)
+			hold_ring.queue_redraw()
+		return
+
 	match state:
 		State.ENTERING:
 			_move_towards(target_pos, delta)
 			if global_position.distance_to(target_pos) < 15.0:
-				state = State.SEEKING_FACILITY
-				guest_ready_for_facility.emit(self)
+				if is_influencer:
+					wander_for(randf_range(3.0, 5.0))
+				else:
+					state = State.SEEKING_FACILITY
+					guest_ready_for_facility.emit(self)
 
 		State.SEEKING_FACILITY:
-			if is_instance_valid(target_facility):
+			if is_influencer:
+				wander_for(randf_range(3.0, 5.0))
+			elif is_instance_valid(target_facility):
 				var slot: Vector2 = target_facility.get_slot_position()
 				_move_towards(slot, delta)
 				if global_position.distance_to(slot) < 22.0:
@@ -136,8 +146,11 @@ func _physics_process(delta: float) -> void:
 			if global_position.distance_to(target_pos) < 20.0 and wander_timer > 0.0:
 				_pick_wander_target()
 			elif wander_timer <= 0.0:
-				state = State.SEEKING_FACILITY
-				guest_ready_for_facility.emit(self)
+				if is_influencer:
+					wander_for(randf_range(3.0, 5.0))
+				else:
+					state = State.SEEKING_FACILITY
+					guest_ready_for_facility.emit(self)
 
 		State.EXITING:
 			_move_towards(target_pos, delta)
@@ -153,7 +166,7 @@ func _move_towards(dest: Vector2, delta: float) -> void:
 		nav_repath_timer = 0.65
 		nav_destination = dest
 		if global_position.distance_to(dest) > 24.0:
-			var facs := get_tree().get_nodes_in_group("facilities")
+			var facs: Array = [] if not GameManager.cached_facility_obstacles.is_empty() else get_tree().get_nodes_in_group("facilities")
 			nav_waypoints = GameManager.find_resort_path(global_position, dest, facs, ignore_fac)
 		else:
 			nav_waypoints = [dest]
@@ -219,6 +232,15 @@ func _move_towards(dest: Vector2, delta: float) -> void:
 	visual_root.position.y = sin(Time.get_ticks_msec() * bob_freq) * 2.0
 
 func _get_blocking_facility_at(pt: Vector2, margin: float = 8.0, ignore_fac: Node2D = null) -> Node2D:
+	if not GameManager.cached_facility_obstacles.is_empty():
+		for entry in GameManager.cached_facility_obstacles:
+			var fn: Node2D = entry.get("node")
+			if not is_instance_valid(fn) or fn == ignore_fac:
+				continue
+			var world_r: Rect2 = entry.get("world_rect", Rect2()).grow(margin)
+			if world_r.has_point(pt):
+				return fn
+		return null
 	var facs := get_tree().get_nodes_in_group("facilities")
 	for f in facs:
 		if not is_instance_valid(f) or f == ignore_fac:
@@ -298,6 +320,13 @@ func on_service_finished() -> void:
 	visual_root.scale = Vector2(0.5, 0.5)
 
 	var step_out_pos := global_position + Vector2(randf_range(-14, 14), 30)
+	step_out_pos = GameManager.clamp_to_owned_land(step_out_pos)
+	var blocking := _get_blocking_facility_at(step_out_pos, 4.0)
+	if is_instance_valid(blocking) and blocking.has_method("get_obstacle_rect"):
+		var obs_r: Rect2 = blocking.get_obstacle_rect()
+		step_out_pos.y = blocking.global_position.y + obs_r.end.y + 14.0
+		step_out_pos = GameManager.clamp_to_owned_land(step_out_pos)
+
 	var t := create_tween()
 	t.set_parallel(true)
 	t.tween_property(self, "global_position", step_out_pos, 0.35).set_trans(Tween.TRANS_SINE)
@@ -317,11 +346,38 @@ func deport() -> void:
 # Circle Progress Hold & Pick-Up System (Underneath Sheep Model)
 # =============================================================================
 
+func is_frozen() -> bool:
+	return freeze_timer > 0.0
+
+func apply_freeze(duration: float) -> void:
+	if state == State.IN_FACILITY or state == State.EXITING:
+		return
+	freeze_timer = maxf(freeze_timer, duration)
+	velocity = Vector2.ZERO
+	_update_freeze_visual()
+	if is_instance_valid(hold_ring):
+		hold_ring.visible = true
+		hold_ring.queue_redraw()
+
+func _update_freeze_visual() -> void:
+	if not is_instance_valid(sprite):
+		return
+	if freeze_timer > 0.0 and state != State.PICKED_UP:
+		sprite.modulate = Color(0.45, 0.88, 1.0, 1.0)
+	else:
+		sprite.modulate = Color(1.0, 0.82, 0.82) if is_wolf else Color.WHITE
+
 func _on_hold_ring_draw() -> void:
-	if hold_progress <= 0.0 or not is_instance_valid(hold_ring):
+	if (hold_progress <= 0.0 and freeze_timer <= 0.0) or not is_instance_valid(hold_ring):
 		return
 	var r: float = 21.0
 	var center := Vector2(0, 4)
+	if freeze_timer > 0.0:
+		# Icy ground circle & frost ring under frozen sheep
+		hold_ring.draw_circle(center, r + 3.0, Color(0.35, 0.85, 1.0, 0.28))
+		hold_ring.draw_arc(center, r + 2.0, 0, TAU, 32, Color(0.55, 0.95, 1.0, 0.85), 2.5, true)
+	if hold_progress <= 0.0:
+		return
 	# Soft ground shadow ring under model
 	hold_ring.draw_circle(center, r + 2.0, Color(0.0, 0.0, 0.0, 0.22 * hold_progress))
 	# Background track ring
@@ -333,6 +389,16 @@ func _on_hold_ring_draw() -> void:
 	var ring_color: Color = Color(1.0, 0.78, 0.2).lerp(Color(0.2, 1.0, 0.55), clampf((hold_progress - 0.25) / 0.75, 0.0, 1.0))
 	hold_ring.draw_arc(center, r, start_angle, end_angle, 32, ring_color, 3.5, true)
 
+func get_effective_hold_duration() -> float:
+	var base_duration: float = 0.75 / CHARGE_SPEED
+	var reduction: float = 0.0
+	if is_instance_valid(GameManager) and GameManager.has_method("get_force_of_nature_reduction"):
+		reduction = GameManager.get_force_of_nature_reduction()
+	return maxf(0.18, base_duration - reduction)
+
+func get_effective_charge_speed() -> float:
+	return 0.75 / get_effective_hold_duration()
+
 func _handle_hold_progress(delta: float) -> void:
 	if is_holding:
 		if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
@@ -341,7 +407,7 @@ func _handle_hold_progress(delta: float) -> void:
 			var mouse_dist := (global_position + Vector2(0, -4)).distance_to(get_global_mouse_position())
 			# Held inside circle hitbox?
 			if mouse_dist <= HITBOX_RADIUS + 6.0:
-				hold_progress = minf(hold_progress + delta * CHARGE_SPEED, 1.0)
+				hold_progress = minf(hold_progress + delta * get_effective_charge_speed(), 1.0)
 				if hold_progress >= 1.0:
 					_pick_up()
 					return
@@ -355,7 +421,7 @@ func _handle_hold_progress(delta: float) -> void:
 
 	# Update visual ring
 	if is_instance_valid(hold_ring):
-		if hold_progress > 0.0:
+		if hold_progress > 0.0 or freeze_timer > 0.0:
 			hold_ring.visible = true
 			hold_ring.queue_redraw()
 		else:
@@ -365,6 +431,8 @@ func _pick_up() -> void:
 	state = State.PICKED_UP
 	is_holding = false
 	hold_progress = 0.0
+	freeze_timer = 0.0
+	_update_freeze_visual()
 	if is_instance_valid(hold_ring):
 		hold_ring.visible = false
 
@@ -377,6 +445,22 @@ func _pick_up() -> void:
 	var squish := create_tween()
 	squish.tween_property(visual_root, "scale", Vector2(1.22, 1.08), 0.08)
 	squish.tween_property(visual_root, "scale", Vector2(1.15, 1.15), 0.08)
+
+func force_release_on_round_end() -> void:
+	is_holding = false
+	hold_progress = 0.0
+	if is_instance_valid(hold_ring):
+		hold_ring.visible = false
+	if state == State.PICKED_UP:
+		z_index = 0
+		visual_root.scale = Vector2(0.85, 0.85)
+		visual_root.rotation_degrees = 0.0
+		var blocking := _get_blocking_facility_at(global_position, 4.0)
+		if is_instance_valid(blocking) and blocking.has_method("get_obstacle_rect"):
+			var obs_r: Rect2 = blocking.get_obstacle_rect()
+			global_position.y = blocking.global_position.y + obs_r.end.y + 14.0
+		global_position = GameManager.clamp_to_owned_land(global_position)
+		state = State.WANDERING
 
 func _drop_sheep() -> void:
 	z_index = 0
@@ -404,6 +488,8 @@ func _drop_sheep() -> void:
 	wander_for(randf_range(2.0, 4.0))
 
 func _start_holding() -> void:
+	if is_influencer:
+		return
 	is_holding = true
 	if hold_progress < 0.25:
 		hold_progress = 0.25
@@ -412,6 +498,8 @@ func _start_holding() -> void:
 		hold_ring.queue_redraw()
 
 func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> void:
+	if is_instance_valid(GameManager) and GameManager.is_aiming_freeze_bomb:
+		return
 	# Inside a facility or exiting? Cannot pick up
 	if state == State.IN_FACILITY or state == State.EXITING:
 		return
@@ -421,6 +509,8 @@ func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> vo
 			_start_holding()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_instance_valid(GameManager) and GameManager.is_aiming_freeze_bomb:
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			if state == State.IN_FACILITY or state == State.EXITING or state == State.PICKED_UP:
