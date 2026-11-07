@@ -10,8 +10,8 @@ var ENABLE_PHASE_2: bool = true
 var run_started: bool = false
 var run_seed: int = 0
 var current_day: int = 1
-var money: int = 150
-var reputation: int = 70
+var money: int = 45
+var reputation: int = 0
 var residents: int = 0
 var wolves_admitted_total: int = 0
 var guest_book: Array = []
@@ -50,17 +50,17 @@ const COMBO_RANGE: float = 220.0
 const SHOP_FACILITY_ORDER: Array[String] = [
 	"cabin",
 	"restaurant",
-	"wool_salon",
 	"bakery",
+	"wool_salon",
 	"gift_shop",
 	"clock_tower",
 ]
 
-# Full resort map grid bounds in 32x32 cells (32x24 cells = 64x48 16x16 grass tiles)
-const MAP_MIN_CELL_X: int = -16
-const MAP_MAX_CELL_X: int = 15
-const MAP_MIN_CELL_Y: int = -12
-const MAP_MAX_CELL_Y: int = 11
+# Compact resort map grid bounds in 32x32 cells (28x21 cells across 4 quarters)
+const MAP_MIN_CELL_X: int = -14
+const MAP_MAX_CELL_X: int = 13
+const MAP_MIN_CELL_Y: int = -10
+const MAP_MAX_CELL_Y: int = 10
 
 # Quarter-based land expansion pricing (1st quarter owned on Day 1; 2nd -> 4th quarter increase in price)
 # Quadrants: Q1 (Left Bottom) -> Q2 (Right Bottom) -> Q3 (Left Top) -> Q4 (Right Top)
@@ -78,14 +78,14 @@ const FACILITY_TEMPLATES := {
 		"display_name": "Cabin",
 		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
 		"building_row": 0,
-		"base_cycle_time": 7.0,
-		"base_payout": 30,
-		"cost": 40,
+		"base_cycle_time": 6.0,
+		"base_payout": 6,
+		"cost": 35,
 		"unlock_day": 1,
 		"preferred_species": ["Cheviot", "Jacob", "Romney"],
-		"description": "Gains +$30 / visit (7.0s)\nCost: $40",
+		"description": "Base: +$6 / visit (6.0s)\nCost: $35 • Unlocks Day 1",
 		"combo_title": "Combo: Peace & Quiet",
-		"combo_desc": "-$10 payout for each other Cabin nearby.\nKeep Cabins spread apart!",
+		"combo_desc": "-$3 payout for each other Cabin nearby.\nKeep Cabins spread apart!",
 		"flavor_text": "\"Comes with a fluffy hay mattress and 0% wolf-proof locks.\"",
 	},
 	"restaurant": {
@@ -93,30 +93,15 @@ const FACILITY_TEMPLATES := {
 		"display_name": "Restaurant",
 		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
 		"building_row": 7,
-		"base_cycle_time": 4.5,
-		"base_payout": 20,
+		"base_cycle_time": 5.0,
+		"base_payout": 5,
 		"cost": 50,
 		"unlock_day": 1,
 		"preferred_species": ["Suffolk", "Dorper", "Texel"],
-		"description": "Gains +$20 / visit (4.5s)\nCost: $50",
+		"description": "Base: +$5 / visit (5.0s)\nCost: $50 • Unlocks Day 1",
 		"combo_title": "Combo: Bed & Breakfast",
-		"combo_desc": "+$10 payout for each nearby Cabin\n(up to +$30 max from 3 Cabins).",
+		"combo_desc": "+$6 per nearby Cabin (up to +$18),\nbut -$5 near another Restaurant.",
 		"flavor_text": "\"Today's special: Pan-seared clover with dandelion sauce.\"",
-	},
-	"wool_salon": {
-		"facility_id": "wool_salon",
-		"display_name": "Wool Salon",
-		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
-		"building_row": 13,
-		"base_cycle_time": 9.5,
-		"base_payout": 55,
-		"cost": 75,
-		"unlock_day": 2,
-		"preferred_species": ["Merino", "Shetland"],
-		"description": "Gains +$55 / visit (9.5s)\nCost: $75 • Unlocks Day 2",
-		"combo_title": "Combo: Dinner & Style",
-		"combo_desc": "+$15 payout when placed near a\nRestaurant or Bakery.",
-		"flavor_text": "\"From frizzy pasture fleece to runway curls in one snip!\"",
 	},
 	"bakery": {
 		"facility_id": "bakery",
@@ -124,14 +109,29 @@ const FACILITY_TEMPLATES := {
 		"sheet_path": "res://assets/PhaseII_Map/Buildings2.png",
 		"building_row": 1,
 		"base_cycle_time": 5.5,
-		"base_payout": 35,
+		"base_payout": 6,
 		"cost": 65,
-		"unlock_day": 3,
+		"unlock_day": 2,
 		"preferred_species": ["Cheviot", "Romney", "Suffolk"],
-		"description": "Gains +$35 / visit (5.5s)\nCost: $65 • Unlocks Day 3",
-		"combo_title": "Combo: Sweet Aroma",
-		"combo_desc": "+$10 payout for each different\nfacility type nearby (up to +$30).",
+		"description": "Base: +$6 / visit (5.5s)\nCost: $65 • Unlocks Day 2",
+		"combo_title": "Combo: Fresh Bread Supply",
+		"combo_desc": "+$9 per nearby Restaurant (up to +$18),\nbut -$5 near another Bakery.",
 		"flavor_text": "\"Fresh oat muffins! Please stop eating the paper wrappers.\"",
+	},
+	"wool_salon": {
+		"facility_id": "wool_salon",
+		"display_name": "Wool Salon",
+		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
+		"building_row": 13,
+		"base_cycle_time": 7.0,
+		"base_payout": 8,
+		"cost": 85,
+		"unlock_day": 3,
+		"preferred_species": ["Merino", "Shetland"],
+		"description": "Base: +$8 / visit (7.0s)\nCost: $85 • Unlocks Day 3",
+		"combo_title": "Combo: Scent-Free Luxury",
+		"combo_desc": "+$10 per nearby Cabin (up to +$20),\n-$9 near Food, -$10 near another Wool Salon!",
+		"flavor_text": "\"From frizzy pasture fleece to runway curls in one snip!\"",
 	},
 	"gift_shop": {
 		"facility_id": "gift_shop",
@@ -139,13 +139,13 @@ const FACILITY_TEMPLATES := {
 		"sheet_path": "res://assets/PhaseII_Map/Buildings2.png",
 		"building_row": 0,
 		"base_cycle_time": 6.5,
-		"base_payout": 50,
-		"cost": 90,
+		"base_payout": 8,
+		"cost": 110,
 		"unlock_day": 4,
 		"preferred_species": ["Dorper", "Texel", "Jacob"],
-		"description": "Gains +$50 / visit (6.5s)\nCost: $90 • Unlocks Day 4",
-		"combo_title": "Combo: Tourist Trap",
-		"combo_desc": "+$20 payout if placed near the\nMain Building or Clock Tower.",
+		"description": "Base: +$8 / visit (6.5s)\nCost: $110 • Unlocks Day 4",
+		"combo_title": "Combo: Souvenir District",
+		"combo_desc": "+$8 per unique facility type nearby (max +$32),\nbut -$12 near another Gift Shop!",
 		"flavor_text": "\"Selling 'I Survived Sheep Hi Resort' mugs at a 400% markup.\"",
 	},
 	"clock_tower": {
@@ -153,14 +153,14 @@ const FACILITY_TEMPLATES := {
 		"display_name": "Clock Tower",
 		"sheet_path": "res://assets/PhaseII_Map/Buildings2.png",
 		"building_row": 14,
-		"base_cycle_time": 8.5,
-		"base_payout": 75,
-		"cost": 120,
+		"base_cycle_time": 8.0,
+		"base_payout": 10,
+		"cost": 145,
 		"unlock_day": 5,
 		"preferred_species": ["Shetland", "Merino", "Jacob"],
-		"description": "Gains +$75 / visit (8.5s)\nCost: $120 • Unlocks Day 5",
+		"description": "Base: +$10 / visit (8.0s)\nCost: $145 • Unlocks Day 5",
 		"combo_title": "Combo: Grand Landmark",
-		"combo_desc": "Boosts ALL nearby facilities by +$10\nand gains +$5 per neighbor!",
+		"combo_desc": "Boosts ALL nearby facilities by +$8\nand gains +$7 per neighbor (up to +$35)!",
 		"flavor_text": "\"Chimes on the hour—unless a sheep gets stuck in the gears.\"",
 	},
 	"jail": {
@@ -200,8 +200,8 @@ const DEFAULT_FACILITY_INSTANCES := [
 		"position": Vector2(-240, 88),
 		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
 		"building_row": 0,
-		"base_cycle_time": 7.0,
-		"base_payout": 30,
+		"base_cycle_time": 6.0,
+		"base_payout": 6,
 	},
 	{
 		"name": "CloverMeadow",
@@ -210,8 +210,8 @@ const DEFAULT_FACILITY_INSTANCES := [
 		"position": Vector2(-350, 176),
 		"sheet_path": "res://assets/PhaseII_Map/Buildings1.png",
 		"building_row": 7,
-		"base_cycle_time": 4.5,
-		"base_payout": 20,
+		"base_cycle_time": 5.0,
+		"base_payout": 5,
 	},
 	{
 		"name": "JailFacility",
@@ -244,6 +244,220 @@ var returned_from_layout_editor: bool = false
 var show_resort_sheep_names: bool = true
 var dev_pending_week_report: Dictionary = {}
 var dev_menu: CanvasLayer = null
+
+# =============================================================================
+# Upgrade Shop Catalog & Progression
+# =============================================================================
+
+const UPGRADE_ORDER: Array[String] = [
+	"word_of_mouth",
+	"long_visit",
+	"express_service",
+	"force_of_nature",
+	"maximum_security",
+	"handymans_hammer",
+	"double_speed",
+	"freeze_bomb",
+]
+
+const UPGRADE_CATALOG := {
+	"word_of_mouth": {
+		"id": "word_of_mouth",
+		"name": "Word of Mouth",
+		"icon": "chat",
+		"max_level": 5,
+		"reputation_req": [0, 12, 26, 42, 60],
+		"cost": [40, 100, 250, 500, 1000],
+		"values": [0, 1, 2, 3, 4, 5],
+		"desc_template": "Increase daily guests in Phase I\nby [b][color=#9b3e05]+%d → +%d[/color][/b] sheep",
+		"desc_maxed": "Increase daily guests in Phase I\nby [b][color=#1c6b22]+5[/color][/b] sheep",
+	},
+	"long_visit": {
+		"id": "long_visit",
+		"name": "Long Visit",
+		"icon": "house",
+		"max_level": 5,
+		"reputation_req": [4, 16, 30, 48, 68],
+		"cost": [50, 100, 250, 500, 1000],
+		"values": [0, 2, 4, 6, 8, 10],
+		"desc_template": "Make up to [b][color=#9b3e05]%d → %d[/color][/b] sheep from the\nprevious round stay to the next day",
+		"desc_maxed": "Make up to [b][color=#1c6b22]10[/color][/b] sheep from the\nprevious round stay to the next day",
+	},
+	"express_service": {
+		"id": "express_service",
+		"name": "Express Service",
+		"icon": "star",
+		"max_level": 3,
+		"reputation_req": [8, 25, 48],
+		"cost": [60, 180, 450],
+		"values": ["0%", "10%", "20%", "30%"],
+		"desc_template": "Facilities complete service cycles\n[b][color=#9b3e05]%s → %s[/color][/b] faster",
+		"desc_maxed": "Facilities complete service cycles\n[b][color=#1c6b22]30%[/color][/b] faster",
+	},
+	"force_of_nature": {
+		"id": "force_of_nature",
+		"name": "Force of Nature",
+		"icon": "trophy",
+		"max_level": 3,
+		"reputation_req": [6, 22, 44],
+		"cost": [50, 150, 400],
+		"values": ["0.0s", "0.2s", "0.35s", "0.5s"],
+		"desc_template": "Reduce time to pick up a sheep\nby [b][color=#9b3e05]%s → %s[/color][/b]",
+		"desc_maxed": "Reduce time to pick up a sheep\nby [b][color=#1c6b22]0.5s[/color][/b]",
+	},
+	"maximum_security": {
+		"id": "maximum_security",
+		"name": "Maximum Security",
+		"icon": "crown",
+		"max_level": 2,
+		"reputation_req": [18, 42],
+		"cost": [120, 350],
+		"values": [1, 2, 3],
+		"desc_template": "Increase Jail capacity to hold\n[b][color=#9b3e05]%d → %d[/color][/b] suspects at once",
+		"desc_maxed": "Jail holds up to [b][color=#1c6b22]3[/color][/b] suspects\nat once",
+	},
+	"handymans_hammer": {
+		"id": "handymans_hammer",
+		"name": "Handyman's Hammer",
+		"icon": "plus",
+		"max_level": 3,
+		"reputation_req": [10, 26, 46],
+		"cost": [50, 150, 400],
+		"values": ["1.5s", "2.5s", "3.5s", "5.0s"],
+		"desc_template": "Each repair click fixes [b][color=#9b3e05]%s → %s[/color][/b]\nof sabotage timer",
+		"desc_maxed": "Each repair click fixes [b][color=#1c6b22]5.0s[/color][/b]\nof sabotage timer",
+	},
+	"double_speed": {
+		"id": "double_speed",
+		"name": "Double Speed",
+		"icon": "podium",
+		"max_level": 1,
+		"reputation_req": [30],
+		"cost": [200],
+		"values": [0, 1],
+		"desc_template": "Unlock togglable [b][color=#9b3e05]2x Speed[/color][/b] button\nduring Phase II Rush Hour",
+		"desc_maxed": "Togglable [b][color=#1c6b22]2x Speed[/color][/b] unlocked\nin Phase II Rush Hour",
+	},
+	"freeze_bomb": {
+		"id": "freeze_bomb",
+		"name": "Freeze Bomb",
+		"icon": "dollar",
+		"max_level": 999,
+		"infinite": true,
+		"reputation_req": [12],
+		"cost": [45],
+		"values": [0, 1],
+		"desc_template": "Single-use Phase II item: Freeze sheep\nin a small circular area ([b][color=#9b3e05]+1 Bomb[/color][/b])",
+		"desc_maxed": "Single-use Phase II item: Freeze sheep\nin a small circular area",
+	},
+}
+
+var upgrade_levels: Dictionary = {
+	"word_of_mouth": 0,
+	"long_visit": 0,
+	"express_service": 0,
+	"force_of_nature": 0,
+	"maximum_security": 0,
+	"handymans_hammer": 0,
+	"double_speed": 0,
+	"freeze_bomb": 0,
+}
+
+# Innocent sheep from the previous round eligible to stay over via Long Visit
+var stayover_guests: Array = []
+var last_stayover_count: int = 0
+var is_aiming_freeze_bomb: bool = false
+
+func get_upgrade_level(upgrade_id: String) -> int:
+	return int(upgrade_levels.get(upgrade_id, 0))
+
+func reset_upgrades() -> void:
+	for k in UPGRADE_ORDER:
+		upgrade_levels[k] = 0
+	stayover_guests.clear()
+	last_stayover_count = 0
+	is_aiming_freeze_bomb = false
+	Engine.time_scale = 1.0
+
+## Word of Mouth: +1 daily guest in Phase I per level (max +5)
+func get_word_of_mouth_bonus() -> int:
+	var lvl: int = clampi(get_upgrade_level("word_of_mouth"), 0, 5)
+	var vals: Array = UPGRADE_CATALOG["word_of_mouth"]["values"]
+	return int(vals[lvl])
+
+## Long Visit: max innocent sheep from previous round that stay over (0, 2, 4, 6, 8, 10)
+func get_long_visit_max() -> int:
+	var lvl: int = clampi(get_upgrade_level("long_visit"), 0, 5)
+	var vals: Array = UPGRADE_CATALOG["long_visit"]["values"]
+	return int(vals[lvl])
+
+## Express Service: facility cycle time reduction (0.0, 0.10, 0.20, 0.30)
+func get_express_service_reduction() -> float:
+	var lvl: int = clampi(get_upgrade_level("express_service"), 0, 3)
+	return float(lvl) * 0.10
+
+func get_express_service_multiplier() -> float:
+	return clampf(1.0 - get_express_service_reduction(), 0.5, 1.0)
+
+## Force of Nature: reduce hold time to pick up a sheep (0.0s, 0.2s, 0.35s, 0.5s)
+func get_force_of_nature_reduction() -> float:
+	var lvl: int = clampi(get_upgrade_level("force_of_nature"), 0, 3)
+	const REDUCTIONS: Array[float] = [0.0, 0.2, 0.35, 0.5]
+	return REDUCTIONS[lvl]
+
+## Maximum Security: Jail capacity to hold suspects at once (1, 2, 3)
+func get_jail_max_occupants() -> int:
+	var lvl: int = clampi(get_upgrade_level("maximum_security"), 0, 2)
+	var vals: Array = UPGRADE_CATALOG["maximum_security"]["values"]
+	return int(vals[lvl])
+
+## Handyman's Hammer: fixed sabotage timer seconds repaired per click (1.5s, 2.5s, 3.5s, 5.0s)
+func get_repair_click_seconds() -> float:
+	var lvl: int = clampi(get_upgrade_level("handymans_hammer"), 0, 3)
+	const REPAIR_SECS: Array[float] = [1.5, 2.5, 3.5, 5.0]
+	return REPAIR_SECS[lvl]
+
+## Double Speed: whether the 2x Speed toggle button is unlocked in Phase II
+func has_double_speed() -> bool:
+	return get_upgrade_level("double_speed") >= 1
+
+## Freeze Bomb: current inventory count of single-use Freeze Bombs
+func get_freeze_bomb_count() -> int:
+	return maxi(0, get_upgrade_level("freeze_bomb"))
+
+## Consumes 1 Freeze Bomb from inventory; returns true if one was available and consumed.
+func consume_freeze_bomb() -> bool:
+	var count: int = get_freeze_bomb_count()
+	if count <= 0:
+		return false
+	upgrade_levels["freeze_bomb"] = count - 1
+	return true
+
+## Saves surviving innocent sheep from Phase II so up to `get_long_visit_max()` can stay next day.
+func save_stayover_candidates(innocent_guest_dicts: Array) -> void:
+	stayover_guests.clear()
+	for g in innocent_guest_dicts:
+		if g is Dictionary and not g.get("is_wolf", false):
+			var copy: Dictionary = g.duplicate(true)
+			copy["is_stayover"] = true
+			stayover_guests.append(copy)
+	# Keep up to 10 candidates (the max possible Long Visit cap)
+	if stayover_guests.size() > 10:
+		stayover_guests.resize(10)
+
+## Builds the Phase II guest queue combining today's admitted guests + Long Visit stayovers.
+func build_phase2_guest_queue() -> Array:
+	var combined: Array = []
+	var max_stay: int = get_long_visit_max()
+	last_stayover_count = 0
+	if max_stay > 0 and not stayover_guests.is_empty():
+		var count: int = mini(max_stay, stayover_guests.size())
+		for i in range(count):
+			combined.append(stayover_guests[i].duplicate(true))
+		last_stayover_count = count
+	for g in admitted_guests:
+		combined.append(g)
+	return combined
 
 # Scene Transition Manager
 var transition_layer: CanvasLayer = null
@@ -279,6 +493,8 @@ func change_scene(target_path: String, fade_duration: float = 0.35) -> void:
 	if is_transitioning:
 		return
 	is_transitioning = true
+	is_aiming_freeze_bomb = false
+	Engine.time_scale = 1.0
 
 	if not transition_overlay:
 		_setup_transition_overlay()
@@ -474,7 +690,7 @@ func unlock_quarter(quarter_idx: int) -> bool:
 func get_total_map_cells() -> int:
 	return (MAP_MAX_CELL_X - MAP_MIN_CELL_X + 1) * (MAP_MAX_CELL_Y - MAP_MIN_CELL_Y + 1)
 
-func is_facility_unlocked(fac_id: String) -> bool:
+func is_facility_unlocked(fac_id: String, _live_facilities: Array = [], _ignore_node: Object = null) -> bool:
 	var tmpl: Dictionary = FACILITY_TEMPLATES.get(fac_id, {})
 	var unlock_d: int = tmpl.get("unlock_day", 1)
 	return current_day >= unlock_d
@@ -508,66 +724,82 @@ func calculate_facility_combo(fac_id: String, fac_pos: Vector2, all_facilities: 
 		if dist <= COMBO_RANGE and dist > 0.01:
 			nearby_nodes.append(other)
 
-	# 1. Check nearby Clock Towers buffing this facility (+$10 per Clock Tower)
+	# 1. Check nearby Clock Towers buffing this facility (+$8 per Clock Tower)
 	if fac_id != "main_building" and fac_id != "jail" and fac_id != "clock_tower":
 		for n in nearby_nodes:
 			if n.facility_id == "clock_tower":
-				bonus += 10
-				neighbors.append({"node": n, "delta": 10})
+				bonus += 8
+				neighbors.append({"node": n, "delta": 8})
 
-	# 2. Check this facility's own Combo Skill
+	# 2. Check this facility's own Combo Skill & Same-Type Anti-Clustering
 	match fac_id:
 		"cabin":
-			# Peace & Quiet: -$10 for each other Cabin nearby
+			# Peace & Quiet: -$3 for each other Cabin nearby
 			for n in nearby_nodes:
 				if n.facility_id == "cabin":
-					bonus -= 10
-					neighbors.append({"node": n, "delta": - 10})
+					bonus -= 3
+					neighbors.append({"node": n, "delta": -3})
 		"restaurant":
-			# Bed & Breakfast: +$10 for each nearby Cabin (up to 3)
+			# Bed & Breakfast: +$6 for each nearby Cabin (up to 3 Cabins = +$18), -$5 near another Restaurant
 			var cabin_hits: int = 0
 			for n in nearby_nodes:
 				if n.facility_id == "cabin" and cabin_hits < 3:
 					cabin_hits += 1
+					bonus += 6
+					neighbors.append({"node": n, "delta": 6})
+				elif n.facility_id == "restaurant":
+					bonus -= 5
+					neighbors.append({"node": n, "delta": -5})
+		"bakery":
+			# Fresh Bread Supply: +$9 for each nearby Restaurant (up to 2 Restaurants = +$18), -$5 near another Bakery
+			var rest_hits: int = 0
+			for n in nearby_nodes:
+				if n.facility_id == "restaurant" and rest_hits < 2:
+					rest_hits += 1
+					bonus += 9
+					neighbors.append({"node": n, "delta": 9})
+				elif n.facility_id == "bakery":
+					bonus -= 5
+					neighbors.append({"node": n, "delta": -5})
+		"wool_salon":
+			# Scent-Free Luxury: +$10 per nearby Cabin (up to 2 = +$20), -$9 near Food, -$10 near another Wool Salon!
+			var salon_cabin_hits: int = 0
+			for n in nearby_nodes:
+				if n.facility_id == "cabin" and salon_cabin_hits < 2:
+					salon_cabin_hits += 1
 					bonus += 10
 					neighbors.append({"node": n, "delta": 10})
-		"wool_salon":
-			# Dinner & Style: +$15 if near a Restaurant or Bakery
-			var boosted := false
-			for n in nearby_nodes:
-				if n.facility_id == "restaurant" or n.facility_id == "bakery":
-					if not boosted:
-						bonus += 15
-						boosted = true
-					neighbors.append({"node": n, "delta": 15})
-		"bakery":
-			# Sweet Aroma: +$10 per distinct facility type nearby (max +$30)
+				elif n.facility_id == "restaurant" or n.facility_id == "bakery":
+					bonus -= 9
+					neighbors.append({"node": n, "delta": -9})
+				elif n.facility_id == "wool_salon":
+					bonus -= 10
+					neighbors.append({"node": n, "delta": -10})
+		"gift_shop":
+			# Souvenir District: +$8 per unique facility type nearby (up to 4 unique types = +$32), -$12 near another Gift Shop!
 			var seen_types := {}
 			for n in nearby_nodes:
 				var nid: String = n.facility_id
-				if nid != "bakery" and nid != "main_building" and nid != "jail":
-					if not seen_types.has(nid) and seen_types.size() < 3:
+				if nid == "gift_shop":
+					bonus -= 12
+					neighbors.append({"node": n, "delta": -12})
+				elif nid != "main_building" and nid != "jail":
+					if not seen_types.has(nid) and seen_types.size() < 4:
 						seen_types[nid] = true
-						bonus += 10
-						neighbors.append({"node": n, "delta": 10})
-		"gift_shop":
-			# Tourist Trap: +$20 if near Main Building or Clock Tower
-			var trap_boosted := false
-			for n in nearby_nodes:
-				if n.facility_id == "main_building" or n.facility_id == "clock_tower":
-					if not trap_boosted:
-						bonus += 20
-						trap_boosted = true
-					neighbors.append({"node": n, "delta": 20})
+						bonus += 8
+						neighbors.append({"node": n, "delta": 8})
 		"clock_tower":
-			# Grand Landmark: boosts all nearby revenue facilities by +$10 and gains +$5 per neighbor
+			# Grand Landmark: boosts all nearby revenue facilities by +$8 and gains +$7 per neighbor (up to 5 = +$35)
 			var buffed_count: int = 0
 			for n in nearby_nodes:
 				var nid: String = n.facility_id
-				if nid != "main_building" and nid != "jail":
+				if nid == "clock_tower":
+					bonus -= 15
+					neighbors.append({"node": n, "delta": -15})
+				elif nid != "main_building" and nid != "jail":
 					buffed_count += 1
-					neighbors.append({"node": n, "delta": 10})
-			bonus += mini(buffed_count, 5) * 5
+					neighbors.append({"node": n, "delta": 8})
+			bonus += mini(buffed_count, 5) * 7
 
 	return {
 		"bonus": bonus,
@@ -656,6 +888,13 @@ func find_resort_path(from_world: Vector2, to_world: Vector2, facilities: Array,
 	return waypoints
 
 func reset_day_pool() -> void:
+	if not admitted_guests.is_empty():
+		var fallback_innocents: Array = []
+		for g in admitted_guests:
+			if g is Dictionary and not g.get("is_wolf", false):
+				fallback_innocents.append(g)
+		if not fallback_innocents.is_empty():
+			save_stayover_candidates(fallback_innocents)
 	admitted_guests.clear()
 	wolves_in_pool = 0
 	phase2_revenue = 0

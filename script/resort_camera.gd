@@ -45,13 +45,14 @@ func _process(delta: float) -> void:
 	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
 		move_input.x += 1.0
 
+	var unscaled_delta: float = delta / maxf(Engine.time_scale, 0.001)
 	if move_input != Vector2.ZERO:
-		position += move_input.normalized() * (pan_speed / zoom.x) * delta
+		position += move_input.normalized() * (pan_speed / zoom.x) * unscaled_delta
 		_clamp_position()
 
 	# Smooth zoom
 	var old_z: float = zoom.x
-	var new_zoom: float = lerpf(zoom.x, _target_zoom, zoom_smooth * delta)
+	var new_zoom: float = lerpf(zoom.x, _target_zoom, clampf(zoom_smooth * unscaled_delta, 0.0, 1.0))
 	zoom = Vector2(new_zoom, new_zoom)
 	if absf(new_zoom - old_z) > 0.001:
 		zoom_changed.emit(new_zoom)

@@ -7,6 +7,7 @@ signal payout_earned(amount: int, facility_name: String)
 signal facility_broken(facility_name: String)
 signal facility_fixed(facility_name: String)
 signal tip_bubble_requested(spawn_pos: Vector2, bonus: int)
+signal innocent_jailed(guest: Node2D)
 
 @export var facility_id: String = "clover_meadow"
 @export var display_name: String = "Clover Meadow"
@@ -54,6 +55,19 @@ void fragment() {
 """
 
 var _broken_shader_mat: ShaderMaterial = null
+var _jail_sub_timers: Array[float] = []
+static var _sprite_bbox_cache: Dictionary = {}
+var _computed_selection_rect: Rect2 = Rect2()
+
+func get_jail_capacity() -> int:
+	if is_instance_valid(GameManager) and GameManager.has_method("get_jail_max_occupants"):
+		return GameManager.get_jail_max_occupants()
+	return max_occupants
+
+func get_repair_click_seconds() -> float:
+	if is_instance_valid(GameManager) and GameManager.has_method("get_repair_click_seconds"):
+		return GameManager.get_repair_click_seconds()
+	return 1.5
 
 func _ready() -> void:
 	add_to_group("facilities")
@@ -77,7 +91,7 @@ func _ready() -> void:
 	update_bounds_and_collision()
 	if facility_id == "jail":
 		add_to_group("jail")
-		max_occupants = 1
+		max_occupants = get_jail_capacity()
 	elif facility_id == "main_building":
 		add_to_group("main_building")
 		max_occupants = 0
@@ -103,6 +117,7 @@ func set_building_row(row_idx: int) -> void:
 	building_row = clampi(row_idx, 0, 14)
 	if is_instance_valid(building_sprite):
 		building_sprite.frame_coords.y = building_row
+	update_bounds_and_collision()
 
 func _process(delta: float) -> void:
 	# Animate building ONLY when sheep are inside being serviced
@@ -124,17 +139,22 @@ func _process(delta: float) -> void:
 
 	# Handle Jail interrogation / screening
 	if facility_id == "jail":
+		var cap: int = get_jail_capacity()
+		max_occupants = cap
 		if not occupants.is_empty():
 			service_timer += delta
+			for i in range(_jail_sub_timers.size()):
+				_jail_sub_timers[i] += delta
 			progress_bar.visible = true
 			progress_bar.max_value = base_cycle_time
 			progress_bar.value = service_timer
-			status_label.text = "Screening... (%.1fs)" % maxf(base_cycle_time - service_timer, 0.0)
+			status_label.text = "Screening (%d/%d)... (%.1fs)" % [occupants.size(), cap, maxf(base_cycle_time - service_timer, 0.0)]
 			status_label.modulate = Color(1.0, 0.75, 0.3)
-			if service_timer >= base_cycle_time:
+			while not occupants.is_empty() and service_timer >= base_cycle_time:
 				_finish_jail_screening()
 		else:
 			service_timer = 0.0
+			_jail_sub_timers.clear()
 			progress_bar.visible = false
 			progress_bar.value = 0.0
 		return
@@ -142,15 +162,21 @@ func _process(delta: float) -> void:
 	# Handle regular guest servicing
 	if not occupants.is_empty():
 		service_timer += delta
+		var eff_cycle: float = get_effective_cycle_time()
 		progress_bar.visible = true
-		progress_bar.max_value = base_cycle_time
+		progress_bar.max_value = eff_cycle
 		progress_bar.value = service_timer
-		if service_timer >= base_cycle_time:
+		if service_timer >= eff_cycle:
 			_complete_service()
 	else:
 		service_timer = 0.0
 		progress_bar.visible = false
 		progress_bar.value = 0.0
+
+func get_effective_cycle_time() -> float:
+	if facility_id == "jail" or facility_id == "main_building":
+		return base_cycle_time
+	return maxf(0.5, base_cycle_time * GameManager.get_express_service_multiplier())
 
 func can_accept_guest() -> bool:
 	if facility_id == "jail" or facility_id == "main_building":
@@ -193,7 +219,7 @@ func _complete_service() -> void:
 		if not is_instance_valid(guest):
 			continue
 		# Calculate payout with Combo Skill delta and trait affinity bonus
-		var effective_base: int = maxi(5, base_payout + combo_bonus)
+		var effective_base: int = maxi(2, base_payout + combo_bonus)
 		var affinity_bonus: float = 1.5 if preferred_species.has(guest.species) else 1.0
 		var payout: int = int(round(effective_base * affinity_bonus))
 		payout_earned.emit(payout, display_name)
@@ -204,9 +230,9 @@ func _complete_service() -> void:
 		else:
 			_spawn_floating_text("+$%d" % payout, Color(0.3, 1.0, 0.3), 16)
 
-		# 35% chance to trigger a Hay Day style TipBubble
+		# 35% chance to trigger a Hay Day style TipBubble (halved value)
 		if randf() < 0.35:
-			tip_bubble_requested.emit(global_position + Vector2(randf_range(-30, 30), -50), int(round(payout * 0.5)))
+			tip_bubble_requested.emit(global_position + Vector2(randf_range(-30, 30), -50), maxi(2, int(round(payout * 0.25))))
 
 		# Release guest
 		guest.on_service_finished()
@@ -240,13 +266,13 @@ func sabotage(_wolf: Node2D) -> void:
 
 ## Rapid spam-to-repair: each left-click removes 1.5 seconds!
 func _on_repair_panel_gui_input(event: InputEvent) -> void:
-	if not is_broken:
+	if not is_broken or (is_instance_valid(GameManager) and GameManager.is_aiming_freeze_bomb):
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		repair_tap()
 
 func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> void:
-	if not is_broken:
+	if not is_broken or (is_instance_valid(GameManager) and GameManager.is_aiming_freeze_bomb):
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		if _is_sheep_at_pos(get_global_mouse_position()):
@@ -254,7 +280,7 @@ func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> vo
 		repair_tap()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not is_broken:
+	if not is_broken or (is_instance_valid(GameManager) and GameManager.is_aiming_freeze_bomb):
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		var mouse_pos := get_global_mouse_position()
@@ -277,8 +303,9 @@ func _is_sheep_at_pos(world_pos: Vector2) -> bool:
 func repair_tap() -> void:
 	if not is_broken:
 		return
-	repair_timer = maxf(repair_timer - 1.5, 0.0)
-	_spawn_floating_text("-1.5s!", Color(0.2, 0.8, 1.0))
+	var fix_secs: float = get_repair_click_seconds()
+	repair_timer = maxf(repair_timer - fix_secs, 0.0)
+	_spawn_floating_text("-%.1fs!" % fix_secs, Color(0.2, 0.8, 1.0))
 	_squash_and_stretch()
 	if repair_timer <= 0.0:
 		complete_repair()
@@ -303,11 +330,13 @@ func _update_status() -> void:
 		return
 
 	if facility_id == "jail":
+		var cap: int = get_jail_capacity()
+		max_occupants = cap
 		if not occupants.is_empty():
-			status_label.text = "Screening..."
+			status_label.text = "Screening (%d/%d)..." % [occupants.size(), cap]
 			status_label.modulate = Color(1.0, 0.75, 0.3)
 		else:
-			status_label.text = "Drop Suspects Here"
+			status_label.text = "Drop Suspects (0/%d)" % cap
 			status_label.modulate = Color(0.95, 0.75, 0.75)
 		return
 
@@ -321,24 +350,80 @@ func _update_status() -> void:
 		status_label.text = "In Use (%d/%d)" % [occupants.size(), max_occupants]
 		status_label.modulate = Color(1.0, 0.85, 0.3)
 
+func _get_frame_used_rect() -> Rect2i:
+	var tex: Texture2D = building_texture
+	if tex == null and is_instance_valid(building_sprite):
+		tex = building_sprite.texture
+	if tex == null:
+		return Rect2i()
+	var row_clamped: int = clampi(building_row, 0, 14)
+	var key: String = "%s:%d" % [tex.resource_path, row_clamped]
+	if _sprite_bbox_cache.has(key):
+		return _sprite_bbox_cache[key]
+	var img: Image = tex.get_image()
+	if img == null:
+		return Rect2i()
+	var fw: int = int(img.get_width() / 15.0)
+	var fh: int = int(img.get_height() / 15.0)
+	if fw <= 0 or fh <= 0:
+		return Rect2i()
+	var sub: Image = img.get_region(Rect2i(0, row_clamped * fh, fw, fh))
+	var used: Rect2i = sub.get_used_rect()
+	_sprite_bbox_cache[key] = used
+	return used
+
+func _align_sprite_and_compute_rect() -> void:
+	var used: Rect2i = _get_frame_used_rect()
+	if used.size.x <= 0 or used.size.y <= 0:
+		_computed_selection_rect = Rect2()
+		return
+	var tex: Texture2D = building_texture
+	if tex == null and is_instance_valid(building_sprite):
+		tex = building_sprite.texture
+	var fw: float = 150.0
+	var fh: float = 150.0
+	if tex != null:
+		fw = float(tex.get_width()) / 15.0
+		fh = float(tex.get_height()) / 15.0
+
+	# Bottom-center of the non-transparent pixels within the centered 150x150 sprite frame
+	var local_center_x: float = -fw * 0.5 + float(used.position.x) + float(used.size.x) * 0.5
+	var local_bottom_y: float = -fh * 0.5 + float(used.position.y + used.size.y)
+	var target_bottom_y: float = -6.0
+
+	if is_instance_valid(building_sprite):
+		building_sprite.position = Vector2(roundf(-local_center_x), roundf(target_bottom_y - local_bottom_y))
+
+	var pad: float = 4.0
+	var w: float = float(used.size.x)
+	var h: float = float(used.size.y)
+	_computed_selection_rect = Rect2(
+		roundf(-w * 0.5 - pad),
+		roundf(target_bottom_y - h - pad),
+		roundf(w + pad * 2.0),
+		roundf(h + pad * 2.0)
+	)
+
 func get_selection_rect() -> Rect2:
+	if _computed_selection_rect.size.x > 0.0 and _computed_selection_rect.size.y > 0.0:
+		return _computed_selection_rect
 	match facility_id:
 		"main_building":
-			return Rect2(-68, -120, 136, 115)
+			return Rect2(-77, -119, 154, 117)
 		"jail":
-			return Rect2(-55, -92, 110, 85)
+			return Rect2(-53, -80, 106, 78)
 		"cabin":
-			return Rect2(-36, -85, 72, 75)
+			return Rect2(-33, -83, 66, 81)
 		"restaurant":
-			return Rect2(-45, -92, 90, 85)
+			return Rect2(-32, -65, 64, 63)
 		"wool_salon":
-			return Rect2(-45, -98, 90, 90)
+			return Rect2(-41, -76, 82, 74)
 		"bakery":
-			return Rect2(-42, -92, 84, 85)
+			return Rect2(-44, -66, 88, 64)
 		"gift_shop":
-			return Rect2(-42, -92, 84, 85)
+			return Rect2(-51, -68, 102, 66)
 		"clock_tower":
-			return Rect2(-30, -135, 60, 125)
+			return Rect2(-24, -114, 48, 112)
 		_:
 			return Rect2(-45, -90, 90, 85)
 
@@ -348,7 +433,14 @@ func get_obstacle_rect() -> Rect2:
 	return Rect2(sel.position.x - 4.0, sel.position.y, sel.size.x + 8.0, sel.size.y + 10.0)
 
 func update_bounds_and_collision() -> void:
+	_align_sprite_and_compute_rect()
 	var rect := get_selection_rect()
+	if is_instance_valid(status_label) and is_instance_valid(name_label):
+		if facility_id == "main_building":
+			name_label.position = Vector2(-110.0, rect.position.y - 22.0)
+		else:
+			status_label.position = Vector2(-120.0, rect.position.y - 20.0)
+			name_label.position = Vector2(-110.0, rect.position.y - 40.0)
 	var col_shape: CollisionShape2D = get_node_or_null("CollisionShape2D")
 	if is_instance_valid(col_shape):
 		var rect_shape := RectangleShape2D.new()
@@ -381,15 +473,24 @@ func is_point_inside(point: Vector2) -> bool:
 func process_deportation(guest: ResortGuest) -> bool:
 	if not is_instance_valid(guest):
 		return false
-	if not occupants.is_empty():
-		_spawn_floating_text("Cell Occupied! Screening...", Color(1.0, 0.6, 0.2), 12)
+	var cap: int = get_jail_capacity()
+	max_occupants = cap
+	if occupants.size() >= cap:
+		_spawn_floating_text("Cell Full (%d/%d)! Screening..." % [occupants.size(), cap], Color(1.0, 0.6, 0.2), 12)
 		return false
 
+	var was_empty: bool = occupants.is_empty()
 	occupants.append(guest)
-	service_timer = 0.0
-	progress_bar.visible = true
-	progress_bar.max_value = base_cycle_time
-	progress_bar.value = 0.0
+	if was_empty:
+		service_timer = 0.0
+		_jail_sub_timers.clear()
+		progress_bar.visible = true
+		progress_bar.max_value = base_cycle_time
+		progress_bar.value = 0.0
+	else:
+		_jail_sub_timers.append(0.0)
+		progress_bar.visible = true
+		progress_bar.max_value = base_cycle_time
 
 	guest.state = ResortGuest.State.IN_FACILITY
 	guest.input_pickable = false
@@ -445,15 +546,30 @@ func _spawn_go_to_jail_popup() -> void:
 	t.tween_callback(spr.queue_free)
 
 func _finish_jail_screening() -> void:
-	service_timer = 0.0
-	progress_bar.visible = false
-	progress_bar.value = 0.0
-
 	if occupants.is_empty():
+		service_timer = 0.0
+		_jail_sub_timers.clear()
+		progress_bar.visible = false
+		progress_bar.value = 0.0
 		_update_status()
 		return
 
 	var guest: ResortGuest = occupants.pop_front()
+	if not _jail_sub_timers.is_empty():
+		service_timer = _jail_sub_timers.pop_front()
+		progress_bar.visible = true
+		progress_bar.max_value = base_cycle_time
+		progress_bar.value = service_timer
+	elif not occupants.is_empty():
+		service_timer = 0.0
+		progress_bar.visible = true
+		progress_bar.max_value = base_cycle_time
+		progress_bar.value = 0.0
+	else:
+		service_timer = 0.0
+		progress_bar.visible = false
+		progress_bar.value = 0.0
+
 	if not is_instance_valid(guest):
 		_update_status()
 		return
@@ -464,8 +580,9 @@ func _finish_jail_screening() -> void:
 		_shake_building()
 		guest.deport()
 	else:
-		# Innocent sheep: Walks out scot-free!
-		_spawn_floating_text("Not a wolf! Innocent sheep released!", Color(0.95, 0.85, 0.3), 13)
+		# Innocent sheep: Walks out scot-free, -1 rep citation!
+		innocent_jailed.emit(guest)
+		_spawn_floating_text("Not a wolf! Innocent released (-1 Rep)", Color(1.0, 0.55, 0.3), 13)
 		guest.global_position = global_position + Vector2(0, -6)
 		guest.visual_root.visible = true
 		guest.visual_root.modulate.a = 0.0

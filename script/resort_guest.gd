@@ -34,6 +34,7 @@ var stuck_timer: float = 0.0
 # Mouse hold & pickup variables
 var is_holding: bool = false
 var hold_progress: float = 0.0
+var freeze_timer: float = 0.0
 
 # Node references
 @onready var hold_ring: Node2D = $HoldRing if has_node("HoldRing") else null
@@ -101,6 +102,16 @@ func _physics_process(delta: float) -> void:
 
 	# 2. Handle hold progress increase / decay
 	_handle_hold_progress(delta)
+
+	# 3. Frozen by Freeze Bomb: stay in place while still pickable
+	if freeze_timer > 0.0:
+		freeze_timer = maxf(freeze_timer - delta, 0.0)
+		velocity = Vector2.ZERO
+		_update_freeze_visual()
+		if is_instance_valid(hold_ring):
+			hold_ring.visible = (hold_progress > 0.0 or freeze_timer > 0.0)
+			hold_ring.queue_redraw()
+		return
 
 	match state:
 		State.ENTERING:
@@ -317,11 +328,38 @@ func deport() -> void:
 # Circle Progress Hold & Pick-Up System (Underneath Sheep Model)
 # =============================================================================
 
+func is_frozen() -> bool:
+	return freeze_timer > 0.0
+
+func apply_freeze(duration: float) -> void:
+	if state == State.IN_FACILITY or state == State.EXITING:
+		return
+	freeze_timer = maxf(freeze_timer, duration)
+	velocity = Vector2.ZERO
+	_update_freeze_visual()
+	if is_instance_valid(hold_ring):
+		hold_ring.visible = true
+		hold_ring.queue_redraw()
+
+func _update_freeze_visual() -> void:
+	if not is_instance_valid(sprite):
+		return
+	if freeze_timer > 0.0 and state != State.PICKED_UP:
+		sprite.modulate = Color(0.45, 0.88, 1.0, 1.0)
+	else:
+		sprite.modulate = Color(1.0, 0.82, 0.82) if is_wolf else Color.WHITE
+
 func _on_hold_ring_draw() -> void:
-	if hold_progress <= 0.0 or not is_instance_valid(hold_ring):
+	if (hold_progress <= 0.0 and freeze_timer <= 0.0) or not is_instance_valid(hold_ring):
 		return
 	var r: float = 21.0
 	var center := Vector2(0, 4)
+	if freeze_timer > 0.0:
+		# Icy ground circle & frost ring under frozen sheep
+		hold_ring.draw_circle(center, r + 3.0, Color(0.35, 0.85, 1.0, 0.28))
+		hold_ring.draw_arc(center, r + 2.0, 0, TAU, 32, Color(0.55, 0.95, 1.0, 0.85), 2.5, true)
+	if hold_progress <= 0.0:
+		return
 	# Soft ground shadow ring under model
 	hold_ring.draw_circle(center, r + 2.0, Color(0.0, 0.0, 0.0, 0.22 * hold_progress))
 	# Background track ring
@@ -333,6 +371,16 @@ func _on_hold_ring_draw() -> void:
 	var ring_color: Color = Color(1.0, 0.78, 0.2).lerp(Color(0.2, 1.0, 0.55), clampf((hold_progress - 0.25) / 0.75, 0.0, 1.0))
 	hold_ring.draw_arc(center, r, start_angle, end_angle, 32, ring_color, 3.5, true)
 
+func get_effective_hold_duration() -> float:
+	var base_duration: float = 0.75 / CHARGE_SPEED
+	var reduction: float = 0.0
+	if is_instance_valid(GameManager) and GameManager.has_method("get_force_of_nature_reduction"):
+		reduction = GameManager.get_force_of_nature_reduction()
+	return maxf(0.18, base_duration - reduction)
+
+func get_effective_charge_speed() -> float:
+	return 0.75 / get_effective_hold_duration()
+
 func _handle_hold_progress(delta: float) -> void:
 	if is_holding:
 		if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
@@ -341,7 +389,7 @@ func _handle_hold_progress(delta: float) -> void:
 			var mouse_dist := (global_position + Vector2(0, -4)).distance_to(get_global_mouse_position())
 			# Held inside circle hitbox?
 			if mouse_dist <= HITBOX_RADIUS + 6.0:
-				hold_progress = minf(hold_progress + delta * CHARGE_SPEED, 1.0)
+				hold_progress = minf(hold_progress + delta * get_effective_charge_speed(), 1.0)
 				if hold_progress >= 1.0:
 					_pick_up()
 					return
@@ -355,7 +403,7 @@ func _handle_hold_progress(delta: float) -> void:
 
 	# Update visual ring
 	if is_instance_valid(hold_ring):
-		if hold_progress > 0.0:
+		if hold_progress > 0.0 or freeze_timer > 0.0:
 			hold_ring.visible = true
 			hold_ring.queue_redraw()
 		else:
@@ -365,6 +413,8 @@ func _pick_up() -> void:
 	state = State.PICKED_UP
 	is_holding = false
 	hold_progress = 0.0
+	freeze_timer = 0.0
+	_update_freeze_visual()
 	if is_instance_valid(hold_ring):
 		hold_ring.visible = false
 
@@ -412,6 +462,8 @@ func _start_holding() -> void:
 		hold_ring.queue_redraw()
 
 func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> void:
+	if is_instance_valid(GameManager) and GameManager.is_aiming_freeze_bomb:
+		return
 	# Inside a facility or exiting? Cannot pick up
 	if state == State.IN_FACILITY or state == State.EXITING:
 		return
@@ -421,6 +473,8 @@ func _input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> vo
 			_start_holding()
 
 func _unhandled_input(event: InputEvent) -> void:
+	if is_instance_valid(GameManager) and GameManager.is_aiming_freeze_bomb:
+		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			if state == State.IN_FACILITY or state == State.EXITING or state == State.PICKED_UP:

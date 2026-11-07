@@ -9,10 +9,10 @@ const START_ORDINAL := 69           # day-of-year; day 1 is "11 MAR"
 const MONTHS := ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
 const MONTH_LEN := [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
-static func for_day(day: int) -> Dictionary:
+static func for_day(day: int, bonus_guests: int = 0) -> Dictionary:
 	var r := {
 		"day": day,
-		"guests": 5,                       # guests in line per day
+		"guests": 5 + maxi(bonus_guests, 0), # guests in line per day (+ Word of Mouth bonus)
 		"wolf_chance": 0.15 + day * 0.03,  # chance a guest is a wolf in disguise
 		"sloppy_chance": 0.12,             # chance an honest sheep has bad papers anyway
 		"check_booking": true,             # ID vs today's database
@@ -20,7 +20,8 @@ static func for_day(day: int) -> Dictionary:
 		"check_species": true,
 		"check_health": day >= 2,          # health certificate + vaccines
 		"scanner": day >= 3,               # paid instant wolf scanner
-		"scanner_cost": 15,
+		"scanner_cost": 100,
+		"scanner_cost_step": 75,
 		"check_id_expiry": day >= 4,
 		"check_voucher": day >= 5,         # booking voucher: room + nights
 		"check_face": day >= 6,            # ID photo vs the guest's face

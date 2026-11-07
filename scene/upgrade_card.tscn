@@ -1,0 +1,188 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://script/upgrade_card.gd" id="1_card_script"]
+[ext_resource type="Texture2D" uid="uid://tq5mvwqjkxsd" path="res://assets/UI/UI_pack.png" id="2_uipack"]
+[ext_resource type="FontFile" uid="uid://jwso4tijjeht" path="res://fonts/Peaberry Base/PeaberryBase.ttf" id="3_peaberry"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_card_bg"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+texture = ExtResource("2_uipack")
+texture_margin_left = 7.0
+texture_margin_top = 7.0
+texture_margin_right = 7.0
+texture_margin_bottom = 8.0
+region_rect = Rect2(11, 59, 26, 28)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_wood_frame"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+texture = ExtResource("2_uipack")
+texture_margin_left = 8.0
+texture_margin_top = 8.0
+texture_margin_right = 8.0
+texture_margin_bottom = 8.0
+region_rect = Rect2(153, 105, 30, 30)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_house_icon"]
+atlas = ExtResource("2_uipack")
+region = Rect2(822, 226, 14, 12)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_star"]
+atlas = ExtResource("2_uipack")
+region = Rect2(530, 97, 14, 13)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_coin"]
+atlas = ExtResource("2_uipack")
+region = Rect2(627, 98, 9, 12)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cart_normal"]
+atlas = ExtResource("2_uipack")
+region = Rect2(773, 100, 22, 24)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cart_pressed"]
+atlas = ExtResource("2_uipack")
+region = Rect2(805, 102, 22, 22)
+
+[node name="UpgradeCard" type="PanelContainer"]
+texture_filter = 1
+custom_minimum_size = Vector2(514, 0)
+offset_right = 514.0
+offset_bottom = 112.0
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxTexture_card_bg")
+script = ExtResource("1_card_script")
+
+[node name="MainHBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="IconFrameBox" type="PanelContainer" parent="MainHBox"]
+custom_minimum_size = Vector2(76, 76)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_wood_frame")
+
+[node name="IconTextureRect" type="TextureRect" parent="MainHBox/IconFrameBox"]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+mouse_filter = 2
+texture = SubResource("AtlasTexture_house_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ContentVBox" type="VBoxContainer" parent="MainHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/separation = 4
+
+[node name="TitleLabel" type="Label" parent="MainHBox/ContentVBox"]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.12, 0.05, 1)
+theme_override_fonts/font = ExtResource("3_peaberry")
+theme_override_font_sizes/font_size = 21
+text = "Upgrade Title"
+vertical_alignment = 1
+
+[node name="DescLabel" type="RichTextLabel" parent="MainHBox/ContentVBox"]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.26, 0.16, 0.08, 1)
+theme_override_fonts/normal_font = ExtResource("3_peaberry")
+theme_override_fonts/bold_font = ExtResource("3_peaberry")
+theme_override_font_sizes/normal_font_size = 17
+theme_override_font_sizes/bold_font_size = 17
+bbcode_enabled = true
+text = "Upgrade description goes here"
+fit_content = true
+scroll_active = false
+autowrap_mode = 2
+
+[node name="StatsHBox" type="HBoxContainer" parent="MainHBox/ContentVBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ReputationGroup" type="HBoxContainer" parent="MainHBox/ContentVBox/StatsHBox"]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="StarIcon" type="TextureRect" parent="MainHBox/ContentVBox/StatsHBox/ReputationGroup"]
+texture_filter = 1
+custom_minimum_size = Vector2(16, 16)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = SubResource("AtlasTexture_star")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ReputationLabel" type="Label" parent="MainHBox/ContentVBox/StatsHBox/ReputationGroup"]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 2
+theme_override_colors/font_color = Color(0.24, 0.16, 0.1, 1)
+theme_override_fonts/font = ExtResource("3_peaberry")
+theme_override_font_sizes/font_size = 17
+text = "70 reputation"
+vertical_alignment = 1
+
+[node name="CostGroup" type="HBoxContainer" parent="MainHBox/ContentVBox/StatsHBox"]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="CoinIcon" type="TextureRect" parent="MainHBox/ContentVBox/StatsHBox/CostGroup"]
+texture_filter = 1
+custom_minimum_size = Vector2(14, 16)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = SubResource("AtlasTexture_coin")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CostLabel" type="Label" parent="MainHBox/ContentVBox/StatsHBox/CostGroup"]
+unique_name_in_owner = true
+texture_filter = 1
+layout_mode = 2
+theme_override_colors/font_color = Color(0.24, 0.16, 0.1, 1)
+theme_override_fonts/font = ExtResource("3_peaberry")
+theme_override_font_sizes/font_size = 17
+text = "50"
+vertical_alignment = 1
+
+[node name="ButtonCenter" type="CenterContainer" parent="MainHBox"]
+custom_minimum_size = Vector2(56, 0)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="BuyButton" type="TextureButton" parent="MainHBox/ButtonCenter"]
+unique_name_in_owner = true
+texture_filter = 1
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+mouse_default_cursor_shape = 2
+texture_normal = SubResource("AtlasTexture_cart_normal")
+texture_pressed = SubResource("AtlasTexture_cart_pressed")
+texture_hover = SubResource("AtlasTexture_cart_normal")
+ignore_texture_size = true
+stretch_mode = 5

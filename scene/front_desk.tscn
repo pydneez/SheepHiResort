@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://ba8l7ymtqdpgc"]
 
-[ext_resource type="Theme" path="res://ui/game_theme.tres" id="1_dypvc"]
+[ext_resource type="Theme" uid="uid://k74tt7bvaql5" path="res://ui/game_theme.tres" id="1_dypvc"]
 [ext_resource type="Script" uid="uid://cngg0h8btpvaa" path="res://script/front_desk.gd" id="2_teqvl"]
 [ext_resource type="Texture2D" uid="uid://cox1hq5alydgt" path="res://assets/lobby/lobby_background.png" id="3_lll3t"]
 [ext_resource type="PackedScene" path="res://scene/guest.tscn" id="4_6nch0"]
@@ -24,6 +24,7 @@
 [ext_resource type="Texture2D" uid="uid://yg5bbquicok0" path="res://assets/lobby/file_icon.png" id="22_file_icon"]
 [ext_resource type="Texture2D" uid="uid://vw0d7b5qdyri" path="res://assets/lobby/fix_icon.png" id="23_fix_icon"]
 [ext_resource type="Texture2D" uid="uid://ceqqvcrb5a1od" path="res://assets/lobby/upward_icon.png" id="24_upward_icon"]
+[ext_resource type="PackedScene" path="res://scene/upgrade_shop_popup.tscn" id="25_upgrade_shop"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_monitor_clip"]
 bg_color = Color(0, 0, 0, 1)
@@ -87,7 +88,7 @@ modulate_color = Color(0.55, 0.48, 0.62, 0.75)
 [sub_resource type="StyleBoxTexture" id="StyleBoxFlat_rw334"]
 content_margin_left = 16.0
 content_margin_top = 8.0
-content_margin_right = 16.0
+content_margin_right = 20.0
 content_margin_bottom = 8.0
 texture = ExtResource("20_ui_pack")
 texture_margin_left = 8.0
@@ -95,6 +96,14 @@ texture_margin_top = 8.0
 texture_margin_right = 8.0
 texture_margin_bottom = 8.0
 region_rect = Rect2(153, 105, 30, 30)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_star"]
+atlas = ExtResource("20_ui_pack")
+region = Rect2(530, 97, 14, 13)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_coin"]
+atlas = ExtResource("20_ui_pack")
+region = Rect2(627, 98, 9, 12)
 
 [node name="FrontDesk" type="Control" unique_id=523943518]
 texture_filter = 2
@@ -352,7 +361,6 @@ offset_bottom = 140.0
 
 [node name="Papers" type="Control" parent="." unique_id=2055691435]
 unique_name_in_owner = true
-visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -392,20 +400,6 @@ mouse_filter = 0
 theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
 text = "[11 MAR]"
 
-[node name="MoneyLabel" type="Label" parent="TopBar/Labels" unique_id=1426887525]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 22
-text = "$20"
-
-[node name="ReputationLabel" type="Label" parent="TopBar/Labels" unique_id=1263285540]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
-theme_override_font_sizes/font_size = 22
-text = "Reputation 70"
-
 [node name="ResidentsLabel" type="Label" parent="TopBar/Labels" unique_id=1359686961]
 unique_name_in_owner = true
 layout_mode = 2
@@ -419,6 +413,55 @@ layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
 theme_override_font_sizes/font_size = 22
 text = "Guests left 5"
+
+[node name="RightSpacer" type="Control" parent="TopBar/Labels" unique_id=1749123935]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="RepBox" type="HBoxContainer" parent="TopBar/Labels" unique_id=1749123936]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="StarIcon" type="TextureRect" parent="TopBar/Labels/RepBox" unique_id=1749123937]
+texture_filter = 1
+custom_minimum_size = Vector2(26, 24)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = SubResource("AtlasTexture_star")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ReputationLabel" type="Label" parent="TopBar/Labels/RepBox" unique_id=1263285540]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+theme_override_font_sizes/font_size = 22
+text = "70"
+
+[node name="MoneyBox" type="HBoxContainer" parent="TopBar/Labels" unique_id=1749123938]
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="CoinIcon" type="TextureRect" parent="TopBar/Labels/MoneyBox" unique_id=1749123939]
+texture_filter = 1
+custom_minimum_size = Vector2(18, 24)
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+texture = SubResource("AtlasTexture_coin")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="MoneyLabel" type="Label" parent="TopBar/Labels/MoneyBox" unique_id=1426887525]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+theme_override_font_sizes/font_size = 22
+text = "45"
 
 [node name="Toast" type="Label" parent="." unique_id=206266361]
 unique_name_in_owner = true
@@ -440,6 +483,14 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="WeekSummary" parent="." unique_id=654444243 instance=ExtResource("19_78e58")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="UpgradeShopPopup" parent="." unique_id=987123456 instance=ExtResource("25_upgrade_shop")]
 unique_name_in_owner = true
 visible = false
 layout_mode = 1

@@ -414,9 +414,9 @@ func _build_land_sale_signs() -> void:
 	add_child(land_signs_root)
 
 	var sign_defs := {
-		2: {"pos": Vector2(240, 176), "title": "RIGHT BOTTOM"},
-		3: {"pos": Vector2(-240, -192), "title": "LEFT TOP"},
-		4: {"pos": Vector2(240, -192), "title": "RIGHT TOP"},
+		2: {"pos": Vector2(224, 160), "title": "RIGHT BOTTOM"},
+		3: {"pos": Vector2(-224, -160), "title": "LEFT TOP"},
+		4: {"pos": Vector2(224, -160), "title": "RIGHT TOP"},
 	}
 
 	var sign_atlas := UIPack.make_region_atlas(UIPack.WOOD_SIGN_REGION)
@@ -556,8 +556,6 @@ func _on_land_sign_clicked(q_idx: int) -> void:
 		return
 	active_confirm_quarter = q_idx
 	_refresh_land_signs()
-	var cost: int = GameManager.get_next_quarter_cost()
-	_show_status_toast("Buy %s for $%d? Click ✓ to confirm." % [GameManager.QUARTER_NAMES[q_idx - 1], cost], Color(1.0, 0.9, 0.45))
 
 func _close_land_sign_confirmations() -> void:
 	if active_confirm_quarter != 0:
@@ -570,7 +568,7 @@ func _on_confirm_buy_land_quarter(q_idx: int) -> void:
 		return
 	var cost: int = GameManager.get_next_quarter_cost()
 	if GameManager.money < cost:
-		_show_status_toast("⚠ Not enough money! Need $%d (Have $%d)" % [cost, GameManager.money], Color(1.0, 0.4, 0.4))
+		_show_status_toast("⚠ Not enough money!", Color(1.0, 0.4, 0.4))
 		_close_land_sign_confirmations()
 		return
 
@@ -582,7 +580,6 @@ func _on_confirm_buy_land_quarter(q_idx: int) -> void:
 		phase2_root.rebuild_grass_tilemap()
 	_refresh_land_signs()
 	_refresh_money_and_counts()
-	_show_status_toast("✓ Purchased %s (-$%d)!" % [GameManager.QUARTER_NAMES[q_idx - 1], cost], Color(0.45, 1.0, 0.58))
 
 # =============================================================================
 # Editor UI: Left Panel + Hover Description Panel (Matching Reference Image)
@@ -1177,7 +1174,7 @@ func _on_confirm_facility_placement() -> void:
 
 	if is_pending_purchase_facility:
 		if GameManager.money < pending_purchase_cost:
-			_show_status_toast("⚠ Not enough money! Need $%d (Have $%d)" % [pending_purchase_cost, GameManager.money], Color(1.0, 0.4, 0.4))
+			_show_status_toast("⚠ Not enough money!", Color(1.0, 0.4, 0.4))
 			return
 		GameManager.money -= pending_purchase_cost
 		is_pending_purchase_facility = false
@@ -1251,7 +1248,6 @@ func _on_store_selected_facility() -> void:
 	GameManager.add_stored_facility(fac_id, 1)
 	_sync_facilities_to_game_manager()
 	_refresh_money_and_counts()
-	_show_status_toast("Stored %s (Owned : %d)." % [fac_name, GameManager.get_stored_facility_count(fac_id)], Color(0.55, 0.9, 1.0))
 
 func _update_selection_visuals() -> void:
 	if not is_instance_valid(selected_facility):
@@ -1410,14 +1406,25 @@ func _handle_facility_hold(delta: float) -> void:
 					return
 			else:
 				facility_hold_progress = maxf(facility_hold_progress - delta * FACILITY_DECAY_SPEED, 0.0)
+				if is_instance_valid(facility_hold_ring):
+					if facility_hold_progress <= 0.01:
+						facility_hold_ring.visible = false
+						is_holding_facility = false
+						hold_target_facility = null
+					else:
+						facility_hold_ring.queue_redraw()
 	else:
 		if facility_hold_progress > 0.0:
 			facility_hold_progress = maxf(facility_hold_progress - delta * FACILITY_DECAY_SPEED, 0.0)
 			if is_instance_valid(facility_hold_ring):
-				facility_hold_ring.queue_redraw()
-				if facility_hold_progress <= 0.0:
+				if facility_hold_progress <= 0.01:
 					facility_hold_ring.visible = false
 					hold_target_facility = null
+				else:
+					facility_hold_ring.queue_redraw()
+		elif is_instance_valid(facility_hold_ring) and facility_hold_ring.visible:
+			facility_hold_ring.visible = false
+			hold_target_facility = null
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
@@ -1445,9 +1452,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 
 			if clicked_fac:
+				if hold_target_facility != clicked_fac:
+					facility_hold_progress = 0.25
 				hold_target_facility = clicked_fac
 				is_holding_facility = true
-				facility_hold_progress = 0.25
 				facility_hold_ring.global_position = clicked_fac.global_position
 				facility_hold_ring.visible = true
 				facility_hold_ring.queue_redraw()

@@ -39,6 +39,7 @@ var wolves_inside := 0 # wolves admitted since the last morning report
 var week := {} # the week's totals, for the end-of-week summary
 # Per-day stats
 var day_stats := {}
+var scans_used_today: int = 0
 
 # Inspection
 var selected: Array = [] # [[field, label], ...]
@@ -74,11 +75,17 @@ var rules_doc: DeskDocument
 
 var pile_home: Vector2 # where the pile sits on the mat (set in the editor)
 var clock_home: Vector2 # where the clock sits (it shakes around this point)
+@onready var upgrade_shop: UpgradeShopPopup = %UpgradeShopPopup
 
 func _ready() -> void:
 	randomize()
+	if is_instance_valid(upgrade_shop):
+		upgrade_shop.setup(self)
+		if not upgrade_shop.upgrade_purchased.is_connected(_on_upgrade_purchased):
+			upgrade_shop.upgrade_purchased.connect(_on_upgrade_purchased)
 	pile_home = pile_btn.position
 	clock_home = clock_art.position
+	papers.visible = true
 	_connect_scene()
 	if not GameManager.dev_pending_week_report.is_empty():
 		var req := GameManager.dev_pending_week_report.duplicate(true)
@@ -117,7 +124,7 @@ func start_day(d: int) -> void:
 	day = d
 	GameManager.current_day = d
 	GameManager.reset_day_pool()
-	rules = DayRules.for_day(day)
+	rules = DayRules.for_day(day, GameManager.get_word_of_mouth_bonus())
 	today = DayRules.today(day)
 	var gen := SheepGenerator.new(run_seed, rules)
 	var data := gen.generate_day()
@@ -128,12 +135,13 @@ func start_day(d: int) -> void:
 	guest = {}
 	day_stats = {"processed": 0, "correct": 0, "mistakes": 0, "residents": 0, "wolves_caught": 0,
 		"wolves_in": 0, "earned": 0, "citations": []}
+	scans_used_today = 0
 	_clear_docs()
 	_build_rules_doc()
 	computer.show_bookings(database, rules)
 	_refresh_queue()
 	scan_btn.visible = rules.scanner
-	scan_btn.text = "SCAN $%d" % rules.scanner_cost
+	scan_btn.text = "SCAN $%d" % _get_current_scan_cost()
 	_refresh_decision_buttons()
 	bell_btn.disabled = false
 	pile_btn.visible = false
@@ -163,6 +171,8 @@ func _overnight_report() -> String:
 		return ""
 	var lines := PackedStringArray()
 	for i in wolves_inside:
+		if not GameManager.stayover_guests.is_empty():
+			GameManager.stayover_guests.pop_back()
 		if guest_book.is_empty():
 			lines.append("Chewed-up luggage was found in an empty room.")
 			continue
@@ -265,36 +275,49 @@ func decide(accept: bool) -> void:
 		day_stats.residents += 1
 		residents += 1
 		guest_book.append({"name": guest.papers.name, "room": guest.truth.room})
-		_earn(10)
-		msg = "Checked in. +$10"
+		if GameManager.ENABLE_PHASE_2:
+			reputation += 2
+			msg = "Checked in!  +2 rep"
+		else:
+			_earn(10)
+			msg = "Checked in. +$10"
 	elif accept and guest.is_wolf:
 		good = false
 		day_stats.mistakes += 1
 		day_stats.wolves_in += 1
 		wolves_admitted += 1
 		wolves_inside += 1 # each one makes a resident vanish overnight
-		reputation -= 20
-		msg = "CITATION: You let a WOLF in! (%s)  -20 rep" % reason
+		var rep_loss: int = 8 if GameManager.ENABLE_PHASE_2 else 20
+		reputation -= rep_loss
+		msg = "CITATION: You let a WOLF in! (%s)  -%d rep" % [reason, rep_loss]
 	elif accept:
 		good = false
 		day_stats.mistakes += 1
-		reputation -= 5
+		var rep_loss: int = 4 if GameManager.ENABLE_PHASE_2 else 5
+		reputation -= rep_loss
 		guest_book.append({"name": guest.papers.name, "room": guest.truth.room})
-		msg = "CITATION: %s  -5 rep" % reason
+		msg = "CITATION: %s  -%d rep" % [reason, rep_loss]
 	elif not valid:
 		day_stats.correct += 1
 		if guest.is_wolf:
 			day_stats.wolves_caught += 1
-		var bonus := 5 if proven else 0
-		_earn(5 + bonus)
-		msg = ("Denied — wolf caught! " if guest.is_wolf else "Denied — bad papers. ") + \
-			("+$%d (proof bonus!)" % (5 + bonus) if proven else "+$5 (prove the discrepancy for a bonus)")
+		if GameManager.ENABLE_PHASE_2:
+			var rep_gain: int = 5 if proven else 3
+			reputation += rep_gain
+			msg = ("Denied — wolf caught! " if guest.is_wolf else "Denied — bad papers. ") + \
+				("+%d rep (proof bonus!)" % rep_gain if proven else "+%d rep (prove discrepancy for +5 rep)" % rep_gain)
+		else:
+			var bonus := 5 if proven else 0
+			_earn(5 + bonus)
+			msg = ("Denied — wolf caught! " if guest.is_wolf else "Denied — bad papers. ") + \
+				("+$%d (proof bonus!)" % (5 + bonus) if proven else "+$5 (prove the discrepancy for a bonus)")
 	else:
 		# Denied on suspicion, but the guest was innocent.
 		good = false
 		day_stats.mistakes += 1
-		reputation -= 5
-		msg = "CITATION: Turned away a valid guest.  -5 rep"
+		var rep_loss: int = 4 if GameManager.ENABLE_PHASE_2 else 5
+		reputation -= rep_loss
+		msg = "CITATION: Turned away a valid guest.  -%d rep" % rep_loss
 	if not good:
 		day_stats.citations.append(msg)
 	reputation = clampi(reputation, 0, 100)
@@ -309,12 +332,13 @@ func decide(accept: bool) -> void:
 	_refresh_decision_buttons()
 	var tw := guest_node.walk_out(accept)
 	tw.tween_interval(0.3)
-	# Instant game over: the 3rd wolf of the week, or reputation gone (fired).
+	# Instant game over only in standalone Phase 1 mode
 	var ending := ""
-	if wolves_admitted >= WOLF_LIMIT:
-		ending = "wolves"
-	elif reputation <= 0:
-		ending = "fired"
+	if not GameManager.ENABLE_PHASE_2:
+		if wolves_admitted >= WOLF_LIMIT:
+			ending = "wolves"
+		elif reputation <= 0:
+			ending = "fired"
 	if ending == "":
 		tw.tween_callback(call_next_guest)
 	else:
@@ -339,25 +363,28 @@ func end_day() -> void:
 	_refresh_queue()
 	var quota_ok: bool = day_stats.residents >= rules.quota
 	if not quota_ok:
-		reputation = clampi(reputation - 10, 0, 100)
+		var q_loss: int = 4 if GameManager.ENABLE_PHASE_2 else 10
+		reputation = clampi(reputation - q_loss, 0, 100)
 	else:
 		week.quota_days += 1
 	_add_day_to_week()
 	_refresh_hud()
-	if reputation <= 0:
+	if not GameManager.ENABLE_PHASE_2 and reputation <= 0:
 		_finish_week("fired")
 		return
 	var boss := ""
 	if not quota_ok:
-		boss = "The boss growls: \"Not enough guests. I need more... residents. -10 rep.\""
+		boss = "The boss growls: \"Not enough guests. I need more... residents. -%d rep.\"" % (4 if GameManager.ENABLE_PHASE_2 else 10)
 	else:
 		boss = "The boss smiles a little too widely: \"Good work. The rooms are filling up nicely.\""
 	var cites := "\n".join(PackedStringArray(day_stats.citations)) if not day_stats.citations.is_empty() else "None!"
-	var text := "[center][b]END OF DAY %d[/b][/center]\n\nGuests processed: %d   (%d still in line went home)\nCorrect: %d   Mistakes: %d\nWolves caught: %d   Wolves let in: %d\nNew residents: %d / quota %d\nEarned today: $%d\n\n[b]Citations[/b]\n%s\n\n%s" % [
+	cites = cites.replace(" rep", " [img=22x20]res://resource/star_icon.tres[/img]")
+	boss = boss.replace(" rep", " [img=22x20]res://resource/star_icon.tres[/img]")
+	var text := "[center][b]END OF DAY %d — FRONT DESK[/b][/center]\n\nGuests processed: %d   (%d still in line went home)\nCorrect: %d   Mistakes: %d\nWolves caught: %d   Wolves let in: %d\nNew residents: %d / quota %d\nReputation: %d [img=22x20]res://resource/star_icon.tres[/img]\n\n[b]Citations[/b]\n%s\n\n%s" % [
 		day, day_stats.processed, left, day_stats.correct, day_stats.mistakes,
 		day_stats.wolves_caught, day_stats.wolves_in, day_stats.residents, rules.quota,
-		day_stats.earned, cites, boss]
-	var next_label := "Week summary" if day >= DayRules.LAST_DAY else ("Proceed to Resort (Phase 2)" if GameManager.ENABLE_PHASE_2 else "Next day")
+		reputation, cites, boss]
+	var next_label := "Week summary" if (not GameManager.ENABLE_PHASE_2 and day >= DayRules.LAST_DAY) else ("Proceed to Resort (Phase 2)" if GameManager.ENABLE_PHASE_2 else "Next day")
 	day_popup.show_text(text, next_label)
 
 func _on_popup_continue() -> void:
@@ -366,11 +393,11 @@ func _on_popup_continue() -> void:
 			state = State.IDLE
 			_refresh_monitor_icons()
 		State.DAY_OVER:
-			if day >= DayRules.LAST_DAY:
-				_finish_week("")
-			elif GameManager.ENABLE_PHASE_2:
+			if GameManager.ENABLE_PHASE_2:
 				_sync_to_game_manager()
 				GameManager.change_scene("res://scene/phase2_resort.tscn")
+			elif day >= DayRules.LAST_DAY:
+				_finish_week("")
 			else:
 				start_day(day + 1)
 
@@ -379,8 +406,8 @@ func _on_popup_continue() -> void:
 
 ## Fresh run: money, reputation and the week's totals back to the start.
 func _new_week() -> void:
-	money = 150 if GameManager.ENABLE_PHASE_2 else 20
-	reputation = 70
+	money = 45 if GameManager.ENABLE_PHASE_2 else 20
+	reputation = 0 if GameManager.ENABLE_PHASE_2 else 70
 	residents = 0
 	wolves_admitted = 0
 	wolves_inside = 0
@@ -390,6 +417,7 @@ func _new_week() -> void:
 	GameManager.current_day = 1
 	GameManager.run_started = true
 	GameManager.init_default_layout(true)
+	GameManager.reset_upgrades()
 	_sync_to_game_manager()
 
 func _sync_to_game_manager() -> void:
@@ -419,18 +447,51 @@ func _on_open_resort_layout() -> void:
 	GameManager.change_scene("res://scene/phase2_resort.tscn")
 
 func _on_open_upgrades() -> void:
-	_toast("Upgrade window coming soon!", Color(0.75, 0.9, 1.0))
+	if day_running or (state != State.IDLE and state != State.BRIEFING):
+		_toast("Upgrade Shop is only available before starting the day!", Color(1.0, 0.5, 0.4))
+		return
+	_sync_to_game_manager()
+	if not is_instance_valid(upgrade_shop):
+		var shop_scene := preload("res://scene/upgrade_shop_popup.tscn")
+		upgrade_shop = shop_scene.instantiate() as UpgradeShopPopup
+		add_child(upgrade_shop)
+		upgrade_shop.setup(self)
+		if not upgrade_shop.upgrade_purchased.is_connected(_on_upgrade_purchased):
+			upgrade_shop.upgrade_purchased.connect(_on_upgrade_purchased)
+	if upgrade_shop.visible:
+		upgrade_shop.close_shop()
+	else:
+		upgrade_shop.open_shop()
+
+func _on_upgrade_purchased(upgrade_id: String, _new_level: int) -> void:
+	if upgrade_id == "word_of_mouth" and not day_running:
+		rules = DayRules.for_day(day, GameManager.get_word_of_mouth_bonus())
+		var gen := SheepGenerator.new(run_seed, rules)
+		var data := gen.generate_day()
+		queue = data.guests
+		database = data.database
+		_clear_docs()
+		_build_rules_doc()
+		computer.show_bookings(database, rules)
+		_refresh_queue()
+		_refresh_hud()
 
 func _refresh_monitor_icons() -> void:
-	if not is_instance_valid(fix_icon_btn):
-		return
 	var can_edit := not day_running and (state == State.IDLE or state == State.BRIEFING)
-	fix_icon_btn.modulate = Color.WHITE if can_edit else Color(0.45, 0.45, 0.45, 0.65)
-	fix_icon_btn.tooltip_text = (
-		"Resort Layout Editor (Click before starting the day)"
-		if can_edit
-		else "Resort Layout Editor (Unavailable after starting the day)"
-	)
+	if is_instance_valid(fix_icon_btn):
+		fix_icon_btn.modulate = Color.WHITE if can_edit else Color(0.45, 0.45, 0.45, 0.65)
+		fix_icon_btn.tooltip_text = (
+			"Resort Layout Editor (Click before starting the day)"
+			if can_edit
+			else "Resort Layout Editor (Unavailable after starting the day)"
+		)
+	if is_instance_valid(upward_icon_btn):
+		upward_icon_btn.modulate = Color.WHITE if can_edit else Color(0.45, 0.45, 0.45, 0.65)
+		upward_icon_btn.tooltip_text = (
+			"Upgrade Shop (Click before starting the day)"
+			if can_edit
+			else "Upgrade Shop (Unavailable after starting the day)"
+		)
 
 ## Folds a (possibly unfinished) day into the week's totals, once per day.
 func _add_day_to_week() -> void:
@@ -573,13 +634,20 @@ func _on_hud_date_input(event: InputEvent) -> void:
 		_on_field_clicked({"label": "Today", "kind": "today", "value": today,
 			"text": DayRules.format_date(today), "source": "clock"}, hud_date)
 
+func _get_current_scan_cost() -> int:
+	return int(rules.get("scanner_cost", 100)) + scans_used_today * int(rules.get("scanner_cost_step", 75))
+
 func _on_scan() -> void:
 	if state != State.AT_DESK:
 		return
-	if money < rules.scanner_cost:
-		_toast("Not enough money for a scan.", Color(1, 0.5, 0.5))
+	var cost: int = _get_current_scan_cost()
+	if money < cost:
+		_toast("Not enough money!", Color(1, 0.5, 0.5))
 		return
-	money -= rules.scanner_cost
+	money -= cost
+	GameManager.money = money
+	scans_used_today += 1
+	scan_btn.text = "SCAN $%d" % _get_current_scan_cost()
 	_refresh_hud()
 	if guest.is_wolf:
 		_add_proof("scan")
@@ -643,8 +711,8 @@ func _refresh_queue() -> void:
 func _refresh_hud() -> void:
 	hud_day.text = "DAY %d/%d" % [day, DayRules.LAST_DAY]
 	hud_date.text = "[%s]" % DayRules.format_date(today)
-	hud_money.text = "$%d" % money
-	hud_rep.text = "Reputation %d" % reputation
+	hud_money.text = "%d" % money
+	hud_rep.text = "%d" % reputation
 	hud_rep.add_theme_color_override("font_color", Color(1, 0.4, 0.4) if reputation < 40 else Color(1, 0.95, 0.85))
 	hud_res.text = "Residents today %d/%d" % [day_stats.get("residents", 0), rules.quota]
 	_refresh_clock()
@@ -680,8 +748,47 @@ func _wiggle_bell() -> void:
 		t.tween_property(bell_btn, "rotation_degrees", deg, 0.07)
 
 func _toast(text: String, color: Color) -> void:
-	toast.text = text
-	toast.add_theme_color_override("font_color", color)
+	var hbox: HBoxContainer = toast.get_node_or_null("ToastHBox")
+	if not is_instance_valid(hbox):
+		hbox = HBoxContainer.new()
+		hbox.name = "ToastHBox"
+		hbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+		hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		hbox.add_theme_constant_override("separation", 4)
+		hbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		toast.add_child(hbox)
+	for c in hbox.get_children():
+		hbox.remove_child(c)
+		c.queue_free()
+
+	if text.contains(" rep"):
+		toast.text = ""
+		var parts: PackedStringArray = text.split(" rep")
+		var star_tex: Texture2D = preload("res://resource/star_icon.tres")
+		for i in range(parts.size()):
+			if parts[i] != "":
+				var seg := Label.new()
+				seg.text = parts[i]
+				seg.add_theme_color_override("font_color", color)
+				seg.add_theme_color_override("font_outline_color", Color.BLACK)
+				seg.add_theme_constant_override("outline_size", 8)
+				seg.add_theme_font_size_override("font_size", 26)
+				seg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				hbox.add_child(seg)
+			if i < parts.size() - 1:
+				var icon := TextureRect.new()
+				icon.texture = star_tex
+				icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+				icon.custom_minimum_size = Vector2(26, 24)
+				icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+				icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+				icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				hbox.add_child(icon)
+	else:
+		toast.text = text
+		toast.add_theme_color_override("font_color", color)
+
 	toast.modulate.a = 1.0
 	var t := create_tween()
 	t.tween_interval(2.2)

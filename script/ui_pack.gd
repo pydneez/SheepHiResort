@@ -5,6 +5,7 @@ extends RefCounted
 ## and font helpers for consistent styling across Sheep Hi Resort (excluding main_menu.tscn).
 
 const TEXTURE_PATH := "res://assets/UI/UI_pack.png"
+const BOARD_TEXTURE_PATH := "res://assets/UI/Ui.png"
 const FONT_BASE_PATH := "res://fonts/Peaberry Base/PeaberryBase.ttf"
 const FONT_MONO_PATH := "res://fonts/Peaberry Monospace/PeaberryMono.ttf"
 const FONT_DOUBLE_PATH := "res://fonts/Peaberry Doublespace/PeaberryDoublespace.ttf"
@@ -40,7 +41,22 @@ const WIDE_BTN_PRESSED := Rect2(259, 180, 90, 25)
 const PLAY_BTN_NORMAL := Rect2(163, 210, 90, 27)
 const PLAY_BTN_PRESSED := Rect2(259, 212, 90, 25)
 const COIN_REGION := Rect2(627, 98, 9, 12)
+const STAR_REGION := Rect2(530, 97, 14, 13)
 const WOOD_SIGN_REGION := Rect2(504, 131, 35, 41)
+const SHOP_BOARD_REGION := Rect2(8, 167, 87, 81)
+
+# Standalone small brown glyph icons in UI_pack.png (for placing inside wood_frame_light)
+const STANDALONE_ICON_REGIONS := {
+	"house": Rect2(822, 226, 14, 12),
+	"star": Rect2(819, 195, 14, 12),
+	"trophy": Rect2(852, 209, 14, 13),
+	"crown": Rect2(869, 209, 14, 13),
+	"chat": Rect2(802, 195, 14, 12),
+	"dollar": Rect2(802, 209, 14, 13),
+	"cart": Rect2(819, 209, 14, 13),
+	"podium": Rect2(835, 209, 15, 13),
+	"plus": Rect2(868, 226, 12, 12),
+}
 
 # =============================================================================
 # 3. SQUARE ICON BUTTON REGIONS (22x24 normal / 22x22 pressed)
@@ -226,6 +242,16 @@ static func make_region_atlas(region: Rect2) -> AtlasTexture:
 	atlas.atlas = get_texture()
 	atlas.region = region
 	return atlas
+
+static func make_shop_board_atlas() -> AtlasTexture:
+	var atlas := AtlasTexture.new()
+	atlas.atlas = load(BOARD_TEXTURE_PATH) as Texture2D
+	atlas.region = SHOP_BOARD_REGION
+	return atlas
+
+static func make_standalone_icon_atlas(icon_key: String = "house") -> AtlasTexture:
+	var reg: Rect2 = STANDALONE_ICON_REGIONS.get(icon_key, STANDALONE_ICON_REGIONS["house"])
+	return make_region_atlas(reg)
 
 ## Creates a ready-to-use TextureButton with normal & pressed states from UI_pack.png.
 static func make_icon_button(
