@@ -1,0 +1,66 @@
+[gd_scene format=3 uid="uid://cguest0000001"]
+
+[ext_resource type="Script" path="res://script/resort_guest.gd" id="1_guest_script"]
+[ext_resource type="Texture2D" uid="uid://cst1map83v6md" path="res://assets/sheep_character_pixel/detective_sheep_pixel.png" id="2_pixel_sprite"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_guest"]
+radius = 18.0
+
+[node name="ResortGuest" type="CharacterBody2D"]
+collision_layer = 1
+collision_mask = 2
+input_pickable = true
+script = ExtResource("1_guest_script")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 2)
+shape = SubResource("CircleShape2D_guest")
+
+[node name="HoldRing" type="Node2D" parent="."]
+
+[node name="VisualRoot" type="Node2D" parent="."]
+
+[node name="Sprite2D" type="Sprite2D" parent="VisualRoot"]
+texture_filter = 1
+scale = Vector2(0.85, 0.85)
+texture = ExtResource("2_pixel_sprite")
+
+[node name="NameLabel" type="Label" parent="VisualRoot"]
+mouse_filter = 2
+offset_left = -90.0
+offset_top = -28.0
+offset_right = 150.0
+offset_bottom = -8.0
+scale = Vector2(0.85, 0.85)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 18
+text = "Sheep"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TellLabel" type="Label" parent="VisualRoot"]
+visible = false
+mouse_filter = 2
+offset_left = -75.0
+offset_top = -42.0
+offset_right = 125.0
+offset_bottom = -22.0
+scale = Vector2(0.85, 0.85)
+theme_override_colors/font_color = Color(1, 0.9, 0.2, 1)
+theme_override_colors/font_outline_color = Color(0.2, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 18
+text = "SWEATING!"
+horizontal_alignment = 1
+
+[node name="DeportBar" type="ProgressBar" parent="VisualRoot"]
+visible = false
+mouse_filter = 2
+offset_left = -14.0
+offset_top = -14.0
+offset_right = 14.0
+offset_bottom = -10.0
+max_value = 1.2
+show_percentage = false

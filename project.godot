@@ -11,9 +11,13 @@ config_version=5
 [application]
 
 config/name="SheepHiResort"
-run/main_scene="res://scene/front_desk.tscn"
+run/main_scene="res://scene/main_menu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+GameManager="*res://script/game_manager.gd"
 
 [display]
 
@@ -22,6 +26,11 @@ window/size/viewport_height=1080
 window/size/window_width_override=1200
 window/size/window_height_override=900
 window/stretch/mode="canvas_items"
+
+[gui]
+
+theme/custom="res://ui/game_theme.tres"
+theme/custom_font="res://fonts/Peaberry Base/PeaberryBase.ttf"
 
 [physics]
 

@@ -1,0 +1,113 @@
+[gd_scene format=3 uid="uid://b8y4e6x1p8m1q"]
+
+[ext_resource type="Script" path="res://script/main_menu.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://b32tm8bhnpguc" path="res://assets/Menu/Menu_bg.png" id="2_bg"]
+[ext_resource type="Texture2D" uid="uid://bcd5hyickhaxf" path="res://assets/Menu/logo.png" id="3_logo"]
+[ext_resource type="Texture2D" uid="uid://bi12ys80h5nys" path="res://assets/Menu/Buttonmenu.png" id="4_btn_norm"]
+[ext_resource type="Texture2D" uid="uid://cqlscrsyigp7g" path="res://assets/Menu/Buttonmenu_press.png" id="5_btn_press"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_play_norm"]
+atlas = ExtResource("4_btn_norm")
+region = Rect2(0, 0, 334, 130)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_play_press"]
+atlas = ExtResource("5_btn_press")
+region = Rect2(0, 0, 334, 130)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_load_norm"]
+atlas = ExtResource("4_btn_norm")
+region = Rect2(401, 6, 334, 130)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_load_press"]
+atlas = ExtResource("5_btn_press")
+region = Rect2(401, 6, 334, 130)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_options_norm"]
+atlas = ExtResource("4_btn_norm")
+region = Rect2(3, 191, 334, 130)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_options_press"]
+atlas = ExtResource("5_btn_press")
+region = Rect2(3, 191, 334, 130)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_quit_norm"]
+atlas = ExtResource("4_btn_norm")
+region = Rect2(402, 198, 334, 130)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_quit_press"]
+atlas = ExtResource("5_btn_press")
+region = Rect2(402, 198, 334, 130)
+
+[sub_resource type="SystemFont" id="SystemFont_menu"]
+
+[sub_resource type="Theme" id="Theme_menu"]
+default_font = SubResource("SystemFont_menu")
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_menu")
+script = ExtResource("1_script")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_bg")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Logo" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 668.0
+offset_top = 42.0
+offset_right = 1395.0
+offset_bottom = 696.0
+texture = ExtResource("3_logo")
+
+[node name="ButtonsContainer" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 640.0
+offset_top = 718.0
+offset_right = 1376.0
+offset_bottom = 1046.0
+theme_override_constants/separation = 61
+
+[node name="Row1" type="HBoxContainer" parent="ButtonsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 67
+
+[node name="PlayButton" type="TextureButton" parent="ButtonsContainer/Row1"]
+custom_minimum_size = Vector2(334, 130)
+layout_mode = 2
+texture_normal = SubResource("AtlasTexture_play_norm")
+texture_pressed = SubResource("AtlasTexture_play_press")
+
+[node name="LoadButton" type="TextureButton" parent="ButtonsContainer/Row1"]
+custom_minimum_size = Vector2(334, 130)
+layout_mode = 2
+texture_normal = SubResource("AtlasTexture_load_norm")
+texture_pressed = SubResource("AtlasTexture_load_press")
+
+[node name="Row2" type="HBoxContainer" parent="ButtonsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 65
+
+[node name="OptionsButton" type="TextureButton" parent="ButtonsContainer/Row2"]
+custom_minimum_size = Vector2(334, 130)
+layout_mode = 2
+texture_normal = SubResource("AtlasTexture_options_norm")
+texture_pressed = SubResource("AtlasTexture_options_press")
+
+[node name="QuitButton" type="TextureButton" parent="ButtonsContainer/Row2"]
+custom_minimum_size = Vector2(334, 130)
+layout_mode = 2
+texture_normal = SubResource("AtlasTexture_quit_norm")
+texture_pressed = SubResource("AtlasTexture_quit_press")

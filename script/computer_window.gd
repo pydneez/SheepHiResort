@@ -4,6 +4,7 @@ extends PanelContainer
 ## search. Drag it by its title; right-click a value to compare it.
 
 signal field_clicked(field: Dictionary, label: Control)
+signal open_resort_layout()
 
 const DRAG_BOUNDS := Rect2(0, 48, 1440, 1032)   # anywhere below the top bar
 
@@ -55,8 +56,6 @@ func _on_booking_selected(idx: int) -> void:
 	var fields := [
 		SheepGenerator._f("Name", "name", b.name), SheepGenerator._f("ID", "id", b.id),
 		SheepGenerator._f("Region", "region", b.region), SheepGenerator._f("Species", "species", b.species)]
-	if _rules.get("check_wool", false):
-		fields.append(SheepGenerator._f("Wool", "wool", b.wool))
 	if _rules.get("check_voucher", false):
 		fields.append(SheepGenerator._f("Room", "room", b.room))
 		fields.append(SheepGenerator._f("Nights", "nights", b.nights))
@@ -64,9 +63,11 @@ func _on_booking_selected(idx: int) -> void:
 		var k := Label.new()
 		k.text = f.label + ":"
 		k.add_theme_color_override("font_color", Color(0.5, 0.75, 0.7))
+		k.add_theme_font_size_override("font_size", 22)
 		_details.add_child(k)
 		var v := DeskDocument.make_field_label(f, "db")
 		v.add_theme_color_override("font_color", Color(0.85, 1, 0.95))
+		v.add_theme_font_size_override("font_size", 22)
 		v.mouse_filter = Control.MOUSE_FILTER_STOP
 		v.gui_input.connect(func(e):
 			if DeskDocument.is_compare_click(e):

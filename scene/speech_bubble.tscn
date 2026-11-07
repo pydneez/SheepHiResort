@@ -1,33 +1,32 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://script/speech_bubble.gd" id="1_m3q8j"]
+[ext_resource type="Texture2D" uid="uid://tq5mvwqjkxsd" path="res://assets/UI/UI_pack.png" id="2_ui_pack"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6jaje"]
-content_margin_left = 12.0
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_bubble"]
+content_margin_left = 14.0
 content_margin_top = 12.0
-content_margin_right = 12.0
-content_margin_bottom = 12.0
-bg_color = Color(1, 1, 1, 0.95)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.1, 0.1, 0.1, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+content_margin_right = 14.0
+content_margin_bottom = 14.0
+texture = ExtResource("2_ui_pack")
+texture_margin_left = 7.0
+texture_margin_top = 7.0
+texture_margin_right = 7.0
+texture_margin_bottom = 8.0
+region_rect = Rect2(11, 11, 26, 28)
 
 [node name="SpeechBubble" type="PanelContainer" unique_id=614271595]
-custom_minimum_size = Vector2(420, 0)
+texture_filter = 1
+custom_minimum_size = Vector2(460, 0)
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_6jaje")
+theme_override_styles/panel = SubResource("StyleBoxTexture_bubble")
 script = ExtResource("1_m3q8j")
 
 [node name="Text" type="Label" parent="." unique_id=1316431110]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(390, 0)
+custom_minimum_size = Vector2(430, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.1, 0.1, 0.1, 1)
+theme_override_colors/font_color = Color(0.16, 0.1, 0.05, 1)
+theme_override_font_sizes/font_size = 22
 text = "The guest's line goes here."
 autowrap_mode = 3

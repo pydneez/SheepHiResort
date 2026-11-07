@@ -10,6 +10,9 @@ var _failures := 0
 ## Loads the main scene, then restarts the week with a fixed seed so every run
 ## gets the same guests.
 func load_game(seed_value: int) -> void:
+	var gm := root.get_node_or_null("GameManager")
+	if gm:
+		gm.ENABLE_PHASE_2 = false
 	desk = load("res://scene/front_desk.tscn").instantiate()
 	root.add_child(desk)
 	await process_frame

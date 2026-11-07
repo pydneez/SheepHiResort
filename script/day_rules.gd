@@ -23,7 +23,7 @@ static func for_day(day: int) -> Dictionary:
 		"scanner_cost": 15,
 		"check_id_expiry": day >= 4,
 		"check_voucher": day >= 5,         # booking voucher: room + nights
-		"check_wool": day >= 6,            # wool colour on ID vs actual sheep
+		"check_face": day >= 6,            # ID photo vs the guest's face
 		"quota": 0,                         # set below from expected valid guests
 		"required_vaccines": ["Rabies"],
 		"news": "",
@@ -44,7 +44,7 @@ static func for_day(day: int) -> Dictionary:
 			r.news = "Guests must bring a Booking Voucher matching the reservation."
 		6:
 			r.required_vaccines = ["Rabies", "Scrapie", "Anthrax", "Bluetongue"]
-			r.news = "Wolves are dyeing fake wool. Compare ID wool colour with the guest."
+			r.news = "Wolves are forging ID photos. Right-click the photo, then the guest: the faces must match."
 		7:
 			r.required_vaccines = ["Rabies", "Scrapie", "Anthrax", "Bluetongue"]
 			r.wolf_chance = 0.45
