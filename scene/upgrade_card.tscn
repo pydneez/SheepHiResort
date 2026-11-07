@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://bbei3x47u18hd" path="res://script/upgrade_card.gd" id="1_card_script"]
 [ext_resource type="Texture2D" uid="uid://tq5mvwqjkxsd" path="res://assets/UI/UI_pack.png" id="2_uipack"]
 [ext_resource type="FontFile" uid="uid://jwso4tijjeht" path="res://fonts/Peaberry Base/PeaberryBase.ttf" id="3_peaberry"]
+[ext_resource type="Texture2D" uid="uid://chikw55sjycgi" path="res://assets/UI/Powerups.png" id="4_powerups"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_card_bg"]
 content_margin_left = 14.0
@@ -28,11 +29,8 @@ texture_margin_right = 8.0
 texture_margin_bottom = 8.0
 region_rect = Rect2(153, 105, 30, 30)
 
-[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_o61gs"]
-load_path = "res://.godot/imported/Powerups.png-5d54aec3e0a1b1f5b48b30a21125f24e.ctex"
-
 [sub_resource type="AtlasTexture" id="AtlasTexture_p2xdg"]
-atlas = SubResource("CompressedTexture2D_o61gs")
+atlas = ExtResource("4_powerups")
 region = Rect2(2, 2, 30, 30)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_star"]
