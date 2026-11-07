@@ -3,7 +3,7 @@
 [ext_resource type="Texture2D" path="res://assets/sheep_character/epic_sheep.png" id="1_2y43n"]
 [ext_resource type="Script" path="res://script/sheep_face.gd" id="2_ohwti"]
 [ext_resource type="Script" path="res://script/sheep_character.gd" id="3_vlpq3"]
-[ext_resource type="Texture2D" path="res://assets/sheep_character_pixel/Epic sheep pixel.png" id="4_pixel"]
+[ext_resource type="Texture2D" path="res://assets/sheep_character_pixel/epic_sheep_pixel.png" id="4_pixel"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_66ye1"]
 atlas = ExtResource("1_2y43n")

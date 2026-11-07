@@ -10,7 +10,7 @@ metadata={
 
 [deps]
 
-source_file="res://assets/sheep_character_pixel/Imposter Sheep pixel.png"
+source_file="res://assets/sheep_character_pixel/imposter_sheep_pixel.png"
 dest_files=["res://.godot/imported/Imposter Sheep pixel.png-bc208581689bf70f984b24cebb8324a8.ctex"]
 
 [params]

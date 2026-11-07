@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cb803800do2ce"
-path="res://.godot/imported/Influ sheep pixel.png-cf92b4d26738ad6b983b3b7498099585.ctex"
+uid="uid://4jeuc73mu6jt"
+path="res://.godot/imported/Epic sheep pixel.png-f870949d9d8bb8a1311318509638fea8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sheep_character_pixel/Influ sheep pixel.png"
-dest_files=["res://.godot/imported/Influ sheep pixel.png-cf92b4d26738ad6b983b3b7498099585.ctex"]
+source_file="res://assets/sheep_character_pixel/epic_sheep_pixel.png"
+dest_files=["res://.godot/imported/Epic sheep pixel.png-f870949d9d8bb8a1311318509638fea8.ctex"]
 
 [params]
 

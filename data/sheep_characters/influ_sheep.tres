@@ -2,7 +2,7 @@
 
 [ext_resource type="Texture2D" path="res://assets/sheep_character/Influ sheep.png" id="1_sheet"]
 [ext_resource type="Script" path="res://script/sheep_face.gd" id="2_face"]
-[ext_resource type="Texture2D" path="res://assets/sheep_character_pixel/Influ sheep pixel.png" id="3_pixel"]
+[ext_resource type="Texture2D" path="res://assets/sheep_character_pixel/influ_sheep_pixel.png" id="3_pixel"]
 [ext_resource type="Script" path="res://script/sheep_character.gd" id="4_char"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_body"]

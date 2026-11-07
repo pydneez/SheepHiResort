@@ -100,7 +100,8 @@ func _make_identity(used_ids: Dictionary) -> Dictionary:
 		id = "S-%04d" % rng.randi_range(1000, 9999)
 	used_ids[id] = true
 	var chars := SheepCharacters.shared()
-	var character: String = pick(chars.playable)
+	var normal_pool: Array[String] = chars.normal_playable if not chars.normal_playable.is_empty() else chars.playable
+	var character: String = pick(normal_pool)
 	if not chars.rare_playable.is_empty() and rng.randf() < RARE_SHEEP_CHANCE:
 		character = pick(chars.rare_playable)
 	return {
