@@ -3,6 +3,7 @@
 [ext_resource type="Texture2D" path="res://assets/sheep_character/epic_sheep.png" id="1_2y43n"]
 [ext_resource type="Script" path="res://script/sheep_face.gd" id="2_ohwti"]
 [ext_resource type="Script" path="res://script/sheep_character.gd" id="3_vlpq3"]
+[ext_resource type="Texture2D" path="res://assets/sheep_character_pixel/Epic sheep pixel.png" id="4_pixel"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_66ye1"]
 atlas = ExtResource("1_2y43n")
@@ -53,3 +54,4 @@ script = ExtResource("3_vlpq3")
 body = SubResource("AtlasTexture_66ye1")
 faces = Array[ExtResource("2_ohwti")]([SubResource("Resource_uboix"), SubResource("Resource_2keqw"), SubResource("Resource_2jvvj"), SubResource("Resource_0j6dc")])
 face_anchor = Vector2(299.32968, -48.54788)
+pixel = ExtResource("4_pixel")

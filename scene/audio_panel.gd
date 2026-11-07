@@ -16,10 +16,7 @@ func _ready() -> void:
 	music_slider.value = get_volume("Music")
 	sfx_slider.value = get_volume("SFX")
 
-	back_button.pressed.connect(
-		func():
-			back_pressed.emit()
-	)
+	back_button.pressed.connect(_on_back_button_pressed)
 	master_slider.value_changed.connect(
 		func(value): set_volume("Master", value)
 	)
@@ -31,9 +28,9 @@ func _ready() -> void:
 	sfx_slider.value_changed.connect(
 		func(value): set_volume("SFX", value)
 	)
-	back_button.pressed.connect(_on_back_button_pressed)
 
 func _on_back_button_pressed() -> void:
+	back_pressed.emit()
 	hide()
 
 func get_volume(bus_name: String) -> float:

@@ -26,6 +26,8 @@ const VACCINES := ["Rabies", "Scrapie", "Anthrax", "Bluetongue"]
 ## Share of wolves showing a visual giveaway (a red-eyed face), among wolves
 ## whose sheep has one drawn (all but the rapper, so ~30% of all wolves).
 const WOLF_TELL_CHANCE := 0.35
+## 1 in 20 chance (5%) for a rare guest (Imposter Sheep or Influ Sheep) to appear.
+const RARE_SHEEP_CHANCE := 0.05
 
 const GREETINGS := ["Baa! I have a reservation.", "Good evening, one room please.",
 	"Long trip from %s. I'm exhausted.", "Hello! Is the pool open?",
@@ -33,6 +35,11 @@ const GREETINGS := ["Baa! I have a reservation.", "Good evening, one room please
 const WOLF_GREETINGS := ["Baa. Baaa. I am a normal sheep.", "Greetings, fellow... grass eater.",
 	"Hurry up, I'm STARVING. For grass. Obviously.", "Nice residents you have here. Very... plump.",
 	"I'm from %s. Ask anyone. Don't ask anyone."]
+const INFLU_GREETINGS := [
+	"Hey besties! Doing a live resort vlog—let me in for a shoutout!",
+	"OMG this lobby is so aesthetic! Can I film around the resort?",
+	"Hi! I'm a lifestyle influencer! Wait—don't mind the sheep mask!",
+]
 
 var rng := RandomNumberGenerator.new()
 var rules: Dictionary
@@ -77,6 +84,11 @@ func generate_day() -> Dictionary:
 			booked = false
 		else:
 			truth = booking_pool.pop_back()
+		if truth.get("character", "") == "influ_sheep":
+			# Influ sheep is neither a sheep nor a wolf; always has valid papers.
+			is_wolf = false
+			sloppy = false
+			booked = true
 		guests.append(_make_guest(truth, booked, is_wolf, sloppy))
 
 	bookings.sort_custom(func(a, b): return a.name < b.name)
@@ -89,6 +101,8 @@ func _make_identity(used_ids: Dictionary) -> Dictionary:
 	used_ids[id] = true
 	var chars := SheepCharacters.shared()
 	var character: String = pick(chars.playable)
+	if not chars.rare_playable.is_empty() and rng.randf() < RARE_SHEEP_CHANCE:
+		character = pick(chars.rare_playable)
 	return {
 		"character": character,
 		"face": pick(chars.get_character(character).normal_faces()).id,
@@ -107,11 +121,14 @@ func _make_guest(truth: Dictionary, booked: bool, is_wolf: bool, sloppy: bool) -
 		vaccines[v] = today + rng.randi_range(5, 200)
 	if rng.randf() < 0.3:  # extra, harmless vaccine
 		vaccines[pick(VACCINES)] = today + rng.randi_range(5, 200)
+	var is_influencer: bool = (truth.character == "influ_sheep")
 	var guest := {
 		"truth": truth,
 		"papers": papers,
 		"booked": booked,
-		"is_wolf": is_wolf,
+		"is_wolf": false if is_influencer else is_wolf,
+		"is_influencer": is_influencer,
+		"is_imposter_stack": (truth.character == "imposter_sheep"),
 		"id_expiry": today + rng.randi_range(20, 250),
 		"vaccines": vaccines,
 		"flaws": [],
@@ -160,7 +177,10 @@ func _make_guest(truth: Dictionary, booked: bool, is_wolf: bool, sloppy: bool) -
 		"scale": rng.randf_range(0.92, 1.08),
 		"tell": tell,
 	}
-	guest["greeting"] = _line(WOLF_GREETINGS if is_wolf else GREETINGS, papers)
+	if is_influencer:
+		guest["greeting"] = _line(INFLU_GREETINGS, papers)
+	else:
+		guest["greeting"] = _line(WOLF_GREETINGS if is_wolf else GREETINGS, papers)
 	return guest
 
 ## Seeded Fisher-Yates, so a day's queue is reproducible from its seed.

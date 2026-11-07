@@ -18,8 +18,15 @@ func _ready() -> void:
 
 ## grade: "S", "A", "B", "D" or "F" (picks grade_x.png and reaction_x.png).
 func show_result(grade: String, title: String, stats: String, quote: String) -> void:
-	_grade.texture = load("res://assets/Ending_Report/grade_%s.png" % grade.to_lower())
-	_reaction.texture = load("res://assets/Ending_Report/reaction_%s.png" % grade.to_lower())
+	var g_key: String = grade.to_lower()
+	var grade_path := "res://assets/Ending_Report/grade_%s.png" % g_key
+	if not ResourceLoader.exists(grade_path):
+		grade_path = "res://assets/Ending_Report/grade_d.png"
+	var reaction_path := "res://assets/Ending_Report/reaction_%s.png" % g_key
+	if not ResourceLoader.exists(reaction_path):
+		reaction_path = "res://assets/Ending_Report/reaction_d.png"
+	_grade.texture = load(grade_path)
+	_reaction.texture = load(reaction_path)
 	_title.text = title
 	_stats.text = stats
 	_quote.text = "\"%s\"" % quote

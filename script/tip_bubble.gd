@@ -9,7 +9,6 @@ signal bubble_popped(payout: int)
 @export var lifetime: float = 6.0
 
 var _age: float = 0.0
-var _base_y: float = 0.0
 var _is_popped: bool = false
 
 @onready var visual_root: Node2D = $VisualRoot
@@ -18,7 +17,6 @@ var _is_popped: bool = false
 const BASE_SCALE := Vector2(0.7, 0.7)
 
 func _ready() -> void:
-	_base_y = position.y
 	label.text = "+$%d" % bonus_amount
 	# Entrance pop-in animation
 	visual_root.scale = Vector2.ZERO

@@ -357,15 +357,15 @@ func _draw_selection_pad_and_combo() -> void:
 
 	# Corner brackets
 	var c_len: float = clampf(rect.size.x * 0.22, 10.0, 18.0)
-	var tl := rect.position
-	var tr := Vector2(rect.end.x, rect.position.y)
-	var bl := Vector2(rect.position.x, rect.end.y)
+	var top_left := rect.position
+	var top_right := Vector2(rect.end.x, rect.position.y)
+	var bl := rect.position + Vector2(0, rect.size.y)
 	var br := rect.end
 
-	selection_pad.draw_line(tl, tl + Vector2(c_len, 0), Color.WHITE, 4.0)
-	selection_pad.draw_line(tl, tl + Vector2(0, c_len), Color.WHITE, 4.0)
-	selection_pad.draw_line(tr, tr + Vector2(-c_len, 0), Color.WHITE, 4.0)
-	selection_pad.draw_line(tr, tr + Vector2(0, c_len), Color.WHITE, 4.0)
+	selection_pad.draw_line(top_left, top_left + Vector2(c_len, 0), Color.WHITE, 4.0)
+	selection_pad.draw_line(top_left, top_left + Vector2(0, c_len), Color.WHITE, 4.0)
+	selection_pad.draw_line(top_right, top_right + Vector2(-c_len, 0), Color.WHITE, 4.0)
+	selection_pad.draw_line(top_right, top_right + Vector2(0, c_len), Color.WHITE, 4.0)
 	selection_pad.draw_line(bl, bl + Vector2(c_len, 0), Color.WHITE, 4.0)
 	selection_pad.draw_line(bl, bl + Vector2(0, -c_len), Color.WHITE, 4.0)
 	selection_pad.draw_line(br, br + Vector2(-c_len, 0), Color.WHITE, 4.0)
@@ -985,9 +985,9 @@ func _on_facility_card_gui_input(event: InputEvent, fac_id: String) -> void:
 
 	_refresh_money_and_counts()
 
-func _get_center_spawn_pos(fac_id: String = "") -> Vector2:
+func _get_center_spawn_pos(_fac_id: String = "") -> Vector2:
 	var cam_center: Vector2 = phase2_root.camera.position if is_instance_valid(phase2_root) and is_instance_valid(phase2_root.camera) else Vector2(-240, 176)
-	var snapped := cam_center.snapped(Vector2(16, 16))
+	var snapped_pos := cam_center.snapped(Vector2(16, 16))
 	var dummy_rect := Rect2(-36, -85, 72, 75)
 	var test_offsets: Array[Vector2] = [
 		Vector2.ZERO,
@@ -1001,7 +1001,7 @@ func _get_center_spawn_pos(fac_id: String = "") -> Vector2:
 		Vector2(64, -64),
 	]
 	for off: Vector2 in test_offsets:
-		var p: Vector2 = snapped + off
+		var p: Vector2 = snapped_pos + off
 		if GameManager.is_facility_pos_on_land(p, dummy_rect):
 			var overlaps := false
 			if is_instance_valid(facilities_container):
@@ -1014,7 +1014,7 @@ func _get_center_spawn_pos(fac_id: String = "") -> Vector2:
 							break
 			if not overlaps:
 				return p
-	return snapped
+	return snapped_pos
 
 func _refresh_money_and_counts() -> void:
 	if is_instance_valid(balance_label):
@@ -1234,7 +1234,6 @@ func _on_store_selected_facility() -> void:
 		_show_status_toast("⚠ %s must remain in the resort!" % selected_facility.display_name, Color(1.0, 0.55, 0.35))
 		return
 
-	var fac_name := selected_facility.display_name
 	var to_remove := selected_facility
 	selected_facility = null
 	is_dragging_facility = false

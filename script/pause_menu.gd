@@ -1,4 +1,3 @@
-
 extends Control
 
 @onready var pause_button: TextureButton = $Pause
@@ -67,11 +66,9 @@ func _on_main_menu_button_pressed() -> void:
 	confirm_panel.show()
 
 
-
 func _on_no_button_pressed() -> void:
 	confirm_panel.hide()
 	pause_panel.show()
-
 
 
 func _on_yes_button_pressed() -> void:
@@ -79,5 +76,3 @@ func _on_yes_button_pressed() -> void:
 
 	get_tree().paused = false
 	GameManager.change_scene("res://scene/main_menu.tscn")
-	
-	

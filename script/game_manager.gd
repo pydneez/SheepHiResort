@@ -63,6 +63,11 @@ func load_save_data(data: Dictionary) -> void:
 		stayover_guests = data["stayover_guests"].duplicate(true)
 
 	resort_layout = data.get("resort_layout", {}).duplicate(true)
+	invalidate_resort_navigation_cache()
+
+	if resort_layout.is_empty() or resort_layout.get("land_cells", []).is_empty() or resort_layout.get("facility_instances", []).is_empty():
+		init_default_layout(true)
+		return
 
 	# Rebuild lookup dictionaries from the restored layout.
 	path_cell_lookup.clear()
@@ -126,8 +131,6 @@ const PREFERRED_FACILITIES := {
 
 # Resort Layout & Pathway Planning (Phase 3 Desk Tool)
 const PATH_CELL_SIZE: float = 32.0
-const BUILDING_COST: int = 50
-const LAND_TILE_COST: int = 5
 const COMBO_RANGE: float = 220.0
 
 const SHOP_FACILITY_ORDER: Array[String] = [
@@ -287,7 +290,7 @@ const DEFAULT_FACILITY_INSTANCES := [
 		"base_payout": 6,
 	},
 	{
-		"name": "CloverMeadow",
+		"name": "RestaurantFacility",
 		"facility_id": "restaurant",
 		"display_name": "Restaurant",
 		"position": Vector2(-350, 176),
@@ -307,17 +310,6 @@ const DEFAULT_FACILITY_INSTANCES := [
 		"base_payout": 0,
 	},
 ]
-
-const DEFAULT_FACILITY_POSITIONS := {
-	"MainBuilding": Vector2(-240, 256),
-	"CabinFacility": Vector2(-240, 88),
-	"Cabin": Vector2(-240, 88),
-	"CloverMeadow": Vector2(-350, 176),
-	"ThermalMudBath": Vector2(-240, 88),
-	"Restaurant": Vector2(-350, 176),
-	"Jail": Vector2(-130, 176),
-	"JailFacility": Vector2(-130, 176),
-}
 
 var resort_layout: Dictionary = {}
 var path_cell_lookup: Dictionary = {}
@@ -352,8 +344,8 @@ const UPGRADE_CATALOG := {
 		"reputation_req": [0, 12, 26, 42, 60],
 		"cost": [40, 100, 250, 500, 1000],
 		"values": [0, 1, 2, 3, 4, 5],
-		"desc_template": "Increase daily guests in Phase I\nby [b][color=#9b3e05]+%d → +%d[/color][/b] sheep",
-		"desc_maxed": "Increase daily guests in Phase I\nby [b][color=#1c6b22]+5[/color][/b] sheep",
+		"desc_template": "Increase daily guests\nby [b][color=#9b3e05]+%d → +%d[/color][/b] guests",
+		"desc_maxed": "Increase daily guests\nby [b][color=#1c6b22]+5[/color][/b] guests",
 	},
 	"long_visit": {
 		"id": "long_visit",
@@ -363,8 +355,8 @@ const UPGRADE_CATALOG := {
 		"reputation_req": [4, 16, 30, 48, 68],
 		"cost": [50, 100, 250, 500, 1000],
 		"values": [0, 2, 4, 6, 8, 10],
-		"desc_template": "Make up to [b][color=#9b3e05]%d → %d[/color][/b] sheep from the\nprevious round stay to the next day",
-		"desc_maxed": "Make up to [b][color=#1c6b22]10[/color][/b] sheep from the\nprevious round stay to the next day",
+		"desc_template": "Make up to [b][color=#9b3e05]%d → %d[/color][/b] guests from the\nprevious round stay to the next day",
+		"desc_maxed": "Make up to [b][color=#1c6b22]10[/color][/b] guests from the\nprevious round stay to the next day",
 	},
 	"express_service": {
 		"id": "express_service",
@@ -385,8 +377,8 @@ const UPGRADE_CATALOG := {
 		"reputation_req": [6, 22, 44],
 		"cost": [50, 150, 400],
 		"values": ["0.0s", "0.2s", "0.35s", "0.5s"],
-		"desc_template": "Reduce time to pick up a sheep\nby [b][color=#9b3e05]%s → %s[/color][/b]",
-		"desc_maxed": "Reduce time to pick up a sheep\nby [b][color=#1c6b22]0.5s[/color][/b]",
+		"desc_template": "Reduce time to pick up a guest\nby [b][color=#9b3e05]%s → %s[/color][/b]",
+		"desc_maxed": "Reduce time to pick up a guest\nby [b][color=#1c6b22]0.5s[/color][/b]",
 	},
 	"maximum_security": {
 		"id": "maximum_security",
@@ -418,8 +410,8 @@ const UPGRADE_CATALOG := {
 		"reputation_req": [30],
 		"cost": [200],
 		"values": [0, 1],
-		"desc_template": "Unlock togglable [b][color=#9b3e05]2x Speed[/color][/b] button\nduring Phase II Rush Hour",
-		"desc_maxed": "Togglable [b][color=#1c6b22]2x Speed[/color][/b] unlocked\nin Phase II Rush Hour",
+		"desc_template": "Unlock togglable [b][color=#9b3e05]2x Speed[/color][/b] button\nduring Rush Hour",
+		"desc_maxed": "Togglable [b][color=#1c6b22]2x Speed[/color][/b] unlocked\nduring Rush Hour",
 	},
 	"freeze_bomb": {
 		"id": "freeze_bomb",
@@ -430,8 +422,8 @@ const UPGRADE_CATALOG := {
 		"reputation_req": [12],
 		"cost": [45],
 		"values": [0, 1],
-		"desc_template": "Single-use Phase II item: Freeze sheep\nin a small circular area ([b][color=#9b3e05]+1 Bomb[/color][/b])",
-		"desc_maxed": "Single-use Phase II item: Freeze sheep\nin a small circular area",
+		"desc_template": "Single-use item: Freeze guests\nin a small circular area ([b][color=#9b3e05]+1 Bomb[/color][/b])",
+		"desc_maxed": "Single-use item: Freeze guests\nin a small circular area",
 	},
 }
 
@@ -610,7 +602,7 @@ func init_default_layout(force_reset: bool = false) -> void:
 		var paths: Array = _make_default_cross_pathways()
 		var land: Array = _make_default_starting_land()
 		resort_layout.clear()
-		save_resort_layout(DEFAULT_FACILITY_POSITIONS.duplicate(), paths, DEFAULT_FACILITY_INSTANCES.duplicate(true), land)
+		save_resort_layout({}, paths, DEFAULT_FACILITY_INSTANCES.duplicate(true), land)
 
 func _make_default_cross_pathways() -> Array:
 	var paths: Array = []
@@ -664,17 +656,7 @@ func save_resort_layout(fac_positions: Dictionary, paths: Array, fac_instances: 
 	for lcell in land_copy:
 		if lcell is Vector2i:
 			land_cell_lookup[lcell] = true
-
-func get_facility_position(fac_name: String) -> Vector2:
-	if resort_layout.has("facilities"):
-		var facs: Dictionary = resort_layout["facilities"]
-		if facs.has(fac_name):
-			return facs[fac_name]
-		# Fallback matching case/snake
-		for key in facs.keys():
-			if key.to_snake_case() == fac_name.to_snake_case():
-				return facs[key]
-	return DEFAULT_FACILITY_POSITIONS.get(fac_name, Vector2.ZERO)
+	invalidate_resort_navigation_cache()
 
 func is_world_pos_on_path(world_pos: Vector2) -> bool:
 	var cell := world_to_path_cell(world_pos)
@@ -686,6 +668,21 @@ func is_land_cell_unlocked(cell: Vector2i) -> bool:
 func is_world_pos_on_land(world_pos: Vector2) -> bool:
 	var cell := world_to_path_cell(world_pos)
 	return land_cell_lookup.has(cell)
+
+func clamp_to_owned_land(world_pos: Vector2) -> Vector2:
+	var cell := world_to_path_cell(world_pos)
+	if land_cell_lookup.has(cell):
+		return world_pos
+	var best_cell := cell
+	var best_dist_sq: float = INF
+	for c in land_cell_lookup.keys():
+		if c is Vector2i:
+			var center := path_cell_to_world(c)
+			var d2 := world_pos.distance_squared_to(center)
+			if d2 < best_dist_sq:
+				best_dist_sq = d2
+				best_cell = c
+	return path_cell_to_world(best_cell)
 
 func is_cell_in_map_bounds(cell: Vector2i) -> bool:
 	return cell.x >= MAP_MIN_CELL_X and cell.x <= MAP_MAX_CELL_X and cell.y >= MAP_MIN_CELL_Y and cell.y <= MAP_MAX_CELL_Y
@@ -780,7 +777,7 @@ func is_facility_unlocked(fac_id: String, _live_facilities: Array = [], _ignore_
 
 func get_facility_cost(fac_id: String) -> int:
 	var tmpl: Dictionary = FACILITY_TEMPLATES.get(fac_id, {})
-	return tmpl.get("cost", BUILDING_COST)
+	return tmpl.get("cost", 50)
 
 func get_stored_facility_count(fac_id: String) -> int:
 	if not resort_layout.has("stored_facilities") or not (resort_layout["stored_facilities"] is Dictionary):
@@ -821,7 +818,7 @@ func calculate_facility_combo(fac_id: String, fac_pos: Vector2, all_facilities: 
 			for n in nearby_nodes:
 				if n.facility_id == "cabin":
 					bonus -= 3
-					neighbors.append({"node": n, "delta": -3})
+					neighbors.append({"node": n, "delta": - 3})
 		"restaurant":
 			# Bed & Breakfast: +$6 for each nearby Cabin (up to 3 Cabins = +$18), -$5 near another Restaurant
 			var cabin_hits: int = 0
@@ -832,7 +829,7 @@ func calculate_facility_combo(fac_id: String, fac_pos: Vector2, all_facilities: 
 					neighbors.append({"node": n, "delta": 6})
 				elif n.facility_id == "restaurant":
 					bonus -= 5
-					neighbors.append({"node": n, "delta": -5})
+					neighbors.append({"node": n, "delta": - 5})
 		"bakery":
 			# Fresh Bread Supply: +$9 for each nearby Restaurant (up to 2 Restaurants = +$18), -$5 near another Bakery
 			var rest_hits: int = 0
@@ -843,7 +840,7 @@ func calculate_facility_combo(fac_id: String, fac_pos: Vector2, all_facilities: 
 					neighbors.append({"node": n, "delta": 9})
 				elif n.facility_id == "bakery":
 					bonus -= 5
-					neighbors.append({"node": n, "delta": -5})
+					neighbors.append({"node": n, "delta": - 5})
 		"wool_salon":
 			# Scent-Free Luxury: +$10 per nearby Cabin (up to 2 = +$20), -$9 near Food, -$10 near another Wool Salon!
 			var salon_cabin_hits: int = 0
@@ -854,10 +851,10 @@ func calculate_facility_combo(fac_id: String, fac_pos: Vector2, all_facilities: 
 					neighbors.append({"node": n, "delta": 10})
 				elif n.facility_id == "restaurant" or n.facility_id == "bakery":
 					bonus -= 9
-					neighbors.append({"node": n, "delta": -9})
+					neighbors.append({"node": n, "delta": - 9})
 				elif n.facility_id == "wool_salon":
 					bonus -= 10
-					neighbors.append({"node": n, "delta": -10})
+					neighbors.append({"node": n, "delta": - 10})
 		"gift_shop":
 			# Souvenir District: +$8 per unique facility type nearby (up to 4 unique types = +$32), -$12 near another Gift Shop!
 			var seen_types := {}
@@ -865,7 +862,7 @@ func calculate_facility_combo(fac_id: String, fac_pos: Vector2, all_facilities: 
 				var nid: String = n.facility_id
 				if nid == "gift_shop":
 					bonus -= 12
-					neighbors.append({"node": n, "delta": -12})
+					neighbors.append({"node": n, "delta": - 12})
 				elif nid != "main_building" and nid != "jail":
 					if not seen_types.has(nid) and seen_types.size() < 4:
 						seen_types[nid] = true
@@ -878,7 +875,7 @@ func calculate_facility_combo(fac_id: String, fac_pos: Vector2, all_facilities: 
 				var nid: String = n.facility_id
 				if nid == "clock_tower":
 					bonus -= 15
-					neighbors.append({"node": n, "delta": -15})
+					neighbors.append({"node": n, "delta": - 15})
 				elif nid != "main_building" and nid != "jail":
 					buffed_count += 1
 					neighbors.append({"node": n, "delta": 8})
@@ -889,21 +886,29 @@ func calculate_facility_combo(fac_id: String, fac_pos: Vector2, all_facilities: 
 		"neighbors": neighbors,
 	}
 
+var _cached_astar: AStarGrid2D = null
+var _cached_facility_cells: Dictionary = {}
+var cached_facility_obstacles: Array[Dictionary] = []
+
 func world_to_path_cell(world_pos: Vector2) -> Vector2i:
 	return Vector2i(int(floor(world_pos.x / PATH_CELL_SIZE)), int(floor(world_pos.y / PATH_CELL_SIZE)))
 
 func path_cell_to_world(cell: Vector2i) -> Vector2:
 	return Vector2(cell.x * PATH_CELL_SIZE + PATH_CELL_SIZE * 0.5, cell.y * PATH_CELL_SIZE + PATH_CELL_SIZE * 0.5)
 
-## Computes a waypoint path around facilities (and preferring paved pathways) using AStarGrid2D.
-func find_resort_path(from_world: Vector2, to_world: Vector2, facilities: Array, ignore_fac: Node2D = null) -> Array[Vector2]:
-	var astar := AStarGrid2D.new()
+func invalidate_resort_navigation_cache() -> void:
+	_cached_astar = null
+	_cached_facility_cells.clear()
+	cached_facility_obstacles.clear()
+
+func rebuild_resort_navigation_cache(facilities: Array) -> void:
 	var region := Rect2i(
 		MAP_MIN_CELL_X,
 		MAP_MIN_CELL_Y,
 		MAP_MAX_CELL_X - MAP_MIN_CELL_X + 1,
 		MAP_MAX_CELL_Y - MAP_MIN_CELL_Y + 1
 	)
+	var astar := AStarGrid2D.new()
 	astar.region = region
 	astar.cell_size = Vector2(PATH_CELL_SIZE, PATH_CELL_SIZE)
 	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_ONLY_IF_NO_OBSTACLES
@@ -911,7 +916,6 @@ func find_resort_path(from_world: Vector2, to_world: Vector2, facilities: Array,
 	astar.default_estimate_heuristic = AStarGrid2D.HEURISTIC_OCTILE
 	astar.update()
 
-	# 1. Weight paved pathway cells lower so sheep naturally prefer walking on paths
 	for cy in range(MAP_MIN_CELL_Y, MAP_MAX_CELL_Y + 1):
 		for cx in range(MAP_MIN_CELL_X, MAP_MAX_CELL_X + 1):
 			var c := Vector2i(cx, cy)
@@ -922,21 +926,34 @@ func find_resort_path(from_world: Vector2, to_world: Vector2, facilities: Array,
 			else:
 				astar.set_point_solid(c, true)
 
-	# 2. Mark facility sprite footprints as solid obstacles
+	_cached_facility_cells.clear()
+	cached_facility_obstacles.clear()
 	for f in facilities:
-		if not is_instance_valid(f) or f == ignore_fac:
+		if not is_instance_valid(f):
 			continue
 		if f is Node2D and f.has_method("get_obstacle_rect"):
 			var fn: Node2D = f as Node2D
 			var obs_r: Rect2 = fn.call("get_obstacle_rect")
 			var world_r := Rect2(fn.global_position + obs_r.position, obs_r.size)
+			cached_facility_obstacles.append({"node": fn, "world_rect": world_r})
 			var min_c := world_to_path_cell(world_r.position + Vector2(4, 4))
 			var max_c := world_to_path_cell(world_r.end - Vector2(4, 4))
+			var cells: Array[Vector2i] = []
 			for cy in range(min_c.y, max_c.y + 1):
 				for cx in range(min_c.x, max_c.x + 1):
 					var c := Vector2i(cx, cy)
 					if region.has_point(c):
 						astar.set_point_solid(c, true)
+						cells.append(c)
+			_cached_facility_cells[fn] = cells
+	_cached_astar = astar
+
+## Computes a waypoint path around facilities (and preferring paved pathways) using AStarGrid2D.
+func find_resort_path(from_world: Vector2, to_world: Vector2, facilities: Array, ignore_fac: Node2D = null) -> Array[Vector2]:
+	if _cached_astar == null or (not facilities.is_empty() and cached_facility_obstacles.size() != facilities.size()):
+		rebuild_resort_navigation_cache(facilities)
+	var astar := _cached_astar
+	var region := astar.region
 
 	var start_cell := world_to_path_cell(from_world)
 	var end_cell := world_to_path_cell(to_world)
@@ -945,23 +962,38 @@ func find_resort_path(from_world: Vector2, to_world: Vector2, facilities: Array,
 	end_cell.x = clampi(end_cell.x, MAP_MIN_CELL_X, MAP_MAX_CELL_X)
 	end_cell.y = clampi(end_cell.y, MAP_MIN_CELL_Y, MAP_MAX_CELL_Y)
 
-	# Ensure start cell and target facility doorway (end cell + approach cell) are walkable
-	astar.set_point_solid(start_cell, false)
-	astar.set_point_solid(end_cell, false)
-	var south_of_end := end_cell + Vector2i(0, 1)
-	if region.has_point(south_of_end):
-		astar.set_point_solid(south_of_end, false)
+	# Temporarily un-solidify ignored target facility cells, start cell, and doorway approach cell
+	var temp_cleared: Array[Vector2i] = []
+	if is_instance_valid(ignore_fac) and _cached_facility_cells.has(ignore_fac):
+		for c in _cached_facility_cells[ignore_fac]:
+			if astar.is_point_solid(c):
+				astar.set_point_solid(c, false)
+				temp_cleared.append(c)
+	for c in [start_cell, end_cell, end_cell + Vector2i(0, 1)]:
+		if region.has_point(c) and astar.is_point_solid(c):
+			astar.set_point_solid(c, false)
+			temp_cleared.append(c)
 
 	var id_path: Array[Vector2i] = astar.get_id_path(start_cell, end_cell)
+
+	# Restore solid states on the shared AStarGrid2D
+	for c in temp_cleared:
+		astar.set_point_solid(c, true)
+
 	if id_path.is_empty():
 		# Fallback if a facility is completely boxed in by other buildings: allow high-cost traversal through obstacles
+		var fallback_cleared: Array[Vector2i] = []
 		for cy in range(MAP_MIN_CELL_Y, MAP_MAX_CELL_Y + 1):
 			for cx in range(MAP_MIN_CELL_X, MAP_MAX_CELL_X + 1):
 				var c := Vector2i(cx, cy)
 				if land_cell_lookup.has(c) and astar.is_point_solid(c):
 					astar.set_point_solid(c, false)
 					astar.set_point_weight_scale(c, 15.0)
+					fallback_cleared.append(c)
 		id_path = astar.get_id_path(start_cell, end_cell)
+		for c in fallback_cleared:
+			astar.set_point_solid(c, true)
+			astar.set_point_weight_scale(c, 1.0 if path_cell_lookup.has(c) else 2.2)
 
 	var waypoints: Array[Vector2] = []
 	if id_path.size() > 1:

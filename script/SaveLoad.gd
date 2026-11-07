@@ -1,4 +1,3 @@
-
 extends Node
 
 const FILE_PATH: String = "user://SaveFile.save"
@@ -6,7 +5,6 @@ const FILE_PATH: String = "user://SaveFile.save"
 func _ready() -> void:
 	print("SaveLoad initialized.")
 	print("Save path: ", ProjectSettings.globalize_path(FILE_PATH))
-	load_game()
 
 
 func save_game() -> void:
@@ -29,20 +27,20 @@ func save_game() -> void:
 	print("File exists after saving: ", FileAccess.file_exists(FILE_PATH))
 
 
-func load_game() -> void:
+func load_game() -> bool:
 	print("Attempting to load...")
 	print("Save path: ", ProjectSettings.globalize_path(FILE_PATH))
 	print("File exists: ", FileAccess.file_exists(FILE_PATH))
 
 	if not FileAccess.file_exists(FILE_PATH):
 		print("No existing save file.")
-		return
+		return false
 
 	var file := FileAccess.open(FILE_PATH, FileAccess.READ)
 
 	if file == null:
 		push_error("Failed to load save file! Error: " + str(FileAccess.get_open_error()))
-		return
+		return false
 
 	var data = file.get_var()
 	file.close()
@@ -50,8 +48,10 @@ func load_game() -> void:
 	if data is Dictionary:
 		GameManager.load_save_data(data)
 		print("Game loaded successfully!")
+		return true
 	else:
 		push_error("Save file exists, but its contents are invalid.")
+		return false
 
 
 func delete_save() -> void:

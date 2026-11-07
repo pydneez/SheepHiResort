@@ -157,5 +157,4 @@ value = 100.0
 
 [node name="BackButton" type="Button" parent="AudioPanel/AudioContainer" unique_id=65975670]
 layout_mode = 2
-text = "Back
-"
+text = "Back"

@@ -96,7 +96,14 @@ func _ready() -> void:
 		return
 	if GameManager.ENABLE_PHASE_2 and GameManager.run_started:
 		_restore_from_game_manager()
-		start_day(GameManager.current_day)
+		if GameManager.current_day > DayRules.LAST_DAY:
+			day = DayRules.LAST_DAY
+			day_stats = {"processed": 0, "correct": 0, "mistakes": 0, "residents": 0, "wolves_caught": 0,
+				"wolves_in": 0, "earned": 0, "citations": [], "counted": true}
+			_refresh_hud()
+			_finish_week("")
+		else:
+			start_day(GameManager.current_day)
 	else:
 		_new_week()
 		start_day(1)
@@ -257,6 +264,7 @@ func decide(accept: bool) -> void:
 	accept_btn.disabled = true
 	deny_btn.disabled = true
 	_reset_inspection()
+	var is_influ: bool = guest.get("is_influencer", false)
 	var flaws: Array = guest.flaws
 	# A wolf with perfect papers is still a wolf (it only had a visual giveaway).
 	var valid: bool = flaws.is_empty() and not guest.is_wolf
@@ -270,7 +278,14 @@ func decide(accept: bool) -> void:
 	var good := true
 	if accept:
 		GameManager.record_admitted_guest(guest)
-	if accept and valid:
+	if is_influ:
+		if accept:
+			day_stats.correct += 1
+			reputation += 10
+			msg = "Influencer admitted!  +10 rep"
+		else:
+			msg = "Influencer turned away."
+	elif accept and valid:
 		day_stats.correct += 1
 		day_stats.residents += 1
 		residents += 1
@@ -346,6 +361,8 @@ func decide(accept: bool) -> void:
 		tw.tween_callback(_finish_week.bind(ending))
 
 func _reaction(accept: bool) -> String:
+	if guest.get("is_influencer", false):
+		return "Yay! Tagging #SheepHiResort right now!" if accept else "Ugh, whatever! Unfollowing this resort!"
 	if guest.is_wolf:
 		return "Heh heh... dinner is served." if accept else "Grr! You haven't seen the last of me!"
 	if accept:
@@ -649,7 +666,9 @@ func _on_scan() -> void:
 	scans_used_today += 1
 	scan_btn.text = "SCAN $%d" % _get_current_scan_cost()
 	_refresh_hud()
-	if guest.is_wolf:
+	if guest.get("is_influencer", false):
+		_toast("SCANNER: Human Influencer! (Not a sheep, not a wolf)", Color(0.5, 0.9, 1.0))
+	elif guest.is_wolf:
 		_add_proof("scan")
 		_toast("SCANNER: WOLF DNA DETECTED!", Color(1, 0.3, 0.3))
 	else:

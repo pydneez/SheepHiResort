@@ -9,8 +9,8 @@ signal facility_fixed(facility_name: String)
 signal tip_bubble_requested(spawn_pos: Vector2, bonus: int)
 signal innocent_jailed(guest: Node2D)
 
-@export var facility_id: String = "clover_meadow"
-@export var display_name: String = "Clover Meadow"
+@export var facility_id: String = "restaurant"
+@export var display_name: String = "Restaurant"
 @export var base_cycle_time: float = 5.0
 @export var base_payout: int = 15
 @export var max_occupants: int = 2
@@ -98,6 +98,8 @@ func _ready() -> void:
 		status_label.visible = false
 	_update_status()
 
+static var _shared_broken_shader: Shader = null
+
 func _init_building_sprite() -> void:
 	if is_instance_valid(building_sprite):
 		if building_texture:
@@ -106,10 +108,11 @@ func _init_building_sprite() -> void:
 		building_sprite.vframes = 15
 		building_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		building_sprite.frame_coords = Vector2i(0, building_row)
-		var sh := Shader.new()
-		sh.code = BROKEN_SPRITE_SHADER_CODE
+		if _shared_broken_shader == null:
+			_shared_broken_shader = Shader.new()
+			_shared_broken_shader.code = BROKEN_SPRITE_SHADER_CODE
 		_broken_shader_mat = ShaderMaterial.new()
-		_broken_shader_mat.shader = sh
+		_broken_shader_mat.shader = _shared_broken_shader
 		_broken_shader_mat.set_shader_parameter("broken_tint", 1.0 if is_broken else 0.0)
 		building_sprite.material = _broken_shader_mat
 
@@ -187,7 +190,7 @@ func get_slot_position() -> Vector2:
 	return global_position + Vector2(randf_range(-6, 6), 22.0)
 
 func enter_guest(guest: Node2D) -> bool:
-	if not can_accept_guest():
+	if guest.get("is_influencer") or not can_accept_guest():
 		return false
 	occupants.append(guest)
 	_update_status()
@@ -471,7 +474,7 @@ func is_point_inside(point: Vector2) -> bool:
 	return get_selection_rect().has_point(local_p)
 
 func process_deportation(guest: ResortGuest) -> bool:
-	if not is_instance_valid(guest):
+	if not is_instance_valid(guest) or guest.is_influencer:
 		return false
 	var cap: int = get_jail_capacity()
 	max_occupants = cap
@@ -588,9 +591,6 @@ func _finish_jail_screening() -> void:
 		guest.visual_root.modulate.a = 0.0
 		guest.visual_root.scale = Vector2(0.5, 0.5)
 		guest.visual_root.rotation_degrees = 0.0
-		guest.tell_label.text = "Not a wolf! Baaa!"
-		guest.tell_label.modulate.a = 1.0
-		guest.tell_label.visible = true
 
 		var exit_step := global_position + Vector2(randf_range(-20, 20), 35)
 		var t := create_tween()
@@ -603,16 +603,6 @@ func _finish_jail_screening() -> void:
 				guest.input_pickable = true
 				guest.last_facility = self
 				guest.wander_for(randf_range(3.0, 5.0))
-		)
-
-		# Fade out innocent sheep's tell label after a short display time
-		var fade_t := guest.create_tween()
-		fade_t.tween_interval(2.5)
-		fade_t.tween_property(guest.tell_label, "modulate:a", 0.0, 0.6)
-		fade_t.tween_callback(func():
-			if is_instance_valid(guest) and is_instance_valid(guest.tell_label):
-				guest.tell_label.visible = false
-				guest.tell_label.modulate.a = 1.0
 		)
 	_update_status()
 

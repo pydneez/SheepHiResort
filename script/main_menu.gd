@@ -34,8 +34,8 @@ func _on_play_pressed() -> void:
 	GameManager.change_scene("res://scene/front_desk.tscn")
 
 func _on_load_pressed() -> void:
-	# Placeholder for save/load game
-	SaveLoad.load_game()
+	if not SaveLoad.load_game():
+		GameManager.start_new_game()
 	GameManager.change_scene("res://scene/front_desk.tscn")
 
 func _on_options_pressed() -> void:

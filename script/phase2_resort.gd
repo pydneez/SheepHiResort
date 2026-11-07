@@ -82,6 +82,8 @@ func _ready() -> void:
 			if child.has_signal("innocent_jailed"):
 				child.innocent_jailed.connect(_on_innocent_jailed)
 
+	GameManager.rebuild_resort_navigation_cache(facilities_container.get_children())
+
 	# Prepare guest pool (including Long Visit stayover sheep from previous round)
 	if GameManager.admitted_guests.is_empty():
 		_generate_fallback_pool()
@@ -455,21 +457,9 @@ func _setup_pathways() -> PathwaysRenderer:
 	return pathways
 
 func _matches_facility_id(fac_id: String, pref_id: String) -> bool:
-	if fac_id == pref_id:
-		return true
-	var aliases := {
-		"cabin": ["cabin", "lodge"],
-		"lodge": ["cabin", "lodge"],
-		"restaurant": ["restaurant", "clover_meadow"],
-		"clover_meadow": ["restaurant", "clover_meadow"],
-		"main_building": ["main_building", "thermal_mud_bath"],
-		"thermal_mud_bath": ["main_building", "thermal_mud_bath"],
-		"wool_salon": ["wool_salon", "shearing_boutique"],
-		"shearing_boutique": ["wool_salon", "shearing_boutique"],
-		"jail": ["jail", "jail_facility"],
-		"jail_facility": ["jail", "jail_facility"],
-	}
-	return aliases.has(fac_id) and aliases[fac_id].has(pref_id)
+	return fac_id == pref_id
+
+var _last_displayed_sec: int = -1
 
 func _process(delta: float) -> void:
 	if not is_active:
@@ -480,7 +470,10 @@ func _process(delta: float) -> void:
 		freeze_aim_indicator.queue_redraw()
 
 	time_left -= delta
-	_refresh_hud()
+	var cur_sec: int = int(time_left)
+	if cur_sec != _last_displayed_sec:
+		_last_displayed_sec = cur_sec
+		hud_timer_label.text = "Rush Hour: %02d:%02d" % [int(time_left / 60.0), int(fmod(time_left, 60.0))]
 
 	if time_left <= 0.0:
 		time_left = 0.0
@@ -592,6 +585,9 @@ func spawn_guest_from_data(data: Dictionary) -> ResortGuest:
 func _assign_guest_to_facility(guest) -> void:
 	if not is_instance_valid(guest):
 		return
+	if guest.get("is_influencer"):
+		guest.wander_for(randf_range(3.0, 5.0))
+		return
 
 	# First preference: match preferred facility (excluding previous facility)
 	var preferred_candidates: Array = []
@@ -666,6 +662,11 @@ func _end_rush_hour() -> void:
 	_set_freeze_bomb_aiming(false)
 	_refresh_special_upgrade_controls()
 
+	# Gently release any held sheep/wolf back onto the ground before freezing the world
+	for g in active_guests:
+		if is_instance_valid(g) and g.has_method("force_release_on_round_end"):
+			g.force_release_on_round_end()
+
 	# Freeze the resort world: stop movement, guest actions, facilities, bubbles, and timers
 	$WorldRoot.process_mode = Node.PROCESS_MODE_DISABLED
 	
@@ -676,10 +677,10 @@ func _end_rush_hour() -> void:
 		if is_instance_valid(g):
 			if g.is_wolf:
 				escaped_wolves += 1
-			elif not g.guest_data.is_empty():
+			elif not g.is_influencer and not g.guest_data.is_empty():
 				surviving_innocents.append(g.guest_data)
 	for q_data in guest_queue:
-		if q_data is Dictionary and not q_data.get("is_wolf", false):
+		if q_data is Dictionary and not q_data.get("is_wolf", false) and not q_data.get("is_influencer", false):
 			surviving_innocents.append(q_data)
 	GameManager.wolves_escaped_unharmed = escaped_wolves
 	GameManager.save_stayover_candidates(surviving_innocents)
@@ -702,6 +703,11 @@ func _end_rush_hour() -> void:
 	GameManager.phase2_revenue = resort_revenue
 	GameManager.phase2_tips = resort_tips
 	GameManager.phase2_damages = resort_damages
+	GameManager.week["earned"] = int(GameManager.week.get("earned", 0)) + net_profit
+	GameManager.week["wolves_caught"] = int(GameManager.week.get("wolves_caught", 0)) + wolves_caught
+
+	if is_instance_valid(next_day_button):
+		next_day_button.text = "Finish Week ▶" if GameManager.current_day >= DayRules.LAST_DAY else "Continue to Next Day ▶"
 
 	# Display End-of-Day Rush Hour Ledger
 	var summary: String = "[center][font_size=26][b]RESORT RUSH HOUR COMPLETE![/b][/font_size][/center]\n\n"
@@ -734,8 +740,11 @@ func _on_next_day_pressed() -> void:
 	# Advance to next day and return to Front Desk (Phase 1)
 	GameManager.current_day += 1
 	GameManager.reset_day_pool()
+	if GameManager.current_day <= DayRules.LAST_DAY:
+		SaveLoad.save_game()
+	else:
+		SaveLoad.delete_save()
 	GameManager.change_scene("res://scene/front_desk.tscn")
-	SaveLoad.save_game()
 
 func _generate_fallback_pool() -> void:
 	# Generates a quick test queue when running Phase 2 directly from editor:
