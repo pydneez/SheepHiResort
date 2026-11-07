@@ -735,6 +735,7 @@ func _on_next_day_pressed() -> void:
 	GameManager.current_day += 1
 	GameManager.reset_day_pool()
 	GameManager.change_scene("res://scene/front_desk.tscn")
+	SaveLoad.save_game()
 
 func _generate_fallback_pool() -> void:
 	# Generates a quick test queue when running Phase 2 directly from editor:

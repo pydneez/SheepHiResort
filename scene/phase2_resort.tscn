@@ -6,6 +6,7 @@
 [ext_resource type="TileSet" uid="uid://bjms7r2dfetlp" path="res://resource/resort_tileset_ground.tres" id="4_ground_tileset"]
 [ext_resource type="TileSet" uid="uid://bfnjenemth3b8" path="res://resource/resort_tileset_decor.tres" id="5_decor_tileset"]
 [ext_resource type="Texture2D" uid="uid://tq5mvwqjkxsd" path="res://assets/UI/UI_pack.png" id="6_ui_pack"]
+[ext_resource type="PackedScene" uid="uid://b8lrmlub5lmml" path="res://scene/pause_menu.tscn" id="7_g6v6s"]
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxFlat_hud"]
 content_margin_left = 18.0
@@ -84,6 +85,8 @@ y_sort_enabled = true
 z_index = 25
 
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=1058672701]
+
+[node name="PauseMenu" parent="UILayer" unique_id=225123426 instance=ExtResource("7_g6v6s")]
 
 [node name="TopHUD" type="PanelContainer" parent="UILayer" unique_id=672554197]
 anchors_preset = 5
