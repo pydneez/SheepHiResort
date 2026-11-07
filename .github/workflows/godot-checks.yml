@@ -1,6 +1,6 @@
 # Checks every pull request (and every push to main):
 #   1. every res:// path in the code matches a file exactly (capitals too)
-#   2. Godot imports the project and starts the game without errors
+#   2. Godot imports the project, then starts the game without errors
 #   3. headless gameplay tests in tests/ pass
 name: Godot checks
 
@@ -40,8 +40,12 @@ jobs:
           mv "/home/runner/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT"
           chmod +x "$GODOT"
 
+      # Not checked for errors: on a fresh checkout Godot loads the project
+      # font and theme (project.godot) before it has imported them, and
+      # reports them missing. The next steps run after the import and still
+      # fail on any error, so a really broken font or theme is caught there.
       - name: Import the project
-        run: bash tools/ci/godot_run.sh --import
+        run: timeout 300 "$GODOT" --headless --path . --import
 
       - name: Start the game
         run: bash tools/ci/godot_run.sh --fixed-fps 60 --quit-after 300
