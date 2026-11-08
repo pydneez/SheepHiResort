@@ -35,8 +35,6 @@ func _check_character(id: String, c: SheepCharacter) -> void:
 			problems.append("%s is a wolf face without a picture" % f.id)
 	if c.face_scale <= 0.0:
 		problems.append("face_scale is not positive")
-	if c.desk_scale <= 0.0:
-		problems.append("desk_scale is not positive")
 	if c.pixel != null and c.pixel.resource_path.get_file() != id + "_pixel.png":
 		problems.append("pixel sprite is %s, expected %s_pixel.png" % [c.pixel.resource_path.get_file(), id])
 	# The ID photo has to show some of the sheep.

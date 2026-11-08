@@ -31,21 +31,13 @@ func show_look(look: Dictionary) -> void:
 func set_flipped(flipped: bool) -> void:
 	scale.x = -absf(scale.x) if flipped else absf(scale.x)
 
-func _desk_scale() -> float:
-	return 1.0 if photo or _character == null else _character.desk_scale
-
-## A sheep drawn bigger than this box can still be right-clicked all over.
-func _has_point(point: Vector2) -> bool:
-	var grown := size * _desk_scale()
-	return Rect2(Vector2((size.x - grown.x) * 0.5, size.y - grown.y), grown).has_point(point)
-
 func _draw() -> void:
 	if _character == null or _character.body == null:
 		return
 	# Fit the sheep (or its photo area) into this box: centred, and standing on
 	# the bottom edge when shown whole.
 	var area := _character.get_photo_rect() if photo else _character.bounds()
-	var s := minf(size.x / area.size.x, size.y / area.size.y) * _desk_scale()
+	var s := minf(size.x / area.size.x, size.y / area.size.y)
 	var offset := Vector2((size.x - area.size.x * s) * 0.5, size.y - area.size.y * s)
 	if photo:
 		offset.y *= 0.5
