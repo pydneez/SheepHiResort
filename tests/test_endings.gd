@@ -27,4 +27,17 @@ func _initialize() -> void:
 	check(desk.reputation == 0, "reputation reached 0 (got %d)" % desk.reputation)
 	check(desk.week_summary._title.text == "YOU'RE FIRED", "title says fired")
 	check(desk.week_summary._grade.texture.resource_path.ends_with("grade_f.png"), "grade is F")
+
+	# Test returning from Phase 2 after Day 7 (GameManager.current_day = 8)
+	var gm := root.get_node_or_null("GameManager")
+	if gm:
+		gm.ENABLE_PHASE_2 = true
+		gm.run_started = true
+		gm.current_day = 8
+		var desk2 = load("res://scene/front_desk.tscn").instantiate()
+		root.add_child(desk2)
+		await process_frame
+		check(desk2.week_summary.visible, "week summary shows after day 7 Phase 2 without crash")
+		desk2.queue_free()
+
 	finish()

@@ -98,6 +98,8 @@ func _ready() -> void:
 		_restore_from_game_manager()
 		if GameManager.current_day > DayRules.LAST_DAY:
 			day = DayRules.LAST_DAY
+			rules = DayRules.for_day(day, GameManager.get_word_of_mouth_bonus())
+			today = DayRules.today(day)
 			day_stats = {"processed": 0, "correct": 0, "mistakes": 0, "residents": 0, "wolves_caught": 0,
 				"wolves_in": 0, "earned": 0, "citations": [], "counted": true}
 			_refresh_hud()
@@ -530,13 +532,13 @@ func _finish_week(ending: String) -> void:
 	_clear_docs()
 	_refresh_decision_buttons()
 	var grade := _grade(ending)
-	var accuracy: float = 100.0 * week.correct / maxi(week.processed, 1)
-	var title: String = {"": "WEEK COMPLETE", "wolves": "THE WOLVES GOT IN", "fired": "YOU'RE FIRED"}[ending]
+	var accuracy: float = 100.0 * float(week.get("correct", 0)) / maxi(int(week.get("processed", 0)), 1)
+	var title: String = {"": "WEEK COMPLETE", "wolves": "THE WOLVES GOT IN", "fired": "YOU'RE FIRED"}.get(ending, "WEEK COMPLETE")
 	var stats := ("Days worked: %d / %d\nGuests processed: %d\nCorrect decisions: %d%%\n"
 		+"Wolves caught: %d\nWolves let in: %d / %d\nResidents checked in: %d\nQuota met: %d / %d days\n"
 		+"Money earned: $%d\nFinal reputation: %d") % [
-		day, DayRules.LAST_DAY, week.processed, roundi(accuracy), week.wolves_caught,
-		wolves_admitted, WOLF_LIMIT, week.residents, week.quota_days, day, week.earned, reputation]
+		day, DayRules.LAST_DAY, week.get("processed", 0), roundi(accuracy), week.get("wolves_caught", 0),
+		wolves_admitted, WOLF_LIMIT, week.get("residents", 0), week.get("quota_days", 0), day, week.get("earned", 0), reputation]
 	week_summary.show_result(grade, title, stats, _receptionist_line(grade, ending))
 
 ## S: no wolves, 95%+ correct, quota every day.  A: <=1 wolf, 85%+.  B: <=2 wolves, 70%+.
@@ -544,8 +546,8 @@ func _finish_week(ending: String) -> void:
 func _grade(ending: String) -> String:
 	if ending != "":
 		return "F"
-	var accuracy: float = 100.0 * week.correct / maxi(week.processed, 1)
-	if wolves_admitted == 0 and accuracy >= 95.0 and week.quota_days >= DayRules.LAST_DAY:
+	var accuracy: float = 100.0 * float(week.get("correct", 0)) / maxi(int(week.get("processed", 0)), 1)
+	if wolves_admitted == 0 and accuracy >= 95.0 and int(week.get("quota_days", 0)) >= DayRules.LAST_DAY:
 		return "S"
 	if wolves_admitted <= 1 and accuracy >= 85.0:
 		return "A"
@@ -733,7 +735,7 @@ func _refresh_hud() -> void:
 	hud_money.text = "%d" % money
 	hud_rep.text = "%d" % reputation
 	hud_rep.add_theme_color_override("font_color", Color(1, 0.4, 0.4) if reputation < 40 else Color(1, 0.95, 0.85))
-	hud_res.text = "Residents today %d/%d" % [day_stats.get("residents", 0), rules.quota]
+	hud_res.text = "Residents today %d/%d" % [day_stats.get("residents", 0), int(rules.get("quota", 0))]
 	_refresh_clock()
 
 func _refresh_clock() -> void:
