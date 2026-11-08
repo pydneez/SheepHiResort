@@ -88,7 +88,7 @@ func _ready() -> void:
 
 	# Prepare guest pool (including Long Visit stayover sheep from previous round)
 	if GameManager.admitted_guests.is_empty():
-		_generate_fallback_pool()
+		#_generate_fallback_pool()
 		var max_stay: int = GameManager.get_long_visit_max()
 		if max_stay > 0 and not GameManager.stayover_guests.is_empty():
 			var count: int = mini(max_stay, GameManager.stayover_guests.size())

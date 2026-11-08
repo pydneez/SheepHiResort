@@ -205,6 +205,8 @@ func _on_bell() -> void:
 	call_next_guest()
 
 func call_next_guest() -> void:
+	if state == State.GAME_OVER:
+		return
 	#SfxManager.play_sfx("Sheep_footstep1", "SFX")
 	_clear_docs()
 	_reset_inspection()
@@ -220,6 +222,8 @@ func call_next_guest() -> void:
 	
 
 func _on_guest_arrived() -> void:
+	if state == State.GAME_OVER:
+		return
 	state = State.AT_DESK
 	speech.say(guest.greeting)
 	# The guest's papers are created now but stay hidden; what you see is the
@@ -280,7 +284,7 @@ func decide(accept: bool) -> void:
 	var reason: String = SheepGenerator.FLAW_TEXT[flaws[0]] if not flaws.is_empty() else "It was a wolf in disguise."
 	var proven := false
 	for f in found_flaws:
-		if f == "scan" or flaws.has(f):
+		if f == "scan" or flaws.has(f) or (guest.is_wolf and f == "face"):  # use your real face-flaw key
 			proven = true
 	day_stats.processed += 1
 	var msg := ""
@@ -569,7 +573,7 @@ func _finish_week(ending: String) -> void:
 		wolves_admitted, WOLF_LIMIT, week.residents, week.quota_days, day, week.earned, reputation]
 	week_summary.show_result(grade, title, stats, _receptionist_line(grade, ending))
 	
-	SfxManager.play_sfx("Endshift_week", "SFX")
+	#SfxManager.play_sfx("Endshift_week", "SFX")
 
 ## S: no wolves, 95%+ correct, quota every day.  A: <=1 wolf, 85%+.  B: <=2 wolves, 70%+.
 ## D: survived the week below that.  F: 3 wolves or fired (no C on purpose).
@@ -578,18 +582,24 @@ func _grade(ending: String) -> String:
 		return "F"
 	var accuracy: float = 100.0 * week.correct / maxi(week.processed, 1)
 	if wolves_admitted == 0 and accuracy >= 95.0 and week.quota_days >= DayRules.LAST_DAY:
+		SfxManager.play_sfx("Endshift_week", "SFX")
 		return "S"
 	if wolves_admitted <= 1 and accuracy >= 85.0:
+		SfxManager.play_sfx("Endshift_week", "SFX")
 		return "A"
 	if wolves_admitted <= 2 and accuracy >= 70.0:
+		SfxManager.play_sfx("Endshift_week", "SFX")
 		return "B"
+	SfxManager.play_sfx("Endshift_week", "SFX")
 	return "D"
 
 ## What the receptionist (the player character) says on the summary.
 func _receptionist_line(grade: String, ending: String) -> String:
 	if ending == "wolves":
+		SfxManager.play_sfx("death1", "SFX")
 		return "Three wolves... on my watch. The boss wants to see me in his office. Right now."
 	if ending == "fired":
+		SfxManager.play_sfx("ghost", "SFX")
 		return "They took my name tag. The hotel's reputation is ruined... and so am I."
 	return {
 		"S": "Not a single wolf got past me! The residents are safe... I could cry!",
@@ -601,12 +611,16 @@ func _receptionist_line(grade: String, ending: String) -> String:
 func _on_play_again() -> void:
 	_new_week()
 	start_day(1)
-	SfxManager.play_sfx("Button_Press")
+	SfxManager.stop_all_sfx()
+	SfxManager.play_sfx("phase1theme", "Music")
+	SfxManager.play_sfx("Button_Press", "SFX")
 
 func _process(delta: float) -> void:
 	if day_running:
 		clock = minf(clock + delta, DayRules.DAY_LENGTH_SECONDS)
 		_refresh_clock()
+		if clock >= DayRules.DAY_LENGTH_SECONDS:
+			_time_up()
 	_shake_clock()
 
 # =============================================================================
@@ -614,6 +628,15 @@ func _process(delta: float) -> void:
 # they agree. Left-click always drags, so there is no mode to toggle.
 # Denying on suspicion is allowed; proving a discrepancy first earns a bonus.
 
+func _time_up() -> void:
+	day_running = false # stops this from firing every frame
+	_reset_inspection()
+	
+	if is_instance_valid(rules_doc):
+		rules_doc.visible = false
+	_finish_week("fired")
+	SfxManager.play_sfx("alarmclock")
+	
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		_reset_inspection()
