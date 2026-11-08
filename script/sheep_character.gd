@@ -12,6 +12,8 @@ extends Resource
 ## Where the centre of a face goes on the body.
 @export var face_anchor := Vector2.ZERO
 @export var face_scale := 1.0
+## How big this whole sheep stands at the front desk: 1 = normal, 1.2 = 20% bigger.
+@export var desk_scale := 1.0
 ## The part of the sheep shown on the ID-card photo. Empty = the face plus a margin.
 @export var photo_rect := Rect2()
 ## The Phase 2 sprite: assets/sheep_character_pixel/<id>_pixel.png.
