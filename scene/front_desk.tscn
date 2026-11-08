@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://cngg0h8btpvaa" path="res://script/front_desk.gd" id="2_teqvl"]
 [ext_resource type="Texture2D" uid="uid://cox1hq5alydgt" path="res://assets/lobby/lobby_background.png" id="3_lll3t"]
 [ext_resource type="PackedScene" path="res://scene/guest.tscn" id="4_6nch0"]
-[ext_resource type="Texture2D" uid="uid://r57bvve2r7tt" path="res://assets/lobby/lobby_foreground.png" id="5_p5r5t"]
+[ext_resource type="Texture2D" uid="uid://cnnoghml8ww7m" path="res://assets/lobby/lobby_replace.png" id="5_7dd4j"]
 [ext_resource type="Texture2D" uid="uid://3umn54qim32s" path="res://assets/lobby/plate.png" id="6_k61r8"]
 [ext_resource type="Texture2D" uid="uid://d4i2c32j2qetm" path="res://assets/lobby/monitor.png" id="7_qkg7q"]
 [ext_resource type="Texture2D" uid="uid://dhvfwsms7rmqf" path="res://assets/lobby/clock.png" id="8_7dd4j"]
@@ -145,7 +145,7 @@ layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-texture = ExtResource("5_p5r5t")
+texture = ExtResource("5_7dd4j")
 expand_mode = 1
 stretch_mode = 6
 

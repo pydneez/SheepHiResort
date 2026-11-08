@@ -1,38 +1,36 @@
 [gd_scene format=3 uid="uid://cguest0000001"]
 
-[ext_resource type="Script" path="res://script/resort_guest.gd" id="1_guest_script"]
-[ext_resource type="Texture2D" path="res://assets/sheep_character_pixel/detective_sheep_pixel.png" id="2_pixel_sprite"]
+[ext_resource type="Script" uid="uid://f71nnkoimljo" path="res://script/resort_guest.gd" id="1_guest_script"]
+[ext_resource type="Texture2D" uid="uid://uhgpkgykuoyj" path="res://assets/sheep_character_pixel/detective_sheep_pixel.png" id="2_pixel_sprite"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_guest"]
 radius = 18.0
 
-[node name="ResortGuest" type="CharacterBody2D"]
-collision_layer = 1
+[node name="ResortGuest" type="CharacterBody2D" unique_id=1347790384]
 collision_mask = 2
 input_pickable = true
 script = ExtResource("1_guest_script")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2031561069]
 position = Vector2(0, 2)
 shape = SubResource("CircleShape2D_guest")
 
-[node name="HoldRing" type="Node2D" parent="."]
+[node name="HoldRing" type="Node2D" parent="." unique_id=151199181]
 
-[node name="VisualRoot" type="Node2D" parent="."]
+[node name="VisualRoot" type="Node2D" parent="." unique_id=646761881]
 
-[node name="Sprite2D" type="Sprite2D" parent="VisualRoot"]
+[node name="Sprite2D" type="Sprite2D" parent="VisualRoot" unique_id=755741238]
 texture_filter = 1
 scale = Vector2(0.85, 0.85)
 texture = ExtResource("2_pixel_sprite")
 
-[node name="NameLabel" type="Label" parent="VisualRoot"]
-mouse_filter = 2
+[node name="NameLabel" type="Label" parent="VisualRoot" unique_id=1716699147]
 offset_left = -120.0
 offset_top = -28.0
 offset_right = 120.0
 offset_bottom = -8.0
-pivot_offset = Vector2(120, 10)
 scale = Vector2(0.85, 0.85)
+pivot_offset = Vector2(120, 10)
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
@@ -40,4 +38,3 @@ theme_override_font_sizes/font_size = 18
 text = "Sheep"
 horizontal_alignment = 1
 vertical_alignment = 1
-

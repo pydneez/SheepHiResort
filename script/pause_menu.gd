@@ -20,6 +20,8 @@ extends Control
 
 @onready var computer_window: Control = get_node_or_null("../ComputerWindow")
 
+@onready var bg_pause: Sprite2D = %BG
+
 var computer_mouse_filters: Dictionary = {}
 var ledger_mouse_filters: Dictionary = {}
 
@@ -27,6 +29,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	audio_panel.hide()
+	bg_pause.hide()
 
 	pause_panel.hide()
 	confirm_panel.hide()
@@ -48,6 +51,7 @@ func _ready() -> void:
 
 func _on_pause_button_pressed() -> void:
 	print("Pause button pressed!")
+	bg_pause.show()
 
 	if is_instance_valid(ledger_panel):
 		_disable_ledger_mouse_input(ledger_panel)
@@ -63,6 +67,7 @@ func _on_pause_button_pressed() -> void:
 	SfxManager.play_sfx("Button_Press", "SFX")
 
 func _on_resume_button_pressed() -> void:
+	bg_pause.hide()
 	audio_panel.hide()
 	confirm_panel.hide()
 	pause_panel.hide()
@@ -99,6 +104,7 @@ func _on_no_button_pressed() -> void:
 	SfxManager.play_sfx("Button_hover", "SFX")
 
 func _on_yes_button_pressed() -> void:
+	bg_pause.hide()
 	print("Yes pressed! Returning to Main Menu.")
 	SfxManager.play_sfx("Button_Press", "SFX")
 	get_tree().paused = false
@@ -142,3 +148,12 @@ func _restore_computer_mouse_input() -> void:
 			node.mouse_filter = computer_mouse_filters[node]
 
 	computer_mouse_filters.clear()
+	
+func _unhandled_input(event: InputEvent) -> void:
+	if not event.is_action_pressed("ui_cancel"): # ESC by default
+		return
+	get_viewport().set_input_as_handled()
+	if get_tree().paused:
+		_on_resume_button_pressed()
+	else:
+		_on_pause_button_pressed()

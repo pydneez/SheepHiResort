@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://d1r411yesbpkt" path="res://script/pause_menu.gd" id="1_me6vf"]
 [ext_resource type="Script" uid="uid://dn54eotw4cptn" path="res://script/ui_pack_panel.gd" id="2_cq4tv"]
+[ext_resource type="Texture2D" uid="uid://wt7s33cdy5pu" path="res://assets/pngtree-simple-gray-solid-color-background-image_557027.jpg" id="2_qbwph"]
 [ext_resource type="Texture2D" uid="uid://tq5mvwqjkxsd" path="res://assets/UI/UI_pack.png" id="2_ug2vv"]
 [ext_resource type="Script" uid="uid://bb5itv73xhqqp" path="res://script/audio_panel.gd" id="4_ug2vv"]
 
@@ -17,6 +18,15 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_me6vf")
+
+[node name="BG" type="Sprite2D" parent="." unique_id=900463682]
+unique_name_in_owner = true
+visible = false
+modulate = Color(0, 0, 0, 0.70980394)
+self_modulate = Color(0.22989318, 0.22989318, 0.22989318, 0.5058824)
+position = Vector2(717, 542)
+scale = Vector2(4.0222225, 2.1746032)
+texture = ExtResource("2_qbwph")
 
 [node name="Pause" type="TextureButton" parent="." unique_id=1929233994]
 custom_minimum_size = Vector2(56, 56)

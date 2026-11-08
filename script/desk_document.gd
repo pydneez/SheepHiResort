@@ -100,3 +100,5 @@ func _gui_input(event: InputEvent) -> void:
 			p.y = clampf(p.y, drag_bounds.position.y, drag_bounds.end.y - sz.y)
 		global_position = p
 		accept_event()
+
+		

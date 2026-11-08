@@ -1,13 +1,9 @@
-[gd_resource type="Resource" script_class="SheepCharacter" format=3]
+[gd_resource type="Resource" script_class="SheepCharacter" format=3 uid="uid://4xeucumse8su"]
 
-[ext_resource type="Texture2D" path="res://assets/sheep_character/Influ sheep.png" id="1_sheet"]
-[ext_resource type="Script" path="res://script/sheep_face.gd" id="2_face"]
-[ext_resource type="Texture2D" path="res://assets/sheep_character_pixel/influ_sheep_pixel.png" id="3_pixel"]
-[ext_resource type="Script" path="res://script/sheep_character.gd" id="4_char"]
-
-[sub_resource type="AtlasTexture" id="AtlasTexture_body"]
-atlas = ExtResource("1_sheet")
-region = Rect2(68, 198, 524, 1002)
+[ext_resource type="Texture2D" uid="uid://dy4fx85af8bm4" path="res://assets/sheep_character/Influ sheep 1.png" id="1_teovv"]
+[ext_resource type="Script" uid="uid://dlo5ntjs14b27" path="res://script/sheep_face.gd" id="2_face"]
+[ext_resource type="Texture2D" uid="uid://cb803800do2ce" path="res://assets/sheep_character_pixel/influ_sheep_pixel.png" id="3_pixel"]
+[ext_resource type="Script" uid="uid://bx6ojpjh442d0" path="res://script/sheep_character.gd" id="4_char"]
 
 [sub_resource type="Resource" id="Resource_face_01"]
 script = ExtResource("2_face")
@@ -15,9 +11,9 @@ id = "face_01"
 
 [resource]
 script = ExtResource("4_char")
-body = SubResource("AtlasTexture_body")
+body = ExtResource("1_teovv")
 faces = Array[ExtResource("2_face")]([SubResource("Resource_face_01")])
-face_anchor = Vector2(262, 180)
-photo_rect = Rect2(70, 0, 380, 360)
+face_anchor = Vector2(595.263, 417.73364)
+face_scale = 1.061208
+photo_rect = Rect2(383.24905, 161.86546, 436.50018, 413.52634)
 pixel = ExtResource("3_pixel")
-

@@ -30,22 +30,29 @@ static func for_day(day: int, bonus_guests: int = 0) -> Dictionary:
 		"news": "",
 	}
 	match day:
-		1: r.news = "Welcome! Match each ID with today's bookings on the computer."
+		1: r.news = "Welcome! Match each ID with today's bookings on the computer.
+Find Rulebook bottom right for help."
+		
 		2:
 			r.required_vaccines = ["Rabies", "Scrapie"]
-			r.news = "Health inspectors are in town. Guests need a Health Certificate."
+			r.news = "Health inspectors are in town. Guests need a Health Certificate.
+Find Rulebook bottom right for help."
 		3:
 			r.required_vaccines = ["Rabies", "Scrapie", "Anthrax"]
-			r.news = "New gadget: the Wolf Scanner. It costs money per scan."
+			r.news = "New gadget: the Wolf Scanner. It costs money per scan.
+Find Rulebook bottom right for help."
 		4:
 			r.required_vaccines = ["Rabies", "Anthrax"]
-			r.news = "Expired ID cards are no longer accepted."
+			r.news = "Expired ID cards are no longer accepted.
+Find Rulebook bottom right for help."
 		5:
 			r.required_vaccines = ["Rabies", "Scrapie", "Anthrax"]
-			r.news = "Guests must bring a Booking Voucher matching the reservation."
+			r.news = "Guests must bring a Booking Voucher matching the reservation.
+Find Rulebook bottom right for help."
 		6:
 			r.required_vaccines = ["Rabies", "Scrapie", "Anthrax", "Bluetongue"]
-			r.news = "Wolves are forging ID photos. Guest's face must match on ID. Right Click to point it out."
+			r.news = "Wolves are forging ID photos. Guest's face must match on ID.
+Find Rulebook bottom right for help."
 		7:
 			r.required_vaccines = ["Rabies", "Scrapie", "Anthrax", "Bluetongue"]
 			r.wolf_chance = 0.45

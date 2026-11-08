@@ -1584,6 +1584,7 @@ func _on_save_and_exit() -> void:
 	GameManager.is_layout_edit_mode = false
 	GameManager.returned_from_layout_editor = true
 	GameManager.change_scene("res://scene/front_desk.tscn")
+	SfxManager.stop_sfx("phase2theme")
 
 func _on_cancel_and_exit() -> void:
 	SfxManager.stop_sfx("phase2theme")

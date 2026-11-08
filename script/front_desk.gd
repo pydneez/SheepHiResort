@@ -98,6 +98,8 @@ func _ready() -> void:
 		_restore_from_game_manager()
 		if GameManager.current_day > DayRules.LAST_DAY:
 			day = DayRules.LAST_DAY
+			rules = DayRules.for_day(day, GameManager.get_word_of_mouth_bonus())
+			today = DayRules.today(day)
 			day_stats = {"processed": 0, "correct": 0, "mistakes": 0, "residents": 0, "wolves_caught": 0,
 				"wolves_in": 0, "earned": 0, "citations": [], "counted": true}
 			_refresh_hud()
@@ -203,7 +205,7 @@ func _on_bell() -> void:
 	call_next_guest()
 
 func call_next_guest() -> void:
-	SfxManager.play_sfx("sheep_footstep1", "SFX")
+	#SfxManager.play_sfx("Sheep_footstep1", "SFX")
 	_clear_docs()
 	_reset_inspection()
 	if queue.is_empty() or clock >= DayRules.DAY_LENGTH_SECONDS:
@@ -265,6 +267,7 @@ func _on_pile_clicked() -> void:
 	_refresh_decision_buttons()
 
 func decide(accept: bool) -> void:
+	
 	if state != State.AT_DESK or not docs_opened:
 		return
 	accept_btn.disabled = true
@@ -598,6 +601,7 @@ func _receptionist_line(grade: String, ending: String) -> String:
 func _on_play_again() -> void:
 	_new_week()
 	start_day(1)
+	SfxManager.play_sfx("Button_Press")
 
 func _process(delta: float) -> void:
 	if day_running:
@@ -631,19 +635,34 @@ func _on_dev_skip_phase1() -> void:
 	_sync_to_game_manager()
 	GameManager.change_scene("res://scene/phase2_resort.tscn")
 
+const HIGHLIGHT_COLOR := Color(1.0, 0.55, 0.0) # strong orange, readable on paper
+
+func _set_highlight(ctrl: Control, on: bool) -> void:
+	if ctrl is Label:
+		if on:
+			if not ctrl.has_meta("orig_font_color"):
+				ctrl.set_meta("orig_font_color", ctrl.get_theme_color("font_color"))
+			ctrl.add_theme_color_override("font_color", HIGHLIGHT_COLOR)
+		elif ctrl.has_meta("orig_font_color"):
+			ctrl.add_theme_color_override("font_color", ctrl.get_meta("orig_font_color"))
+			ctrl.remove_meta("orig_font_color")
+	else:
+		# photo and other non-text controls keep the tint
+		ctrl.modulate = Color(1.0, 0.75, 0.1) if on else Color.WHITE
+
 func _reset_inspection() -> void:
 	for s in selected:
 		if is_instance_valid(s[1]):
-			s[1].modulate = Color.WHITE
+			_set_highlight(s[1], false)
 	selected.clear()
 
 func _on_field_clicked(field: Dictionary, label: Control) -> void:
 	if state != State.AT_DESK:
 		return
 	if not selected.is_empty() and selected[0][1] == label:
-		_reset_inspection()
+		_reset_inspection()   # clicking the same field again deselects it
 		return
-	label.modulate = Color(1.0, 0.75, 0.1)
+	_set_highlight(label, true)
 	selected.append([field, label])
 	if selected.size() == 1:
 		return # wait for the second item
@@ -655,7 +674,8 @@ func _on_field_clicked(field: Dictionary, label: Control) -> void:
 	elif res.flaw == "":
 		_toast("%s and %s match." % [a.label, b.label], Color(0.7, 0.9, 1))
 	else:
-		_toast("DISCREPANCY: " + SheepGenerator.FLAW_TEXT[res.flaw], Color(1, 0.6, 0.2))
+		var flaw_msg: String = SheepGenerator.FLAW_TEXT.get(res.flaw, "Mismatch: %s" % res.flaw)
+		_toast("DISCREPANCY: " + flaw_msg, Color(1, 0.6, 0.2))
 		_add_proof(res.flaw)
 		speech.say("Wolf? Me? N-no... must be a typo." if guest.is_wolf else "Oh! That... must be a mistake.")
 	var labels := [selected[0][1], selected[1][1]]
@@ -663,7 +683,7 @@ func _on_field_clicked(field: Dictionary, label: Control) -> void:
 	get_tree().create_timer(0.6).timeout.connect(func():
 		for l in labels:
 			if is_instance_valid(l):
-				l.modulate = Color.WHITE)
+				_set_highlight(l, false))
 
 func _add_proof(flaw: String) -> void:
 	if not found_flaws.has(flaw):
@@ -723,6 +743,7 @@ func _build_rules_doc() -> void:
 	if rules.check_voucher: checks.append("Voucher room/nights match")
 	if rules.check_face: checks.append("ID photo matches the guest's face")
 	fields.append(SheepGenerator._f("Check", "info", "", "\n".join(PackedStringArray(checks))))
+	fields.append(SheepGenerator._f("Reminder", "info", "", "Right Click 2 Information to compare"))
 	rules_doc = _spawn_doc({"type": "rules", "title": "RULEBOOK — DAY %d" % day,
 		"color": Color(1.0, 0.9, 0.85), "fields": fields}, false)
 	rules_doc.position = RULES_POS
