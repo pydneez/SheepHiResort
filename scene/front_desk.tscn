@@ -24,7 +24,7 @@
 [ext_resource type="Texture2D" uid="uid://yg5bbquicok0" path="res://assets/lobby/file_icon.png" id="22_file_icon"]
 [ext_resource type="Texture2D" uid="uid://vw0d7b5qdyri" path="res://assets/lobby/fix_icon.png" id="23_fix_icon"]
 [ext_resource type="Texture2D" uid="uid://ceqqvcrb5a1od" path="res://assets/lobby/upward_icon.png" id="24_upward_icon"]
-[ext_resource type="PackedScene" path="res://scene/upgrade_shop_popup.tscn" id="25_upgrade_shop"]
+[ext_resource type="PackedScene" uid="uid://xcoibguvr0l5" path="res://scene/upgrade_shop_popup.tscn" id="25_upgrade_shop"]
 [ext_resource type="PackedScene" uid="uid://b8lrmlub5lmml" path="res://scene/pause_menu.tscn" id="26_pause_menu"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_monitor_clip"]
@@ -495,9 +495,6 @@ grow_vertical = 2
 unique_name_in_owner = true
 visible = false
 layout_mode = 1
-anchors_preset = 15
-grow_horizontal = 2
-grow_vertical = 2
 
 [node name="PauseMenu" parent="." unique_id=225123426 instance=ExtResource("26_pause_menu")]
 layout_mode = 1

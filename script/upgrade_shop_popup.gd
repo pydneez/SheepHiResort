@@ -30,6 +30,7 @@ func _ready() -> void:
 	refresh_ui()
 
 func _connect_cards() -> void:
+	
 	if not is_instance_valid(cards_vbox):
 		return
 	for child in cards_vbox.get_children():
@@ -38,6 +39,7 @@ func _connect_cards() -> void:
 				child.buy_requested.connect(_on_buy_upgrade_pressed)
 
 func setup(desk_ref: Node) -> void:
+	
 	front_desk = desk_ref
 	refresh_ui()
 
@@ -76,11 +78,13 @@ func _on_buy_upgrade_pressed(upg_id: String) -> void:
 	# 1. Reputation threshold requirement (not consumed)
 	if cur_rep < req_rep:
 		_show_shop_toast("Not enough reputation!", Color(0.85, 0.22, 0.22))
+		SfxManager.play_sfx("MissStep", "SFX")
 		return
 
 	# 2. Coin cost check
 	if cur_money < req_cost:
 		_show_shop_toast("Not enough coins!", Color(0.85, 0.22, 0.22))
+		SfxManager.play_sfx("MissStep", "SFX")
 		return
 
 	# Deduct coins only
@@ -90,6 +94,7 @@ func _on_buy_upgrade_pressed(upg_id: String) -> void:
 		front_desk.set("money", cur_money)
 		if front_desk.has_method("_refresh_hud"):
 			front_desk.call("_refresh_hud")
+			SfxManager.play_sfx("coins", "SFX")
 
 	var new_lvl: int = cur_lvl + 1
 	GameManager.upgrade_levels[upg_id] = new_lvl
@@ -103,6 +108,7 @@ func _show_shop_toast(msg: String, col: Color) -> void:
 		return
 	toast_label.text = msg
 	toast_label.add_theme_color_override("font_color", col)
+	
 
 func _on_backdrop_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
@@ -116,6 +122,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func open_shop() -> void:
+	SfxManager.play_sfx("PC_Press", "SFX")
 	if is_instance_valid(toast_label):
 		toast_label.text = ""
 	refresh_ui()
@@ -127,5 +134,6 @@ func open_shop() -> void:
 		t.tween_property(board_root, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func close_shop() -> void:
+	SfxManager.play_sfx("Button_hover", "SFX")
 	visible = false
 	shop_closed.emit()

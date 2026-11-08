@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bab4ftrh0x5j5"]
 
-[ext_resource type="Script" uid="uid://bb5itv73xhqqp" path="res://scene/audio_panel.gd" id="1_bmp42"]
+[ext_resource type="Script" uid="uid://bb5itv73xhqqp" path="res://script/audio_panel.gd" id="1_bmp42"]
 
 [node name="AudioPanel" type="PanelContainer" unique_id=702994137]
 custom_minimum_size = Vector2(360, 155)

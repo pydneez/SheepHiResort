@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 GameManager="*res://script/game_manager.gd"
 SaveLoad="*uid://chaph8bdsx85c"
+SfxManager="*uid://dv4pnx7buiqvl"
 
 [display]
 

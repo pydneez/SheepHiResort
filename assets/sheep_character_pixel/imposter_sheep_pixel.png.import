@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b25rvo1oqe75"
-path="res://.godot/imported/Imposter Sheep pixel.png-bc208581689bf70f984b24cebb8324a8.ctex"
+path="res://.godot/imported/imposter_sheep_pixel.png-084dbc88a9a82323108f360cd405d00b.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sheep_character_pixel/imposter_sheep_pixel.png"
-dest_files=["res://.godot/imported/Imposter Sheep pixel.png-bc208581689bf70f984b24cebb8324a8.ctex"]
+dest_files=["res://.godot/imported/imposter_sheep_pixel.png-084dbc88a9a82323108f360cd405d00b.ctex"]
 
 [params]
 

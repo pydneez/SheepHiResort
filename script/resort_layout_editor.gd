@@ -548,6 +548,7 @@ func _refresh_land_signs() -> void:
 		land_grid_overlay.queue_redraw()
 
 func _on_land_sign_clicked(q_idx: int) -> void:
+	SfxManager.play_sfx("Button_Press", "SFX")
 	if GameManager.is_quarter_unlocked(q_idx):
 		return
 	var next_q: int = GameManager.get_next_locked_quarter()
@@ -558,22 +559,26 @@ func _on_land_sign_clicked(q_idx: int) -> void:
 	_refresh_land_signs()
 
 func _close_land_sign_confirmations() -> void:
+	SfxManager.play_sfx("Button_hover", "SFX")
 	if active_confirm_quarter != 0:
 		active_confirm_quarter = 0
 		_refresh_land_signs()
 
 func _on_confirm_buy_land_quarter(q_idx: int) -> void:
 	if GameManager.is_quarter_unlocked(q_idx):
+		
 		_close_land_sign_confirmations()
 		return
 	var cost: int = GameManager.get_next_quarter_cost()
 	if GameManager.money < cost:
 		_show_status_toast("⚠ Not enough money!", Color(1.0, 0.4, 0.4))
+		SfxManager.play_sfx("MissStep", "SFX")
 		_close_land_sign_confirmations()
 		return
 
 	GameManager.money -= cost
 	GameManager.unlock_quarter(q_idx)
+	SfxManager.play_sfx("coins", "SFX")
 	active_confirm_quarter = 0
 
 	if is_instance_valid(phase2_root):
@@ -1098,6 +1103,7 @@ func _update_tool_buttons() -> void:
 # =============================================================================
 
 func _select_and_start_moving(fac: Facility, start_dragging: bool = true) -> void:
+	SfxManager.play_sfx("Pickup_Building", "SFX")
 	if selected_facility == fac and is_dragging_facility:
 		return
 
@@ -1116,6 +1122,7 @@ func _select_and_start_moving(fac: Facility, start_dragging: bool = true) -> voi
 	_update_selection_visuals()
 
 func _lift_facility_up(fac: Facility) -> void:
+	SfxManager.play_sfx("Pickup_Building", "SFX")
 	is_holding_facility = false
 	facility_hold_progress = 0.0
 	if is_instance_valid(facility_hold_ring):
@@ -1160,28 +1167,34 @@ func is_facility_placement_valid(fac: Facility, pos: Vector2) -> bool:
 	return true
 
 func _on_confirm_facility_placement() -> void:
+	SfxManager.play_sfx("Button_Press", "SFX")
 	if not is_instance_valid(selected_facility):
 		return
 
 	var fac_rect: Rect2 = selected_facility.get_selection_rect() if selected_facility.has_method("get_selection_rect") else Rect2(-45, -90, 90, 85)
 	if not GameManager.is_facility_pos_on_land(selected_facility.position, fac_rect):
 		_show_status_toast("⚠ Must place entirely on owned grass land!", Color(1.0, 0.4, 0.4))
+		SfxManager.play_sfx("MissStep", "SFX")
 		return
 
 	if does_facility_overlap_any(selected_facility, selected_facility.position):
 		_show_status_toast("⚠ Cannot place here! Facility overlaps another building.", Color(1.0, 0.4, 0.4))
+		SfxManager.play_sfx("MissStep", "SFX")
 		return
 
 	if is_pending_purchase_facility:
 		if GameManager.money < pending_purchase_cost:
 			_show_status_toast("⚠ Not enough money!", Color(1.0, 0.4, 0.4))
+			SfxManager.play_sfx("MissStep", "SFX")
 			return
 		GameManager.money -= pending_purchase_cost
+		SfxManager.play_sfx("coins", "SFX")
 		is_pending_purchase_facility = false
 		pending_purchase_cost = 0
 	elif is_pending_stored_placement:
 		GameManager.add_stored_facility(selected_facility.facility_id, -1)
 		is_pending_stored_placement = false
+		SfxManager.play_sfx("Button_hover", "SFX")
 
 	var t := create_tween()
 	t.tween_property(selected_facility.visual_root, "scale", Vector2(1.12, 0.9), 0.08)
@@ -1195,6 +1208,7 @@ func _on_confirm_facility_placement() -> void:
 	_refresh_money_and_counts()
 
 func _on_cancel_facility_placement() -> void:
+	SfxManager.play_sfx("Button_hover", "SFX")
 	if not is_instance_valid(selected_facility):
 		return
 
@@ -1208,6 +1222,7 @@ func _on_cancel_facility_placement() -> void:
 		_hide_selection_visuals()
 		if is_instance_valid(facilities_container):
 			facilities_container.remove_child(to_remove)
+		SfxManager.play_sfx("Button_hover", "SFX")
 		to_remove.queue_free()
 		_refresh_money_and_counts()
 		return
@@ -1222,6 +1237,7 @@ func _on_cancel_facility_placement() -> void:
 	_refresh_money_and_counts()
 
 func _on_store_selected_facility() -> void:
+	SfxManager.play_sfx("building_store", "SFX")
 	if not is_instance_valid(selected_facility):
 		return
 
@@ -1241,9 +1257,11 @@ func _on_store_selected_facility() -> void:
 
 	if is_instance_valid(facilities_container):
 		facilities_container.remove_child(to_remove)
+		SfxManager.play_sfx("Button_hover", "SFX")
 	to_remove.queue_free()
 
 	# Facility cannot be sold — removing it from the map returns it to Owned storage (+1)
+	
 	GameManager.add_stored_facility(fac_id, 1)
 	_sync_facilities_to_game_manager()
 	_refresh_money_and_counts()
@@ -1508,6 +1526,7 @@ func _get_facility_at_point(point: Vector2) -> Facility:
 # =============================================================================
 
 func _paint_path_tile(world_pos: Vector2) -> void:
+	SfxManager.play_sfx("Dirt", "SFX")
 	var cell := GameManager.world_to_path_cell(world_pos)
 	if not GameManager.is_land_cell_unlocked(cell):
 		_show_status_toast("⚠ Unlock this land quarter first via its For Sale sign!", Color(1.0, 0.4, 0.4))
@@ -1522,6 +1541,7 @@ func _paint_path_tile(world_pos: Vector2) -> void:
 		_refresh_path_count()
 
 func _erase_path_tile(world_pos: Vector2) -> void:
+	SfxManager.play_sfx("Grass", "SFX")
 	var cell := GameManager.world_to_path_cell(world_pos)
 	if GameManager.path_cell_lookup.has(cell):
 		GameManager.path_cell_lookup.erase(cell)
@@ -1532,6 +1552,7 @@ func _erase_path_tile(world_pos: Vector2) -> void:
 		_refresh_path_count()
 
 func _clear_all_pathways() -> void:
+	SfxManager.play_sfx("GrassAll", "SFX")
 	GameManager.path_cell_lookup.clear()
 	GameManager.resort_layout["pathways"] = []
 	if is_instance_valid(pathways_renderer):
@@ -1548,6 +1569,7 @@ func _refresh_path_count() -> void:
 # =============================================================================
 
 func _on_save_and_exit() -> void:
+	SfxManager.play_sfx("Button_Press", "SFX")
 	if is_instance_valid(selected_facility):
 		if is_pending_purchase_facility or is_pending_stored_placement:
 			_on_cancel_facility_placement()
@@ -1564,6 +1586,8 @@ func _on_save_and_exit() -> void:
 	GameManager.change_scene("res://scene/front_desk.tscn")
 
 func _on_cancel_and_exit() -> void:
+	SfxManager.stop_sfx("phase2theme")
+	SfxManager.play_sfx("Button_hover", "SFX")
 	GameManager.money = initial_money
 	GameManager.resort_layout = initial_layout_snapshot.duplicate(true)
 	GameManager.path_cell_lookup.clear()

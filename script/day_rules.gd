@@ -45,7 +45,7 @@ static func for_day(day: int, bonus_guests: int = 0) -> Dictionary:
 			r.news = "Guests must bring a Booking Voucher matching the reservation."
 		6:
 			r.required_vaccines = ["Rabies", "Scrapie", "Anthrax", "Bluetongue"]
-			r.news = "Wolves are forging ID photos. Right-click the photo, then the guest: the faces must match."
+			r.news = "Wolves are forging ID photos. Guest's face must match on ID. Right Click to point it out."
 		7:
 			r.required_vaccines = ["Rabies", "Scrapie", "Anthrax", "Bluetongue"]
 			r.wolf_chance = 0.45

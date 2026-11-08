@@ -16,9 +16,10 @@ var _grab := Vector2.ZERO
 @onready var _count: Label = %BookingCount
 @onready var _details: GridContainer = %Details
 
+
 func _ready() -> void:
 	%Title.gui_input.connect(_on_title_input)
-	%CloseButton.pressed.connect(hide)
+	%CloseButton.pressed.connect(_on_close_pressed)
 	_search.text_changed.connect(func(_t): _refresh())
 	_list.item_selected.connect(_on_booking_selected)
 	_count.gui_input.connect(_on_count_input)
@@ -29,11 +30,16 @@ func show_bookings(bookings: Array, rules: Dictionary) -> void:
 	_rules = rules
 	_search.text = ""
 	_refresh()
-
+	
 func toggle() -> void:
+	SfxManager.play_sfx("PC_Press", "SFX")
 	visible = not visible
 	if visible:
 		move_to_front()
+
+func _on_close_pressed() -> void:
+	SfxManager.play_sfx("Button_hover", "SFX")
+	hide()
 
 func _refresh() -> void:
 	_list.clear()
