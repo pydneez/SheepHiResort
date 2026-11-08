@@ -428,6 +428,7 @@ func _handle_hold_progress(delta: float) -> void:
 			hold_ring.visible = false
 
 func _pick_up() -> void:
+	SfxManager.play_sfx("Pickup_sheep")
 	state = State.PICKED_UP
 	is_holding = false
 	hold_progress = 0.0
@@ -463,6 +464,7 @@ func force_release_on_round_end() -> void:
 		state = State.WANDERING
 
 func _drop_sheep() -> void:
+	SfxManager.play_sfx("Pickup_sheep_drop")
 	z_index = 0
 	visual_root.scale = Vector2(0.85, 0.85)
 	visual_root.rotation_degrees = 0.0

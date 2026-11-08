@@ -309,6 +309,8 @@ static func _res(bad: bool, flaw: String) -> Dictionary:
 	return {"comparable": true, "flaw": flaw if bad else ""}
 
 const FLAW_TEXT := {
+	"name": "Name doesn't match the booking",
+	"id": "ID doesn't match the booking",
 	"not_booked": "No reservation under this ID today.",
 	"region": "Region of origin doesn't match the booking.",
 	"species": "Species doesn't match the booking.",
