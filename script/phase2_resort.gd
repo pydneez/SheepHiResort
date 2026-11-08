@@ -51,6 +51,8 @@ var freeze_aim_indicator: Node2D = null
 var is_double_speed: bool = false
 
 func _ready() -> void:
+	SfxManager.stop_sfx("phase1theme")
+	SfxManager.play_sfx("phase2theme", "Music")
 	Engine.time_scale = 1.0
 	GameManager.is_aiming_freeze_bomb = false
 	ledger_panel.visible = false
@@ -136,6 +138,7 @@ func _setup_toggle_names_button() -> void:
 	_refresh_toggle_names_button()
 
 func _on_toggle_names_pressed() -> void:
+	SfxManager.play_sfx("Button_Press", "SFX")
 	GameManager.show_resort_sheep_names = not GameManager.show_resort_sheep_names
 	_refresh_toggle_names_button()
 	for g in get_tree().get_nodes_in_group("resort_guests"):
@@ -204,9 +207,11 @@ func _setup_special_upgrade_controls() -> void:
 	_refresh_special_upgrade_controls()
 
 func toggle_double_speed() -> void:
+	SfxManager.play_sfx("Fast", "SFX")
 	if not is_active or not GameManager.has_double_speed():
 		return
 	is_double_speed = not is_double_speed
+	
 	Engine.time_scale = 2.0 if is_double_speed else 1.0
 	_refresh_special_upgrade_controls()
 
@@ -243,6 +248,7 @@ func detonate_freeze_bomb_at(world_pos: Vector2) -> int:
 	_set_freeze_bomb_aiming(false)
 
 	var frozen_count: int = 0
+	SfxManager.play_sfx("boulderBreak", "SFX")
 	for g in get_tree().get_nodes_in_group("resort_guests"):
 		if is_instance_valid(g) and g is ResortGuest:
 			var rg: ResortGuest = g as ResortGuest
@@ -598,7 +604,7 @@ func _assign_guest_to_facility(guest) -> void:
 	var target = null
 	if not preferred_candidates.is_empty():
 		target = preferred_candidates.pick_random()
-
+		
 	# Fallback: any other open facility (excluding previous facility)
 	if target == null:
 		var fallback_candidates: Array = []
@@ -619,9 +625,11 @@ func _on_payout_earned(amount: int, _fac_name: String) -> void:
 	if not is_active:
 		return
 	resort_revenue += amount
+	SfxManager.play_sfx("Pickup_coins", "SFX")
 	_refresh_hud()
 
 func _on_facility_broken(_fac_name: String) -> void:
+	SfxManager.play_sfx("Faci_break", "SFX")
 	if not is_active:
 		return
 	resort_damages += 10
@@ -640,6 +648,7 @@ func _on_tip_bubble_requested(spawn_pos: Vector2, bonus: int) -> void:
 	bubbles_container.add_child(bubble)
 
 func _on_wolf_deported(guest) -> void:
+	SfxManager.play_sfx("jail", "SFX")
 	wolves_caught += 1
 	active_guests.erase(guest)
 	GameManager.wolves_caught_in_resort += 1
@@ -652,10 +661,12 @@ func _on_innocent_jailed(_guest: Node2D) -> void:
 	if not is_active:
 		return
 	innocents_jailed += 1
+	SfxManager.play_sfx("jail_wrong", "SFX")
 	GameManager.reputation = clampi(GameManager.reputation - 1, 0, 100)
 	_refresh_hud()
 
 func _end_rush_hour() -> void:
+	SfxManager.play_sfx("Endshift_day", "SFX")
 	is_active = false
 	is_double_speed = false
 	Engine.time_scale = 1.0
@@ -730,6 +741,7 @@ func _end_rush_hour() -> void:
 
 	ledger_text.text = summary
 	ledger_panel.visible = true
+	
 
 func _exit_tree() -> void:
 	Engine.time_scale = 1.0
@@ -738,6 +750,8 @@ func _exit_tree() -> void:
 
 func _on_next_day_pressed() -> void:
 	# Advance to next day and return to Front Desk (Phase 1)
+	SfxManager.play_sfx("Button_Press", "SFX")
+	SfxManager.stop_sfx("phase2theme")
 	GameManager.current_day += 1
 	GameManager.reset_day_pool()
 	if GameManager.current_day <= DayRules.LAST_DAY:

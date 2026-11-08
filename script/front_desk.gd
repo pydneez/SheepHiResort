@@ -128,6 +128,8 @@ func _connect_scene() -> void:
 # Day flow
 
 func start_day(d: int) -> void:
+	SfxManager.stop_sfx("Menutheme")
+	SfxManager.play_sfx("phase1theme", "Music")
 	day = d
 	GameManager.current_day = d
 	GameManager.reset_day_pool()
@@ -191,6 +193,7 @@ func _overnight_report() -> String:
 
 func _on_bell() -> void:
 	_wiggle_bell()
+	SfxManager.play_sfx("BellRing", "SFX")
 	if state != State.IDLE:
 		return
 	bell_btn.disabled = true
@@ -200,6 +203,7 @@ func _on_bell() -> void:
 	call_next_guest()
 
 func call_next_guest() -> void:
+	SfxManager.play_sfx("sheep_footstep1", "SFX")
 	_clear_docs()
 	_reset_inspection()
 	if queue.is_empty() or clock >= DayRules.DAY_LENGTH_SECONDS:
@@ -211,6 +215,7 @@ func call_next_guest() -> void:
 	speech.visible = false
 	state = State.WALKING_IN
 	guest_node.walk_in().tween_callback(_on_guest_arrived)
+	
 
 func _on_guest_arrived() -> void:
 	state = State.AT_DESK
@@ -239,6 +244,7 @@ func _on_guest_arrived() -> void:
 
 ## Click on the paper pile: every paper pops out of it onto the desk, readable.
 func _on_pile_clicked() -> void:
+	SfxManager.play_sfx("Docs_Press", "SFX")
 	if state != State.AT_DESK:
 		return
 	pile_btn.visible = false
@@ -283,8 +289,10 @@ func decide(accept: bool) -> void:
 			day_stats.correct += 1
 			reputation += 10
 			msg = "Influencer admitted!  +10 rep"
+			SfxManager.play_sfx("Granted", "SFX")
 		else:
 			msg = "Influencer turned away."
+			SfxManager.play_sfx("MissStep", "SFX")
 	elif accept and valid:
 		day_stats.correct += 1
 		day_stats.residents += 1
@@ -293,9 +301,11 @@ func decide(accept: bool) -> void:
 		if GameManager.ENABLE_PHASE_2:
 			reputation += 2
 			msg = "Checked in!  +2 rep"
+			SfxManager.play_sfx("Granted", "SFX")
 		else:
 			_earn(10)
 			msg = "Checked in. +$10"
+			SfxManager.play_sfx("Granted", "SFX")
 	elif accept and guest.is_wolf:
 		good = false
 		day_stats.mistakes += 1
@@ -305,6 +315,7 @@ func decide(accept: bool) -> void:
 		var rep_loss: int = 8 if GameManager.ENABLE_PHASE_2 else 20
 		reputation -= rep_loss
 		msg = "CITATION: You let a WOLF in! (%s)  -%d rep" % [reason, rep_loss]
+		SfxManager.play_sfx("MissStep", "SFX")
 	elif accept:
 		good = false
 		day_stats.mistakes += 1
@@ -312,6 +323,7 @@ func decide(accept: bool) -> void:
 		reputation -= rep_loss
 		guest_book.append({"name": guest.papers.name, "room": guest.truth.room})
 		msg = "CITATION: %s  -%d rep" % [reason, rep_loss]
+		SfxManager.play_sfx("MissStep", "SFX")
 	elif not valid:
 		day_stats.correct += 1
 		if guest.is_wolf:
@@ -326,6 +338,7 @@ func decide(accept: bool) -> void:
 			_earn(5 + bonus)
 			msg = ("Denied — wolf caught! " if guest.is_wolf else "Denied — bad papers. ") + \
 				("+$%d (proof bonus!)" % (5 + bonus) if proven else "+$5 (prove the discrepancy for a bonus)")
+		SfxManager.play_sfx("Granted", "SFX")
 	else:
 		# Denied on suspicion, but the guest was innocent.
 		good = false
@@ -333,12 +346,14 @@ func decide(accept: bool) -> void:
 		var rep_loss: int = 4 if GameManager.ENABLE_PHASE_2 else 5
 		reputation -= rep_loss
 		msg = "CITATION: Turned away a valid guest.  -%d rep" % rep_loss
+		SfxManager.play_sfx("MissStep", "SFX")
 	if not good:
 		day_stats.citations.append(msg)
 	reputation = clampi(reputation, 0, 100)
 	_toast(msg, Color(0.5, 1, 0.5) if good else Color(1, 0.45, 0.4))
 	_refresh_hud()
 	speech.say(_reaction(accept))
+	
 
 	# The papers simply disappear from the desk, then the guest leaves.
 	for d in docs:
@@ -362,18 +377,28 @@ func decide(accept: bool) -> void:
 
 func _reaction(accept: bool) -> String:
 	if guest.get("is_influencer", false):
+		SfxManager.play_sfx("sheep_bleat2", "SFX")
 		return "Yay! Tagging #SheepHiResort right now!" if accept else "Ugh, whatever! Unfollowing this resort!"
+		
 	if guest.is_wolf:
+		SfxManager.play_sfx("sheep_baa", "SFX")
 		return "Heh heh... dinner is served." if accept else "Grr! You haven't seen the last of me!"
+		
 	if accept:
+		SfxManager.play_sfx("sheep_bleat1", "SFX")
 		return ["Thank you! Baa!", "Finally, a soft bed.", "Lovely service!"][randi() % 3]
+		
+	SfxManager.play_sfx("sheep_bleat1", "SFX")
 	return "But... I did everything right! Baa..." if guest.flaws.is_empty() else "Oh no, my papers... I'll fix them."
+	
+	
 
 func end_day() -> void:
 	day_running = false
 	state = State.DAY_OVER
 	guest_node.visible = false
 	speech.visible = false
+	SfxManager.play_sfx("Endshift_day", "SFX")
 	_clear_docs()
 	var left := queue.size()
 	queue.clear()
@@ -411,6 +436,7 @@ func _on_popup_continue() -> void:
 			_refresh_monitor_icons()
 		State.DAY_OVER:
 			if GameManager.ENABLE_PHASE_2:
+				SfxManager.play_sfx("Button_Press", "SFX")
 				_sync_to_game_manager()
 				GameManager.change_scene("res://scene/phase2_resort.tscn")
 			elif day >= DayRules.LAST_DAY:
@@ -456,6 +482,7 @@ func _restore_from_game_manager() -> void:
 	run_seed = GameManager.run_seed if GameManager.run_seed != 0 else randi()
 
 func _on_open_resort_layout() -> void:
+	SfxManager.play_sfx("PC_Press", "SFX")
 	if day_running or state != State.IDLE:
 		_toast("Resort Editor is only available before starting the day!", Color(1.0, 0.5, 0.4))
 		return
@@ -538,6 +565,8 @@ func _finish_week(ending: String) -> void:
 		day, DayRules.LAST_DAY, week.processed, roundi(accuracy), week.wolves_caught,
 		wolves_admitted, WOLF_LIMIT, week.residents, week.quota_days, day, week.earned, reputation]
 	week_summary.show_result(grade, title, stats, _receptionist_line(grade, ending))
+	
+	SfxManager.play_sfx("Endshift_week", "SFX")
 
 ## S: no wolves, 95%+ correct, quota every day.  A: <=1 wolf, 85%+.  B: <=2 wolves, 70%+.
 ## D: survived the week below that.  F: 3 wolves or fired (no C on purpose).
@@ -655,11 +684,13 @@ func _get_current_scan_cost() -> int:
 	return int(rules.get("scanner_cost", 100)) + scans_used_today * int(rules.get("scanner_cost_step", 75))
 
 func _on_scan() -> void:
+	SfxManager.play_sfx("Scanner_Press", "SFX")
 	if state != State.AT_DESK:
 		return
 	var cost: int = _get_current_scan_cost()
 	if money < cost:
 		_toast("Not enough money!", Color(1, 0.5, 0.5))
+		SfxManager.play_sfx("MissStep", "SFX")
 		return
 	money -= cost
 	GameManager.money = money
@@ -700,7 +731,9 @@ func _build_rules_doc() -> void:
 ## The paper drawn on the desk is today's rules: click to open / close it.
 func _toggle_rules() -> void:
 	rules_doc.visible = not rules_doc.visible
+	SfxManager.play_sfx("Rulebook_Press", "SFX")
 	if rules_doc.visible:
+		SfxManager.play_sfx("Rulebook_Press", "SFX")
 		rules_doc.move_to_front()
 
 func _spawn_doc(def: Dictionary, track := true) -> DeskDocument:

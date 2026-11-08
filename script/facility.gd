@@ -190,6 +190,7 @@ func get_slot_position() -> Vector2:
 	return global_position + Vector2(randf_range(-6, 6), 22.0)
 
 func enter_guest(guest: Node2D) -> bool:
+	SfxManager.play_sfx("doorOpen", "SFX")
 	if guest.get("is_influencer") or not can_accept_guest():
 		return false
 	occupants.append(guest)
@@ -209,8 +210,9 @@ func enter_guest(guest: Node2D) -> bool:
 func exit_guest(guest: Node2D) -> void:
 	occupants.erase(guest)
 	_update_status()
-
+	
 func _complete_service() -> void:
+	SfxManager.play_sfx("doorClose", "SFX")
 	service_timer = 0.0
 	progress_bar.visible = false
 	progress_bar.value = 0.0
@@ -304,6 +306,7 @@ func _is_sheep_at_pos(world_pos: Vector2) -> bool:
 	return false
 
 func repair_tap() -> void:
+	SfxManager.play_sfx("Faci_ClickFix", "SFX")
 	if not is_broken:
 		return
 	var fix_secs: float = get_repair_click_seconds()
@@ -314,6 +317,7 @@ func repair_tap() -> void:
 		complete_repair()
 
 func complete_repair() -> void:
+	SfxManager.play_sfx("jail", "SFX")
 	is_broken = false
 	repair_timer = 0.0
 	repair_panel.visible = false

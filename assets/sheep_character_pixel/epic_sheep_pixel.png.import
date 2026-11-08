@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://4jeuc73mu6jt"
-path="res://.godot/imported/Epic sheep pixel.png-f870949d9d8bb8a1311318509638fea8.ctex"
+path="res://.godot/imported/epic_sheep_pixel.png-3e72446ddf5e557e83a20421ce401c91.ctex"
 metadata={
 "vram_texture": false
 }
@@ -11,7 +11,7 @@ metadata={
 [deps]
 
 source_file="res://assets/sheep_character_pixel/epic_sheep_pixel.png"
-dest_files=["res://.godot/imported/Epic sheep pixel.png-f870949d9d8bb8a1311318509638fea8.ctex"]
+dest_files=["res://.godot/imported/epic_sheep_pixel.png-3e72446ddf5e557e83a20421ce401c91.ctex"]
 
 [params]
 

@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://d1r411yesbpkt" path="res://script/pause_menu.gd" id="1_me6vf"]
 [ext_resource type="Script" uid="uid://dn54eotw4cptn" path="res://script/ui_pack_panel.gd" id="2_cq4tv"]
 [ext_resource type="Texture2D" uid="uid://tq5mvwqjkxsd" path="res://assets/UI/UI_pack.png" id="2_ug2vv"]
-[ext_resource type="Script" uid="uid://bb5itv73xhqqp" path="res://scene/audio_panel.gd" id="4_ug2vv"]
+[ext_resource type="Script" uid="uid://bb5itv73xhqqp" path="res://script/audio_panel.gd" id="4_ug2vv"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_4q2vw"]
 atlas = ExtResource("2_ug2vv")
@@ -29,6 +29,7 @@ ignore_texture_size = true
 stretch_mode = 0
 
 [node name="PausePanel" type="PanelContainer" parent="." unique_id=209382112]
+process_mode = 3
 custom_minimum_size = Vector2(500, 250)
 layout_mode = 0
 offset_left = 475.0

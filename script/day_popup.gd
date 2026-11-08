@@ -9,6 +9,7 @@ signal continue_pressed
 
 func _ready() -> void:
 	_button.pressed.connect(func():
+		SfxManager.play_sfx("Button_Press", "SFX")
 		visible = false
 		continue_pressed.emit())
 
