@@ -205,6 +205,8 @@ func _on_bell() -> void:
 	call_next_guest()
 
 func call_next_guest() -> void:
+	if state == State.GAME_OVER:
+		return
 	#SfxManager.play_sfx("Sheep_footstep1", "SFX")
 	_clear_docs()
 	_reset_inspection()
@@ -220,6 +222,8 @@ func call_next_guest() -> void:
 	
 
 func _on_guest_arrived() -> void:
+	if state == State.GAME_OVER:
+		return
 	state = State.AT_DESK
 	speech.say(guest.greeting)
 	# The guest's papers are created now but stay hidden; what you see is the
@@ -280,7 +284,7 @@ func decide(accept: bool) -> void:
 	var reason: String = SheepGenerator.FLAW_TEXT[flaws[0]] if not flaws.is_empty() else "It was a wolf in disguise."
 	var proven := false
 	for f in found_flaws:
-		if f == "scan" or flaws.has(f):
+		if f == "scan" or flaws.has(f) or (guest.is_wolf and f == "face"):  # use your real face-flaw key
 			proven = true
 	day_stats.processed += 1
 	var msg := ""
@@ -601,12 +605,16 @@ func _receptionist_line(grade: String, ending: String) -> String:
 func _on_play_again() -> void:
 	_new_week()
 	start_day(1)
-	SfxManager.play_sfx("Button_Press")
+	SfxManager.stop_all_sfx()
+	SfxManager.play_sfx("phase1theme", "Music")
+	SfxManager.play_sfx("Button_Press", "SFX")
 
 func _process(delta: float) -> void:
 	if day_running:
 		clock = minf(clock + delta, DayRules.DAY_LENGTH_SECONDS)
 		_refresh_clock()
+		if clock >= DayRules.DAY_LENGTH_SECONDS:
+			_time_up()
 	_shake_clock()
 
 # =============================================================================
@@ -614,6 +622,15 @@ func _process(delta: float) -> void:
 # they agree. Left-click always drags, so there is no mode to toggle.
 # Denying on suspicion is allowed; proving a discrepancy first earns a bonus.
 
+func _time_up() -> void:
+	day_running = false # stops this from firing every frame
+	_reset_inspection()
+	
+	if is_instance_valid(rules_doc):
+		rules_doc.visible = false
+	_finish_week("fired")
+	SfxManager.play_sfx("alarmclock")
+	
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		_reset_inspection()

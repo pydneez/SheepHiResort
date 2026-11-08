@@ -52,6 +52,7 @@ func _ready() -> void:
 func _on_pause_button_pressed() -> void:
 	print("Pause button pressed!")
 	bg_pause.show()
+	bg_pause.z_index = 99
 
 	if is_instance_valid(ledger_panel):
 		_disable_ledger_mouse_input(ledger_panel)
@@ -106,11 +107,11 @@ func _on_no_button_pressed() -> void:
 func _on_yes_button_pressed() -> void:
 	bg_pause.hide()
 	print("Yes pressed! Returning to Main Menu.")
-	SfxManager.play_sfx("Button_Press", "SFX")
+	
 	get_tree().paused = false
 	GameManager.change_scene("res://scene/main_menu.tscn")
 	SfxManager.stop_all_sfx()
-
+	SfxManager.play_sfx("Button_Press", "SFX")
 			
 func _disable_ledger_mouse_input(node: Node) -> void:
 	if node == null:
