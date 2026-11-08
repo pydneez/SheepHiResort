@@ -573,7 +573,7 @@ func _finish_week(ending: String) -> void:
 		wolves_admitted, WOLF_LIMIT, week.residents, week.quota_days, day, week.earned, reputation]
 	week_summary.show_result(grade, title, stats, _receptionist_line(grade, ending))
 	
-	SfxManager.play_sfx("Endshift_week", "SFX")
+	#SfxManager.play_sfx("Endshift_week", "SFX")
 
 ## S: no wolves, 95%+ correct, quota every day.  A: <=1 wolf, 85%+.  B: <=2 wolves, 70%+.
 ## D: survived the week below that.  F: 3 wolves or fired (no C on purpose).
@@ -582,18 +582,24 @@ func _grade(ending: String) -> String:
 		return "F"
 	var accuracy: float = 100.0 * week.correct / maxi(week.processed, 1)
 	if wolves_admitted == 0 and accuracy >= 95.0 and week.quota_days >= DayRules.LAST_DAY:
+		SfxManager.play_sfx("Endshift_week", "SFX")
 		return "S"
 	if wolves_admitted <= 1 and accuracy >= 85.0:
+		SfxManager.play_sfx("Endshift_week", "SFX")
 		return "A"
 	if wolves_admitted <= 2 and accuracy >= 70.0:
+		SfxManager.play_sfx("Endshift_week", "SFX")
 		return "B"
+	SfxManager.play_sfx("Endshift_week", "SFX")
 	return "D"
 
 ## What the receptionist (the player character) says on the summary.
 func _receptionist_line(grade: String, ending: String) -> String:
 	if ending == "wolves":
+		SfxManager.play_sfx("death1", "SFX")
 		return "Three wolves... on my watch. The boss wants to see me in his office. Right now."
 	if ending == "fired":
+		SfxManager.play_sfx("ghost", "SFX")
 		return "They took my name tag. The hotel's reputation is ruined... and so am I."
 	return {
 		"S": "Not a single wolf got past me! The residents are safe... I could cry!",
