@@ -52,6 +52,7 @@ func _ready() -> void:
 func _on_pause_button_pressed() -> void:
 	print("Pause button pressed!")
 	bg_pause.show()
+	bg_pause.z_index = 99
 
 	if is_instance_valid(ledger_panel):
 		_disable_ledger_mouse_input(ledger_panel)
