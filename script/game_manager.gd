@@ -896,6 +896,7 @@ func calculate_facility_combo(fac_id: String, fac_pos: Vector2, all_facilities: 
 
 var _cached_astar: AStarGrid2D = null
 var _cached_facility_cells: Dictionary = {}
+var _cached_cell_weights: Dictionary = {}
 var cached_facility_obstacles: Array[Dictionary] = []
 
 func world_to_path_cell(world_pos: Vector2) -> Vector2i:
@@ -907,6 +908,7 @@ func path_cell_to_world(cell: Vector2i) -> Vector2:
 func invalidate_resort_navigation_cache() -> void:
 	_cached_astar = null
 	_cached_facility_cells.clear()
+	_cached_cell_weights.clear()
 	cached_facility_obstacles.clear()
 
 func rebuild_resort_navigation_cache(facilities: Array) -> void:
@@ -924,12 +926,15 @@ func rebuild_resort_navigation_cache(facilities: Array) -> void:
 	astar.default_estimate_heuristic = AStarGrid2D.HEURISTIC_OCTILE
 	astar.update()
 
+	_cached_cell_weights.clear()
 	for cy in range(MAP_MIN_CELL_Y, MAP_MAX_CELL_Y + 1):
 		for cx in range(MAP_MIN_CELL_X, MAP_MAX_CELL_X + 1):
 			var c := Vector2i(cx, cy)
 			if path_cell_lookup.has(c):
+				_cached_cell_weights[c] = 1.0
 				astar.set_point_weight_scale(c, 1.0)
 			elif land_cell_lookup.has(c):
+				_cached_cell_weights[c] = 2.2
 				astar.set_point_weight_scale(c, 2.2)
 			else:
 				astar.set_point_solid(c, true)
@@ -944,16 +949,46 @@ func rebuild_resort_navigation_cache(facilities: Array) -> void:
 			var obs_r: Rect2 = fn.call("get_obstacle_rect")
 			var world_r := Rect2(fn.global_position + obs_r.position, obs_r.size)
 			cached_facility_obstacles.append({"node": fn, "world_rect": world_r})
-			var min_c := world_to_path_cell(world_r.position + Vector2(4, 4))
-			var max_c := world_to_path_cell(world_r.end - Vector2(4, 4))
-			var cells: Array[Vector2i] = []
+
+			# Focal point near the bottom-center of the facility sprite (highest weight core)
+			var focal := Vector2(
+				world_r.get_center().x,
+				lerpf(world_r.position.y, world_r.end.y, 0.72)
+			)
+			var influence_r := world_r.grow(12.0)
+			var rx := maxf(influence_r.size.x * 0.5, 1.0)
+			var ry_top := maxf(focal.y - influence_r.position.y, 1.0)
+			var ry_bottom := maxf(influence_r.end.y - focal.y, 1.0)
+
+			var min_c := world_to_path_cell(influence_r.position)
+			var max_c := world_to_path_cell(influence_r.end)
+			var fac_weights: Dictionary = {}
 			for cy in range(min_c.y, max_c.y + 1):
 				for cx in range(min_c.x, max_c.x + 1):
 					var c := Vector2i(cx, cy)
-					if region.has_point(c):
-						astar.set_point_solid(c, true)
-						cells.append(c)
-			_cached_facility_cells[fn] = cells
+					if not region.has_point(c) or astar.is_point_solid(c):
+						continue
+					var cell_pos := path_cell_to_world(c)
+					var dx := absf(cell_pos.x - focal.x) / rx
+					var ry := ry_bottom if cell_pos.y >= focal.y else ry_top
+					var dy := absf(cell_pos.y - focal.y) / ry
+					var norm_dist := clampf(sqrt(dx * dx + dy * dy), 0.0, 1.0)
+					var falloff := pow(1.0 - norm_dist, 1.75)
+
+					var w_add: float = 0.0
+					if world_r.has_point(cell_pos):
+						# Very high weight at bottom-center core (~85), sloping down to ~14 at sprite edges
+						w_add = lerpf(14.0, 85.0, falloff)
+					else:
+						# Gentle outer buffer slope so sheep prefer walking around when space is open,
+						# but can easily slip along edges when squeezed between two buildings
+						w_add = lerpf(2.5, 14.0, falloff)
+
+					fac_weights[c] = w_add
+					var new_total: float = float(_cached_cell_weights.get(c, 2.2)) + w_add
+					_cached_cell_weights[c] = new_total
+					astar.set_point_weight_scale(c, new_total)
+			_cached_facility_cells[fn] = fac_weights
 	_cached_astar = astar
 
 ## Computes a waypoint path around facilities (and preferring paved pathways) using AStarGrid2D.
@@ -970,13 +1005,18 @@ func find_resort_path(from_world: Vector2, to_world: Vector2, facilities: Array,
 	end_cell.x = clampi(end_cell.x, MAP_MIN_CELL_X, MAP_MAX_CELL_X)
 	end_cell.y = clampi(end_cell.y, MAP_MIN_CELL_Y, MAP_MAX_CELL_Y)
 
-	# Temporarily un-solidify ignored target facility cells, start cell, and doorway approach cell
-	var temp_cleared: Array[Vector2i] = []
+	# Temporarily remove target facility's weight penalty so the sheep can approach its doorway cleanly
+	var restored_weights: Dictionary = {}
 	if is_instance_valid(ignore_fac) and _cached_facility_cells.has(ignore_fac):
-		for c in _cached_facility_cells[ignore_fac]:
-			if astar.is_point_solid(c):
-				astar.set_point_solid(c, false)
-				temp_cleared.append(c)
+		var fac_weights: Dictionary = _cached_facility_cells[ignore_fac]
+		for c in fac_weights.keys():
+			var orig_w: float = float(_cached_cell_weights.get(c, 2.2))
+			var base_min: float = 1.0 if path_cell_lookup.has(c) else 2.2
+			var reduced_w: float = maxf(base_min, orig_w - float(fac_weights[c]))
+			restored_weights[c] = orig_w
+			astar.set_point_weight_scale(c, reduced_w)
+
+	var temp_cleared: Array[Vector2i] = []
 	for c in [start_cell, end_cell, end_cell + Vector2i(0, 1)]:
 		if region.has_point(c) and astar.is_point_solid(c):
 			astar.set_point_solid(c, false)
@@ -984,24 +1024,11 @@ func find_resort_path(from_world: Vector2, to_world: Vector2, facilities: Array,
 
 	var id_path: Array[Vector2i] = astar.get_id_path(start_cell, end_cell)
 
-	# Restore solid states on the shared AStarGrid2D
+	# Restore weights and solid states on the shared AStarGrid2D
+	for c in restored_weights.keys():
+		astar.set_point_weight_scale(c, float(restored_weights[c]))
 	for c in temp_cleared:
 		astar.set_point_solid(c, true)
-
-	if id_path.is_empty():
-		# Fallback if a facility is completely boxed in by other buildings: allow high-cost traversal through obstacles
-		var fallback_cleared: Array[Vector2i] = []
-		for cy in range(MAP_MIN_CELL_Y, MAP_MAX_CELL_Y + 1):
-			for cx in range(MAP_MIN_CELL_X, MAP_MAX_CELL_X + 1):
-				var c := Vector2i(cx, cy)
-				if land_cell_lookup.has(c) and astar.is_point_solid(c):
-					astar.set_point_solid(c, false)
-					astar.set_point_weight_scale(c, 15.0)
-					fallback_cleared.append(c)
-		id_path = astar.get_id_path(start_cell, end_cell)
-		for c in fallback_cleared:
-			astar.set_point_solid(c, true)
-			astar.set_point_weight_scale(c, 1.0 if path_cell_lookup.has(c) else 2.2)
 
 	var waypoints: Array[Vector2] = []
 	if id_path.size() > 1:

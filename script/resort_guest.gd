@@ -179,46 +179,14 @@ func _move_towards(dest: Vector2, delta: float) -> void:
 	var on_path := GameManager.is_world_pos_on_path(global_position)
 	var speed := move_speed * 1.45 if on_path else move_speed
 
-	# Check if stuck oscillating in a tight gap between buildings
+	# Check if stuck for any reason while seeking a facility
 	if global_position.distance_to(last_checked_pos) < 3.5:
 		stuck_timer += delta
 	else:
 		stuck_timer = maxf(stuck_timer - delta * 2.0, 0.0)
 		last_checked_pos = global_position
 
-	# 2. Option 2: Corner-Sliding Soft Avoidance if a sheep touches a facility's soft area
-	# (Bypassed if the sheep has been stuck in a narrow gap for > 0.45s so it can slip past)
-	var overlapping_fac := _get_blocking_facility_at(global_position, 2.0, ignore_fac)
-	if is_instance_valid(overlapping_fac) and stuck_timer < 0.45 and not (state == State.ENTERING and overlapping_fac.get("facility_id") == "main_building"):
-		var obs_r: Rect2 = overlapping_fac.call("get_obstacle_rect").grow(2.0)
-		var world_r := Rect2(overlapping_fac.global_position + obs_r.position, obs_r.size)
-		var d_bottom: float = absf(world_r.end.y - global_position.y)
-		var d_top: float = absf(global_position.y - world_r.position.y)
-		var d_left: float = absf(global_position.x - world_r.position.x)
-		var d_right: float = absf(world_r.end.x - global_position.x)
-		var normal := Vector2(0, 1)
-		if d_bottom <= d_left + 10.0 and d_bottom <= d_right + 10.0 and d_bottom <= d_top:
-			normal = Vector2(0, 1)
-		elif d_left <= d_right and d_left <= d_top:
-			normal = Vector2(-1, 0)
-		elif d_right <= d_top:
-			normal = Vector2(1, 0)
-		else:
-			normal = Vector2(0, -1)
-
-		# Slide along the edge toward the current waypoint instead of bouncing backward
-		var to_step := (current_step - global_position).normalized()
-		var t1 := Vector2(-normal.y, normal.x)
-		var t2 := Vector2(normal.y, -normal.x)
-		var slide_tangent := t1 if t1.dot(to_step) >= t2.dot(to_step) else t2
-		dir = (normal * 0.45 + slide_tangent * 0.9).normalized()
-		speed *= 1.25
-		if state == State.WANDERING:
-			target_pos = global_position + dir * 36.0
-			nav_waypoints = [target_pos]
-			nav_destination = target_pos
-	elif stuck_timer >= 1.1 and state == State.SEEKING_FACILITY:
-		# If still completely blocked after 1.1s, switch to wandering in open space
+	if stuck_timer >= 1.5 and state == State.SEEKING_FACILITY:
 		stuck_timer = 0.0
 		target_facility = null
 		wander_for(randf_range(1.5, 3.0))
@@ -319,13 +287,8 @@ func on_service_finished() -> void:
 	visual_root.modulate.a = 0.0
 	visual_root.scale = Vector2(0.5, 0.5)
 
-	var step_out_pos := global_position + Vector2(randf_range(-14, 14), 30)
+	var step_out_pos := global_position + Vector2(randf_range(-14, 14), 22)
 	step_out_pos = GameManager.clamp_to_owned_land(step_out_pos)
-	var blocking := _get_blocking_facility_at(step_out_pos, 4.0)
-	if is_instance_valid(blocking) and blocking.has_method("get_obstacle_rect"):
-		var obs_r: Rect2 = blocking.get_obstacle_rect()
-		step_out_pos.y = blocking.global_position.y + obs_r.end.y + 14.0
-		step_out_pos = GameManager.clamp_to_owned_land(step_out_pos)
 
 	var t := create_tween()
 	t.set_parallel(true)
