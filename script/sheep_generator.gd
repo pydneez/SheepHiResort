@@ -14,27 +14,95 @@ extends RefCounted
 ##  * Some honest sheep are just sloppy and also carry a flaw. Those should be
 ##    denied too, but turning them away hurts less than letting a wolf in.
 
-const FIRST_NAMES := ["Dolly", "Shaun", "Woolbert", "Fleecy", "Baabara", "Lambert", "Ramona",
-	"Cotton", "Nimbus", "Clover", "Barley", "Bramble", "Pippa", "Hector", "Agnes", "Larry",
-	"Shirley", "Timmy", "Wooliam", "Lanolin", "Curly", "Biscuit", "Mabel", "Tuft"]
-const LAST_NAMES := ["Fleecewood", "Woolsworth", "Baaker", "Lambchop", "Curlyhorn",
-	"Hoofington", "Meadows", "Tufton", "Shearling", "Grazely", "Cloudsby", "Mutton"]
-const REGIONS := ["Woolington", "Baahamas", "Lambsterdam", "Ewe-tah", "Ramsgate",
-	"Fleece Valley", "Mount Muttonmore", "Cloverfield"]
-const SPECIES := ["Merino", "Suffolk", "Dorper", "Jacob", "Cheviot", "Texel", "Shetland", "Romney"]
-const VACCINES := ["Rabies", "Scrapie", "Anthrax", "Bluetongue"]
+const FIRST_NAMES := [
+	"Dolly", "Shaun", "Woolbert", "Fleecy", "Baabara", "Lambert", "Ramona",
+	"Cotton", "Nimbus", "Clover", "Barley", "Bramble", "Pippa", "Hector",
+	"Agnes", "Larry", "Shirley", "Timmy", "Wooliam", "Lanolin", "Curly",
+	"Biscuit", "Mabel", "Tuft",
+
+	"Marshmallow", "Pebble", "Dandelion", "Baaxton", "Misty",
+	"Willow", "Thistle", "Pudding", "Maple", "Shepherd"
+]
+const LAST_NAMES := [
+	"Fleecewood", "Woolsworth", "Baaker", "Lambchop", "Curlyhorn",
+	"Hoofington", "Meadows", "Tufton", "Shearling", "Grazely",
+	"Cloudsby", "Mutton",
+
+	"Pasturefield", "Woolridge", "Hayworth", "Cloverton", "Shearwood",
+	"Grazeley", "Lambington", "Fluffington", "Oatfield", "Bleatwood"
+]
+const REGIONS := [
+	"Woolington", "Baahamas", "Lambsterdam", "Ewe-tah", "Ramsgate",
+	"Fleece Valley", "Mount Muttonmore", "Cloverfield",
+
+	"New Baa-land", "Shearwood Hills", "Pasture Plains", "Oatshire",
+	"Bleatfordshire", "Woolshire", "Lamb's End", "Misty Meadows",
+	"Haystack Harbor", "The Great Grazelands"
+]
+const SPECIES := [
+	"Merino", "Suffolk", "Dorper", "Jacob", "Cheviot", "Texel",
+	"Shetland", "Romney",
+
+	"Hampshire", "Lincoln", "Border Leicester", "Southdown",
+	"Black Welsh Mountain", "Dorset", "Karakul", "Clun Forest",
+	"Gotland", "Icelandic"
+]
+const VACCINES := [
+	"Rabies", "Scrapie", "Anthrax", "Bluetongue",
+
+	"Clostridial Disease", "Tetanus", "Enterotoxemia",
+	"Caseous Lymphadenitis", "Pasteurellosis", "Footrot",
+	"Orf", "Campylobacteriosis", "E. coli", "Lamb Dysentery"
+]
+const ROOM_TYPES := [
+	"Standard",
+	"Deluxe",
+	"Suite",
+	"Luxury"
+]
 ## Share of wolves showing a visual giveaway (a red-eyed face), among wolves
 ## whose sheep has one drawn (all but the rapper, so ~30% of all wolves).
 const WOLF_TELL_CHANCE := 0.35
 ## 1 in 20 chance (5%) for a rare guest (Imposter Sheep or Influ Sheep) to appear.
 const RARE_SHEEP_CHANCE := 0.05
 
-const GREETINGS := ["Baa! I have a reservation.", "Good evening, one room please.",
-	"Long trip from %s. I'm exhausted.", "Hello! Is the pool open?",
-	"My booking should be under %s.", "Lovely lobby. Here are my papers."]
-const WOLF_GREETINGS := ["Baa. Baaa. I am a normal sheep.", "Greetings, fellow... grass eater.",
-	"Hurry up, I'm STARVING. For grass. Obviously.", "Nice residents you have here. Very... plump.",
-	"I'm from %s. Ask anyone. Don't ask anyone."]
+const GREETINGS := [
+	"Baa! I have a reservation.",
+	"Good evening, one room please.",
+	"Long trip from %s. I'm exhausted.",
+	"Hello! Is the pool open?",
+	"My booking should be under %s.",
+	"Lovely lobby. Here are my papers.",
+
+	"Finally! I've been looking forward to this trip.",
+	"Could I get a room with a nice view?",
+	"I heard your restaurant serves excellent clover soup.",
+	"Just one bag! I travel light.",
+	"Do you have any rooms away from the noisy guests?",
+	"My family recommended this place!",
+	"I hope I'm not too early for check-in.",
+	"Is there somewhere I can get a snack?",
+	"I've been walking all day. My hooves hurt.",
+	"Please tell me the beds are comfortable."
+]
+const WOLF_GREETINGS := [
+	"Baa. Baaa. I am a normal sheep.",
+	"Greetings, fellow... grass eater.",
+	"Hurry up, I'm STARVING. For grass. Obviously.",
+	"Nice residents you have here. Very... plump.",
+	"I'm from %s. Ask anyone. Don't ask anyone.",
+
+	"Do sheep usually have to wait this long?",
+	"I mean... baa. Yes. That's what sheep say.",
+	"Lovely place. Lots of... sheep. Everywhere.",
+	"Can I have a room with a very sturdy lock?",
+	"I've never seen a sheep before. I mean, another sheep.",
+	"Is the kitchen still open? I'm rather hungry.",
+	"Your residents look delicious— I mean delightful!",
+	"Do you have a butcher? I mean, a... barber?",
+	"I'd prefer a room far away from the other guests.",
+	"Don't mind my teeth. I was born this way."
+]
 const INFLU_GREETINGS := [
 	"Hey besties! Doing a live resort vlog—let me in for a shoutout!",
 	"OMG this lobby is so aesthetic! Can I film around the resort?",
@@ -112,7 +180,9 @@ func _make_identity(used_ids: Dictionary) -> Dictionary:
 		"region": pick(REGIONS),
 		"species": pick(SPECIES),
 		"room": rng.randi_range(101, 420),
+		"room_type": pick(ROOM_TYPES),
 		"nights": rng.randi_range(1, 7),
+		
 	}
 
 func _make_guest(truth: Dictionary, booked: bool, is_wolf: bool, sloppy: bool) -> Dictionary:
@@ -199,7 +269,7 @@ func _flaw_options() -> Array:
 	if rules.check_id_expiry:
 		o.append("id_expired")
 	if rules.check_voucher:
-		o.append_array(["room", "nights"])
+		o.append_array(["room", "room_type", "nights"])
 	if rules.check_face:
 		o.append("face")
 	return o
@@ -212,6 +282,7 @@ func _apply_flaw(g: Dictionary, f: String) -> void:
 		"region": p.region = pick_other(REGIONS, p.region)
 		"species": p.species = pick_other(SPECIES, p.species)
 		"room": p.room = p.room + rng.randi_range(1, 9) * (1 if rng.randf() < 0.5 else -1)
+		"room_type": p.room_type = pick_other(ROOM_TYPES, p.room_type)
 		"nights": p.nights = p.nights % 7 + 1
 		"face":
 			# The photo shows another (normal) face of the same sheep.
@@ -265,9 +336,18 @@ static func build_documents(g: Dictionary, r: Dictionary) -> Array:
 		docs.append({"type": "health", "title": "HEALTH CERTIFICATE", "color": Color(0.88, 1.0, 0.88), "fields": h})
 
 	if r.check_voucher:
-		docs.append({"type": "voucher", "title": "BOOKING VOUCHER", "color": Color(1.0, 0.95, 0.8), "fields": [
-			_f("Name", "name", p.name), _f("ID", "id", p.id),
-			_f("Room", "room", p.room), _f("Nights", "nights", p.nights)]})
+		docs.append({
+			"type": "voucher",
+			"title": "BOOKING VOUCHER",
+			"color": Color(1.0, 0.95, 0.8),
+			"fields": [
+				_f("Name", "name", p.name),
+				_f("ID", "id", p.id),
+				_f("Room", "room", p.room),
+				_f("Room Type", "room_type", p.room_type),
+				_f("Nights", "nights", p.nights)
+			]
+		})	
 	return docs
 
 ## A face to compare: the ID photo or the guest themself. look: {character, face}.
@@ -299,7 +379,7 @@ static func compare(a: Dictionary, b: Dictionary, today_ord: int) -> Dictionary:
 			return _res(missing, "vaccine_missing")
 		if x.kind == "id" and y.kind == "booking_list":
 			return _res(not y.value.has(x.value), "not_booked")
-	if a.kind == b.kind and a.kind in ["name", "id", "region", "species", "room", "nights", "face"]:
+	if a.kind == b.kind and a.kind in ["name", "id", "region", "species", "room", "room_type", "nights", "face"]:
 		if a.get("source", "") == b.get("source", ""):
 			return {"comparable": false}
 		return _res(str(a.value) != str(b.value), a.kind)
@@ -318,6 +398,7 @@ const FLAW_TEXT := {
 	"vaccine_expired": "A vaccine has expired.",
 	"id_expired": "The ID card has expired.",
 	"room": "Room number doesn't match the booking.",
+	"room_type": "Room type doesn't match the booking.",
 	"nights": "Number of nights doesn't match the booking.",
 	"face": "The ID photo doesn't match the guest's face.",
 }

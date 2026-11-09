@@ -1526,7 +1526,7 @@ func _get_facility_at_point(point: Vector2) -> Facility:
 # =============================================================================
 
 func _paint_path_tile(world_pos: Vector2) -> void:
-	SfxManager.play_sfx("Dirt", "SFX")
+	
 	var cell := GameManager.world_to_path_cell(world_pos)
 	if not GameManager.is_land_cell_unlocked(cell):
 		_show_status_toast("⚠ Unlock this land quarter first via its For Sale sign!", Color(1.0, 0.4, 0.4))
@@ -1538,10 +1538,11 @@ func _paint_path_tile(world_pos: Vector2) -> void:
 		GameManager.resort_layout["pathways"].append(cell)
 		if is_instance_valid(pathways_renderer):
 			pathways_renderer.refresh()
+		SfxManager.play_sfx("Dirt", "SFX")
 		_refresh_path_count()
 
 func _erase_path_tile(world_pos: Vector2) -> void:
-	SfxManager.play_sfx("Grass", "SFX")
+	
 	var cell := GameManager.world_to_path_cell(world_pos)
 	if GameManager.path_cell_lookup.has(cell):
 		GameManager.path_cell_lookup.erase(cell)
@@ -1549,6 +1550,7 @@ func _erase_path_tile(world_pos: Vector2) -> void:
 			GameManager.resort_layout["pathways"].erase(cell)
 		if is_instance_valid(pathways_renderer):
 			pathways_renderer.refresh()
+		SfxManager.play_sfx("Grass", "SFX")
 		_refresh_path_count()
 
 func _clear_all_pathways() -> void:

@@ -48,7 +48,7 @@ func _refresh() -> void:
 		if q == "" or b.name.to_lower().contains(q) or b.id.to_lower().contains(q):
 			var idx := _list.add_item("%s  %s" % [b.id, b.name])
 			_list.set_item_metadata(idx, b)
-	_count.text = "Today's bookings: %d  [right-click]" % _bookings.size()
+	_count.text = "Today's bookings: %d \n(Right-Click compare with ID) " % _bookings.size()
 	_clear_details()
 
 func _clear_details() -> void:
@@ -63,6 +63,7 @@ func _on_booking_selected(idx: int) -> void:
 		SheepGenerator._f("Region", "region", b.region), SheepGenerator._f("Species", "species", b.species)]
 	if _rules.get("check_voucher", false):
 		fields.append(SheepGenerator._f("Room", "room", b.room))
+		fields.append(SheepGenerator._f("Room Type", "room_type", b.room_type))
 		fields.append(SheepGenerator._f("Nights", "nights", b.nights))
 	for f in fields:
 		var k := Label.new()

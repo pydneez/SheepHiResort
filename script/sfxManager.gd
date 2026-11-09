@@ -10,29 +10,26 @@ func _ready() -> void:
 
 
 func load_sounds() -> void:
-	var directory := DirAccess.open(SFX_FOLDER)
+	var files := ResourceLoader.list_directory(SFX_FOLDER)
 
-	if directory == null:
-		push_error("Could not open SFX folder: " + SFX_FOLDER)
+	if files.is_empty():
+		push_error("No audio files found in: " + SFX_FOLDER)
 		return
 
-	directory.list_dir_begin()
-
-	var file_name := directory.get_next()
-
-	while file_name != "":
-		if not directory.current_is_dir() and file_name.get_extension().to_lower() == "wav":
+	for file_name in files:
+		if file_name.get_extension().to_lower() == "wav":
 			var sound_name := file_name.get_basename()
 			var sound_path := SFX_FOLDER + file_name
 
-			sounds[sound_name] = load(sound_path)
+			var audio := load(sound_path) as AudioStream
 
-		file_name = directory.get_next()
+			if audio == null:
+				push_error("Failed to load audio: " + sound_path)
+				continue
 
-	directory.list_dir_end()
+			sounds[sound_name] = audio
 
-	print("Loaded ", sounds.size(), " SFX files.")
-
+	print("Loaded ", sounds.size(), " audio files.")
 
 func play_sfx(
 	sound_name: String,

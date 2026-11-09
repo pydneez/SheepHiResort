@@ -3,15 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://kqykk7d77g3w"
-path="res://.godot/imported/PeaberryMono.svg-f766517d6dcb87bcbe200294c6ffb223.ctex"
-metadata={
-"vram_texture": false
-}
+valid=false
 
 [deps]
 
 source_file="res://fonts/Peaberry Monospace/PeaberryMono.svg"
-dest_files=["res://.godot/imported/PeaberryMono.svg-f766517d6dcb87bcbe200294c6ffb223.ctex"]
 
 [params]
 
