@@ -1,79 +1,17 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://d0mm8ss5k6oxm"]
 
-[ext_resource type="Script" path="res://script/week_summary.gd" id="1_n1w4c"]
-[ext_resource type="Texture2D" path="res://assets/Ending_Report/end_summary.png" id="2_ekvsf"]
-[ext_resource type="Texture2D" path="res://assets/Ending_Report/reaction_s.png" id="3_dpsd7"]
-[ext_resource type="Texture2D" path="res://assets/Ending_Report/grade_s.png" id="4_mmjne"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7hg05"]
-content_margin_left = 6.0
-content_margin_top = 6.0
-content_margin_right = 6.0
-content_margin_bottom = 6.0
-bg_color = Color(0.95, 0.8, 0.3, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.15, 0.1, 0.05, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xhjug"]
-content_margin_left = 6.0
-content_margin_top = 6.0
-content_margin_right = 6.0
-content_margin_bottom = 6.0
-bg_color = Color(0.7125, 0.6, 0.22500001, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.15, 0.1, 0.05, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_61ipk"]
-content_margin_left = 6.0
-content_margin_top = 6.0
-content_margin_right = 6.0
-content_margin_bottom = 6.0
-bg_color = Color(0.9575, 0.83, 0.40500003, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.15, 0.1, 0.05, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ai3nr"]
-content_margin_left = 6.0
-content_margin_top = 6.0
-content_margin_right = 6.0
-content_margin_bottom = 6.0
-bg_color = Color(0.475, 0.4, 0.15, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0.15, 0.1, 0.05, 0.5)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[ext_resource type="Script" uid="uid://bx7yxkg441r64" path="res://script/week_summary.gd" id="1_n1w4c"]
+[ext_resource type="Texture2D" uid="uid://cj3sca1ssf77c" path="res://assets/Ending_Report/end_summary.png" id="2_ekvsf"]
+[ext_resource type="Texture2D" uid="uid://djtkxyx1v2usl" path="res://assets/Ending_Report/reaction_s.png" id="3_dpsd7"]
+[ext_resource type="Texture2D" uid="uid://er7fy1x8vatg" path="res://assets/Ending_Report/grade_s.png" id="4_mmjne"]
 
 [node name="WeekSummary" type="Control" unique_id=654444243]
 layout_mode = 3
-anchors_preset = 0
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_n1w4c")
 
 [node name="Dim" type="ColorRect" parent="." unique_id=339238220]
@@ -94,10 +32,10 @@ stretch_mode = 6
 [node name="Reaction" type="TextureRect" parent="." unique_id=1859748518]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = -60.0
-offset_top = 255.0
-offset_right = 620.0
-offset_bottom = 975.0
+offset_left = -57.0
+offset_top = 268.0
+offset_right = 623.0
+offset_bottom = 988.0
 mouse_filter = 2
 texture = ExtResource("3_dpsd7")
 expand_mode = 1
@@ -110,8 +48,8 @@ offset_left = 640.0
 offset_top = 110.0
 offset_right = 640.0
 offset_bottom = 110.0
-theme_override_font_sizes/font_size = 46
 theme_override_colors/font_color = Color(0.24, 0.14, 0.08, 1)
+theme_override_font_sizes/font_size = 46
 text = "WEEK COMPLETE"
 
 [node name="Stats" type="Label" parent="." unique_id=619170556]
@@ -121,9 +59,9 @@ offset_left = 640.0
 offset_top = 200.0
 offset_right = 1060.0
 offset_bottom = 740.0
+theme_override_colors/font_color = Color(0.24, 0.14, 0.08, 1)
 theme_override_constants/line_spacing = 10
 theme_override_font_sizes/font_size = 26
-theme_override_colors/font_color = Color(0.24, 0.14, 0.08, 1)
 text = "Days worked: 7 / 7
 Guests processed: 35
 Correct decisions: 97%
@@ -153,8 +91,8 @@ offset_left = 640.0
 offset_top = 760.0
 offset_right = 1340.0
 offset_bottom = 860.0
-theme_override_font_sizes/font_size = 26
 theme_override_colors/font_color = Color(0.55, 0.15, 0.3, 1)
+theme_override_font_sizes/font_size = 26
 text = "\"The receptionist's line goes here.\""
 autowrap_mode = 3
 

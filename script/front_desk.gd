@@ -18,6 +18,8 @@ const WOLF_LIMIT := 3 # the 3rd wolf let in ends the game with an F
 
 enum State {BRIEFING, IDLE, WALKING_IN, AT_DESK, WALKING_OUT, DAY_OVER, GAME_OVER}
 
+var guest_walk_tween: Tween
+
 var state := State.BRIEFING
 var run_seed := 0
 var day := 1
@@ -130,6 +132,12 @@ func _connect_scene() -> void:
 # Day flow
 
 func start_day(d: int) -> void:
+	# Cancel any previous guest walking animation.
+	if guest_walk_tween and guest_walk_tween.is_valid():
+		guest_walk_tween.kill()
+
+	guest_walk_tween = null
+	
 	SfxManager.stop_sfx("Menutheme")
 	SfxManager.play_sfx("phase1theme", "Music")
 	day = d
@@ -218,14 +226,22 @@ func call_next_guest() -> void:
 	guest_node.set_look(guest.appearance)
 	speech.visible = false
 	state = State.WALKING_IN
-	guest_node.walk_in().tween_callback(_on_guest_arrived)
-	
+	guest_walk_tween = guest_node.walk_in()
+	guest_walk_tween.tween_callback(_on_guest_arrived)	
 
 func _on_guest_arrived() -> void:
 	if state == State.GAME_OVER:
 		return
 	state = State.AT_DESK
-	speech.say(guest.greeting)
+	if not guest.has("greeting"):
+		print("========== GUEST MISSING GREETING ==========")
+		print("Guest data: ", guest)
+		print("Guest keys: ", guest.keys())
+		print("Current day: ", day)
+		print("============================================")
+		speech.say("Hello! I have a reservation.")
+	else:
+		speech.say(guest["greeting"])
 	# The guest's papers are created now but stay hidden; what you see is the
 	# drawn paper pile sliding down onto the mat. Clicking the pile opens them.
 	var defs := SheepGenerator.build_documents(guest, rules)
@@ -385,18 +401,18 @@ func decide(accept: bool) -> void:
 func _reaction(accept: bool) -> String:
 	if guest.get("is_influencer", false):
 		SfxManager.play_sfx("sheep_bleat2", "SFX")
-		return "Yay! Tagging #SheepHiResort right now!" if accept else "Ugh, whatever! Unfollowing this resort!"
+		return ["Yay! Tagging #SheepHiResort right now!","I'm totally gonna make a review VDO!"] [randi() % 5] if accept else "Ugh, whatever! Unfollowing this resort!"
 		
 	if guest.is_wolf:
 		SfxManager.play_sfx("sheep_baa", "SFX")
-		return "Heh heh... dinner is served." if accept else "Grr! You haven't seen the last of me!"
+		return ["Heh heh... dinner is served.","I'm eating good tonight!","Groomed sheep sure sounds good..."] [randi() % 3] if accept else ["Grr! You haven't seen the last of me!","You got lucky this time","I'll bring my pack..."] [randi() % 3]
 		
 	if accept:
 		SfxManager.play_sfx("sheep_bleat1", "SFX")
-		return ["Thank you! Baa!", "Finally, a soft bed.", "Lovely service!"][randi() % 3]
+		return ["Thank you! Baa!", "Finally, a soft bed.", "Lovely service!","Relax timeee!","I wonder what they have in there!"][randi() % 5]
 		
 	SfxManager.play_sfx("sheep_bleat1", "SFX")
-	return "But... I did everything right! Baa..." if guest.flaws.is_empty() else "Oh no, my papers... I'll fix them."
+	return ["But... I did everything right! Baa...","Not fair!","This is racial profiling"][randi() % 3] if guest.flaws.is_empty() else ["Oh no, my papers... I'll fix them.","Baarn it, I messed up!"] [randi() % 2]
 	
 	
 
@@ -726,27 +742,157 @@ func _on_hud_date_input(event: InputEvent) -> void:
 func _get_current_scan_cost() -> int:
 	return int(rules.get("scanner_cost", 100)) + scans_used_today * int(rules.get("scanner_cost_step", 75))
 
+
 func _on_scan() -> void:
 	SfxManager.play_sfx("Scanner_Press", "SFX")
+
 	if state != State.AT_DESK:
 		return
+
 	var cost: int = _get_current_scan_cost()
+
 	if money < cost:
 		_toast("Not enough money!", Color(1, 0.5, 0.5))
 		SfxManager.play_sfx("MissStep", "SFX")
 		return
+
 	money -= cost
 	GameManager.money = money
 	scans_used_today += 1
 	scan_btn.text = "SCAN $%d" % _get_current_scan_cost()
 	_refresh_hud()
+
+	var messages: Array[String] = []
+	var result_color := Color(0.6, 1, 0.6)
+
+	# 1. Existing guest DNA scan
 	if guest.get("is_influencer", false):
-		_toast("SCANNER: Human Influencer! (Not a sheep, not a wolf)", Color(0.5, 0.9, 1.0))
+		messages.append("DNA SCAN: Human Influencer!")
+		result_color = Color(0.5, 0.9, 1.0)
 	elif guest.is_wolf:
 		_add_proof("scan")
-		_toast("SCANNER: WOLF DNA DETECTED!", Color(1, 0.3, 0.3))
+		messages.append("DNA SCAN: WOLF DNA DETECTED!")
+		result_color = Color(1, 0.3, 0.3)
 	else:
-		_toast("SCANNER: Genuine sheep. (Papers may still be wrong!)", Color(0.6, 1, 0.6))
+		messages.append("DNA SCAN: Genuine sheep.")
+
+	# 2. Upgraded document scan (Day 6 onwards)
+	if day >= 6:
+		messages.append("\nDOCUMENT AUTHENTICITY SCAN:")
+
+		var document_result := _scan_document_authenticity()
+
+		for line in document_result.lines:
+			messages.append(line)
+
+		for flaw in document_result.proofs:
+			_add_proof(flaw)
+
+		if not document_result.proofs.is_empty() and not guest.is_wolf:
+			result_color = Color(1, 0.65, 0.2)
+
+	_toast("\n".join(messages), result_color)
+
+
+
+func _scan_document_authenticity() -> Dictionary:
+	var lines: Array[String] = []
+	var proofs: Array[String] = []
+
+	var truth: Dictionary = guest.get("truth", {})
+	var actual_look: Dictionary = guest.get("appearance", {}).get("look", {})
+
+	var altered: Array[String] = []
+	var expired: Array[String] = []
+	var missing: Array[String] = []
+
+	# Check every document currently presented.
+	for doc in docs:
+		if not is_instance_valid(doc):
+			continue
+
+		var data: Dictionary = doc.data
+		var doc_type: String = data.get("type", "")
+
+		match doc_type:
+			"id":
+				for field in data.get("fields", []):
+					var kind: String = field.get("kind", "")
+					var label: String = field.get("label", kind)
+
+					if kind in ["region", "species"]:
+						if field.get("value") != truth.get(kind):
+							altered.append(label)
+							if not proofs.has(kind):
+								proofs.append(kind)
+
+					elif kind == "expiry":
+						if field.get("value", 0) < today:
+							expired.append("ID Card")
+							if not proofs.has("id_expired"):
+								proofs.append("id_expired")
+
+				# Check ID photo.
+				var photo: Dictionary = data.get("photo", {})
+				var claimed_look: Dictionary = photo.get("look", {})
+
+				if not claimed_look.is_empty():
+					if claimed_look.get("character") != actual_look.get("character") \
+					or claimed_look.get("face") != actual_look.get("face"):
+						altered.append("ID Photo")
+						if not proofs.has("face"):
+							proofs.append("face")
+
+			"health":
+				var found_vaccines: Array = []
+
+				for field in data.get("fields", []):
+					var kind: String = field.get("kind", "")
+
+					if kind.begins_with("vaccine_expiry:"):
+						var vaccine_name := kind.trim_prefix("vaccine_expiry:")
+
+						found_vaccines.append(vaccine_name)
+
+						if field.get("value", 0) < today:
+							expired.append(vaccine_name + " vaccine")
+							if not proofs.has("vaccine_expired"):
+								proofs.append("vaccine_expired")
+
+				# Check whether any required vaccines are missing.
+				for vaccine in rules.required_vaccines:
+					if not found_vaccines.has(vaccine):
+						missing.append(vaccine + " vaccine")
+						if not proofs.has("vaccine_missing"):
+							proofs.append("vaccine_missing")
+
+			"voucher":
+				for field in data.get("fields", []):
+					var kind: String = field.get("kind", "")
+
+					if kind in ["room", "nights"]:
+						if field.get("value") != truth.get(kind):
+							altered.append(field.get("label", kind))
+							if not proofs.has(kind):
+								proofs.append(kind)
+
+	# Build the scanner report.
+	if altered.is_empty() and expired.is_empty() and missing.is_empty():
+		lines.append("Valid Documents")
+	else:
+		if not altered.is_empty():
+			lines.append("ALTERED: " + ", ".join(altered))
+
+		if not expired.is_empty():
+			lines.append("EXPIRED: " + ", ".join(expired))
+
+		if not missing.is_empty():
+			lines.append("MISSING: " + ", ".join(missing))
+
+	return {
+		"lines": lines,
+		"proofs": proofs
+	}
 
 # =============================================================================
 # Papers on the desk

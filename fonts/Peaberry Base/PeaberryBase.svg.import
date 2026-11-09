@@ -3,15 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dj7pefaixay6o"
-path="res://.godot/imported/PeaberryBase.svg-5fcd1ad7cfa903728ee3a3ca6a38d0e1.ctex"
-metadata={
-"vram_texture": false
-}
+valid=false
 
 [deps]
 
 source_file="res://fonts/Peaberry Base/PeaberryBase.svg"
-dest_files=["res://.godot/imported/PeaberryBase.svg-5fcd1ad7cfa903728ee3a3ca6a38d0e1.ctex"]
 
 [params]
 

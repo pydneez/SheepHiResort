@@ -28,6 +28,8 @@ var active_guests: Array = []
 var facilities: Array = []
 var layout_editor: Node2D = null
 
+var is_tutorial_active: bool = false
+
 # Node references
 @onready var camera: Camera2D = $ResortCamera
 @onready var entrance_marker: Marker2D = $WorldRoot/EntranceMarker
@@ -103,13 +105,47 @@ func _ready() -> void:
 	_inject_dynamic_wolves()
 
 	time_left = RUSH_HOUR_DURATION
-	is_active = true
+	is_active = false
 	_refresh_hud()
 
 	_on_camera_zoom_changed(camera.zoom.x)
 
-	# Start spawning queue sequentially
-	_spawn_next_guest()
+	_show_phase2_tutorial()
+
+func _show_phase2_tutorial() -> void:
+	while GameManager.is_transitioning:
+		await get_tree().process_frame
+	is_tutorial_active = true
+	# Allow the Ledger UI to work while the game is paused
+	ledger_panel.process_mode = Node.PROCESS_MODE_ALWAYS
+
+	var tutorial_text: String = "[center][font_size=28][b]WELCOME TO THE RESORT![/b][/font_size][/center]\n\n"
+
+	tutorial_text += "[b]YOUR OBJECTIVE[/b]\n"
+	tutorial_text += "Manage your resort during the 60-second Rush Hour. Keep guests happy, earn money, and protect your resort from disguised wolves.\n\n"
+
+	tutorial_text += "[b]1. WATCH YOUR GUESTS[/b]\n"
+	tutorial_text += "Guests will enter the resort and visit available facilities. Keep an eye on their behavior and watch for suspicious wolves.\n\n"
+
+	tutorial_text += "[b]2. MANAGE YOUR FACILITIES[/b]\n"
+	tutorial_text += "Facilities generate revenue, but some may break down due to wolf's sabotage! Keep your resort running smoothly to avoid damage costs.\n\n"
+
+	tutorial_text += "[b]3. COLLECT TIPS[/b]\n"
+	tutorial_text += "Look out for tip bubbles around the resort and collect them for extra income.\n\n"
+
+	tutorial_text += "[b]4. CATCH THE WOLVES[/b]\n"
+	tutorial_text += "Wolves disguise themselves as sheep and may sneak into your resort. Identify and deport them before they cause trouble!\n\n"
+	
+	tutorial_text += "[b]CONTROLS[/b]\n"
+	tutorial_text += "WASD or Right-Click to move camera.\nMouse Scroll to Zoom.\nHold Left-Click pick up sheep, release to drop.\n\n"
+
+	tutorial_text += "[center][color=#88ddff]Ready to manage your resort?[/color][/center]"
+
+	ledger_text.text = tutorial_text
+	next_day_button.text = "Continue ▶"
+
+	ledger_panel.visible = true
+	get_tree().paused = true
 
 func _setup_toggle_names_button() -> void:
 	toggle_names_button = Button.new()
@@ -745,19 +781,37 @@ func _end_rush_hour() -> void:
 
 func _exit_tree() -> void:
 	Engine.time_scale = 1.0
+	get_tree().paused = false
 	if is_instance_valid(GameManager):
 		GameManager.is_aiming_freeze_bomb = false
 
 func _on_next_day_pressed() -> void:
-	# Advance to next day and return to Front Desk (Phase 1)
 	SfxManager.play_sfx("Button_Press", "SFX")
+
+	# Tutorial Continue button
+	if is_tutorial_active:
+		is_tutorial_active = false
+		ledger_panel.visible = false
+		get_tree().paused = false
+
+		next_day_button.text = "Continue to Rush Hour ▶"
+		SfxManager.play_sfx("Button_Press")
+		
+		is_active = true
+		_refresh_hud()
+		_spawn_next_guest()
+		return
+
+	# Normal end-of-day progression
 	SfxManager.stop_sfx("phase2theme")
 	GameManager.current_day += 1
 	GameManager.reset_day_pool()
+
 	if GameManager.current_day <= DayRules.LAST_DAY:
 		SaveLoad.save_game()
 	else:
 		SaveLoad.delete_save()
+
 	GameManager.change_scene("res://scene/front_desk.tscn")
 
 func _generate_fallback_pool() -> void:

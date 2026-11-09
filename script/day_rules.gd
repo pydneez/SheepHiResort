@@ -51,7 +51,7 @@ Find Rulebook bottom right for help."
 Find Rulebook bottom right for help."
 		6:
 			r.required_vaccines = ["Rabies", "Scrapie", "Anthrax", "Bluetongue"]
-			r.news = "Wolves are forging ID photos. Guest's face must match on ID.
+			r.news = "Scanner Upgraded! Scanner now scans document for flaws.\nVoucher now has Room Type.
 Find Rulebook bottom right for help."
 		7:
 			r.required_vaccines = ["Rabies", "Scrapie", "Anthrax", "Bluetongue"]
