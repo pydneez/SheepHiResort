@@ -377,7 +377,20 @@ func _refresh_special_upgrade_controls() -> void:
 
 func _init_layout_edit_mode(pathways: PathwaysRenderer) -> void:
 	is_active = false
-	$UILayer.visible = false
+
+	# Raise UILayer above the layout editor UI (which uses layer 20)
+	$UILayer.layer = 30
+
+	# Hide rush hour HUD elements instead of the entire UILayer so PauseMenu stays functional
+	if has_node("UILayer/TopHUD"):
+		$UILayer/TopHUD.visible = false
+	if is_instance_valid(toggle_names_button):
+		toggle_names_button.visible = false
+	if is_instance_valid(speed_toggle_button):
+		speed_toggle_button.visible = false
+	if is_instance_valid(freeze_bomb_button):
+		freeze_bomb_button.visible = false
+
 	camera.position = Vector2(-240, 180)
 	if camera.has_method("set_zoom_level"):
 		camera.set_zoom_level(0.85)
