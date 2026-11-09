@@ -54,7 +54,7 @@ var is_double_speed: bool = false
 
 func _ready() -> void:
 	SfxManager.stop_sfx("phase1theme")
-	SfxManager.play_sfx("phase2theme", "Music")
+	#SfxManager.play_sfx("phase2theme", "Music")
 	Engine.time_scale = 1.0
 	GameManager.is_aiming_freeze_bomb = false
 	ledger_panel.visible = false
@@ -118,7 +118,7 @@ func _show_phase2_tutorial() -> void:
 	is_tutorial_active = true
 	# Allow the Ledger UI to work while the game is paused
 	ledger_panel.process_mode = Node.PROCESS_MODE_ALWAYS
-
+	
 	var tutorial_text: String = "[center][font_size=28][b]WELCOME TO THE RESORT![/b][/font_size][/center]\n\n"
 
 	tutorial_text += "[b]YOUR OBJECTIVE[/b]\n"
@@ -133,8 +133,8 @@ func _show_phase2_tutorial() -> void:
 	tutorial_text += "[b]3. COLLECT TIPS[/b]\n"
 	tutorial_text += "Look out for tip bubbles around the resort and collect them for extra income.\n\n"
 
-	tutorial_text += "[b]4. CATCH THE WOLVES[/b]\n"
-	tutorial_text += "Wolves disguise themselves as sheep and may sneak into your resort. Identify and deport them before they cause trouble!\n\n"
+	tutorial_text += "[b]4. JAIL THE WOLVES[/b]\n"
+	tutorial_text += "Wolves disguise themselves as sheep and may sneak into your resort. Identify and jail them to deport before they cause trouble!\n\n"
 	
 	tutorial_text += "[b]CONTROLS[/b]\n"
 	tutorial_text += "WASD or Right-Click to move camera.\nMouse Scroll to Zoom.\nHold Left-Click pick up sheep, release to drop.\n\n"
@@ -146,7 +146,8 @@ func _show_phase2_tutorial() -> void:
 
 	ledger_panel.visible = true
 	get_tree().paused = true
-
+	SfxManager.play_sfx("phase2theme")
+	
 func _setup_toggle_names_button() -> void:
 	toggle_names_button = Button.new()
 	toggle_names_button.name = "ToggleNamesButton"

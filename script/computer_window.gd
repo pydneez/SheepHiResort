@@ -48,7 +48,7 @@ func _refresh() -> void:
 		if q == "" or b.name.to_lower().contains(q) or b.id.to_lower().contains(q):
 			var idx := _list.add_item("%s  %s" % [b.id, b.name])
 			_list.set_item_metadata(idx, b)
-	_count.text = "Today's bookings: %d  " % _bookings.size()
+	_count.text = "Today's bookings: %d \n(Right-Click compare with ID) " % _bookings.size()
 	_clear_details()
 
 func _clear_details() -> void:

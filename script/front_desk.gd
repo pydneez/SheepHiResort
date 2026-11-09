@@ -36,6 +36,7 @@ var money := 150
 var reputation := 70
 var residents := 0
 var wolves_admitted := 0
+var wolves_admitted_today: int = 0
 var guest_book: Array = [] # residents checked in this week: {name, room}
 var wolves_inside := 0 # wolves admitted since the last morning report
 var week := {} # the week's totals, for the end-of-week summary
@@ -77,6 +78,8 @@ var rules_doc: DeskDocument
 
 var pile_home: Vector2 # where the pile sits on the mat (set in the editor)
 var clock_home: Vector2 # where the clock sits (it shakes around this point)
+var computer_mouse_filters: Dictionary = {}
+
 @onready var upgrade_shop: UpgradeShopPopup = %UpgradeShopPopup
 
 func _ready() -> void:
@@ -85,6 +88,10 @@ func _ready() -> void:
 		upgrade_shop.setup(self)
 		if not upgrade_shop.upgrade_purchased.is_connected(_on_upgrade_purchased):
 			upgrade_shop.upgrade_purchased.connect(_on_upgrade_purchased)
+
+		if not upgrade_shop.visibility_changed.is_connected(_on_upgrade_shop_visibility_changed):
+			upgrade_shop.visibility_changed.connect(_on_upgrade_shop_visibility_changed)
+			
 	pile_home = pile_btn.position
 	clock_home = clock_art.position
 	papers.visible = true
@@ -111,7 +118,33 @@ func _ready() -> void:
 	else:
 		_new_week()
 		start_day(1)
+	
+func _disable_computer_mouse_input(node: Node) -> void:
+	if node == null:
+		return
 
+	if node is Control:
+		computer_mouse_filters[node] = node.mouse_filter
+		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	for child in node.get_children():
+		_disable_computer_mouse_input(child)
+
+
+func _restore_computer_mouse_input() -> void:
+	for node in computer_mouse_filters:
+		if is_instance_valid(node):
+			node.mouse_filter = computer_mouse_filters[node]
+
+	computer_mouse_filters.clear()
+
+
+func _on_upgrade_shop_visibility_changed() -> void:
+	if upgrade_shop.visible:
+		_disable_computer_mouse_input(computer)
+	else:
+		_restore_computer_mouse_input()
+		
 func _connect_scene() -> void:
 	bell_btn.pressed.connect(_on_bell)
 	pile_btn.pressed.connect(_on_pile_clicked)
@@ -135,9 +168,9 @@ func start_day(d: int) -> void:
 	# Cancel any previous guest walking animation.
 	if guest_walk_tween and guest_walk_tween.is_valid():
 		guest_walk_tween.kill()
-
-	guest_walk_tween = null
 	
+	guest_walk_tween = null
+	wolves_admitted_today = 0
 	SfxManager.stop_sfx("Menutheme")
 	SfxManager.play_sfx("phase1theme", "Music")
 	day = d
@@ -334,6 +367,7 @@ func decide(accept: bool) -> void:
 		day_stats.mistakes += 1
 		day_stats.wolves_in += 1
 		wolves_admitted += 1
+		wolves_admitted_today += 1
 		wolves_inside += 1 # each one makes a resident vanish overnight
 		var rep_loss: int = 8 if GameManager.ENABLE_PHASE_2 else 20
 		reputation -= rep_loss
@@ -386,12 +420,13 @@ func decide(accept: bool) -> void:
 	var tw := guest_node.walk_out(accept)
 	tw.tween_interval(0.3)
 	# Instant game over only in standalone Phase 1 mode
+	# Three wolves admitted always ends the run, regardless of game mode.
 	var ending := ""
-	if not GameManager.ENABLE_PHASE_2:
-		if wolves_admitted >= WOLF_LIMIT:
-			ending = "wolves"
-		elif reputation <= 0:
-			ending = "fired"
+	if wolves_admitted_today >= WOLF_LIMIT:
+		ending = "wolves"
+	elif not GameManager.ENABLE_PHASE_2 and reputation <= 0:
+		ending = "fired"
+		
 	if ending == "":
 		tw.tween_callback(call_next_guest)
 	else:
@@ -401,18 +436,18 @@ func decide(accept: bool) -> void:
 func _reaction(accept: bool) -> String:
 	if guest.get("is_influencer", false):
 		SfxManager.play_sfx("sheep_bleat2", "SFX")
-		return ["Yay! Tagging #SheepHiResort right now!","I'm totally gonna make a review VDO!"] [randi() % 5] if accept else "Ugh, whatever! Unfollowing this resort!"
+		return ["Yay! Tagging #SheepHiResort right now!","I'm totally gonna make a review VDO!"].pick_random() if accept else "Ugh, whatever! Unfollowing this resort!"
 		
 	if guest.is_wolf:
 		SfxManager.play_sfx("sheep_baa", "SFX")
-		return ["Heh heh... dinner is served.","I'm eating good tonight!","Groomed sheep sure sounds good..."] [randi() % 3] if accept else ["Grr! You haven't seen the last of me!","You got lucky this time","I'll bring my pack..."] [randi() % 3]
+		return ["Heh heh... dinner is served.","I'm eating good tonight!","Groomed sheep sure sounds good..."].pick_random() if accept else ["Grr! You haven't seen the last of me!","You got lucky this time","I'll bring my pack..."].pick_random()
 		
 	if accept:
 		SfxManager.play_sfx("sheep_bleat1", "SFX")
-		return ["Thank you! Baa!", "Finally, a soft bed.", "Lovely service!","Relax timeee!","I wonder what they have in there!"][randi() % 5]
+		return ["Thank you! Baa!", "Finally, a soft bed.", "Lovely service!","Relax timeee!","I wonder what they have in there!"].pick_random()
 		
 	SfxManager.play_sfx("sheep_bleat1", "SFX")
-	return ["But... I did everything right! Baa...","Not fair!","This is racial profiling"][randi() % 3] if guest.flaws.is_empty() else ["Oh no, my papers... I'll fix them.","Baarn it, I messed up!"] [randi() % 2]
+	return ["But... I did everything right! Baa...","Not fair!","This is racial profiling"].pick_random() if guest.flaws.is_empty() else ["Oh no, my papers... I'll fix them.","Baarn it, I messed up!"].pick_random()
 	
 	
 
@@ -508,6 +543,7 @@ func _on_open_resort_layout() -> void:
 	SfxManager.play_sfx("PC_Press", "SFX")
 	if day_running or state != State.IDLE:
 		_toast("Resort Editor is only available before starting the day!", Color(1.0, 0.5, 0.4))
+		SfxManager.play_sfx("MissStep")
 		return
 	_sync_to_game_manager()
 	GameManager.is_layout_edit_mode = true
@@ -516,6 +552,7 @@ func _on_open_resort_layout() -> void:
 func _on_open_upgrades() -> void:
 	if day_running or (state != State.IDLE and state != State.BRIEFING):
 		_toast("Upgrade Shop is only available before starting the day!", Color(1.0, 0.5, 0.4))
+		SfxManager.play_sfx("MissStep")
 		return
 	_sync_to_game_manager()
 	if not is_instance_valid(upgrade_shop):
@@ -525,6 +562,8 @@ func _on_open_upgrades() -> void:
 		upgrade_shop.setup(self)
 		if not upgrade_shop.upgrade_purchased.is_connected(_on_upgrade_purchased):
 			upgrade_shop.upgrade_purchased.connect(_on_upgrade_purchased)
+		if not upgrade_shop.visibility_changed.is_connected(_on_upgrade_shop_visibility_changed):
+			upgrade_shop.visibility_changed.connect(_on_upgrade_shop_visibility_changed)
 	if upgrade_shop.visible:
 		upgrade_shop.close_shop()
 	else:
@@ -583,10 +622,10 @@ func _finish_week(ending: String) -> void:
 	var accuracy: float = 100.0 * week.correct / maxi(week.processed, 1)
 	var title: String = {"": "WEEK COMPLETE", "wolves": "THE WOLVES GOT IN", "fired": "YOU'RE FIRED"}[ending]
 	var stats := ("Days worked: %d / %d\nGuests processed: %d\nCorrect decisions: %d%%\n"
-		+"Wolves caught: %d\nWolves let in: %d / %d\nResidents checked in: %d\nQuota met: %d / %d days\n"
+		+"Wolves caught: %d\nTotal Wolves let in: %d\nResidents checked in: %d\nQuota met: %d / %d days\n"
 		+"Money earned: $%d\nFinal reputation: %d") % [
 		day, DayRules.LAST_DAY, week.processed, roundi(accuracy), week.wolves_caught,
-		wolves_admitted, WOLF_LIMIT, week.residents, week.quota_days, day, week.earned, reputation]
+		wolves_admitted, week.residents, week.quota_days, day, week.earned, reputation]
 	week_summary.show_result(grade, title, stats, _receptionist_line(grade, ending))
 	
 	#SfxManager.play_sfx("Endshift_week", "SFX")
@@ -613,7 +652,7 @@ func _grade(ending: String) -> String:
 func _receptionist_line(grade: String, ending: String) -> String:
 	if ending == "wolves":
 		SfxManager.play_sfx("death1", "SFX")
-		return "Three wolves... on my watch. The boss wants to see me in his office. Right now."
+		return "Three wolves... on my watch... in one day.\nThe boss wants to see me in his office. Right now."
 	if ending == "fired":
 		SfxManager.play_sfx("ghost", "SFX")
 		return "They took my name tag. The hotel's reputation is ruined... and so am I."
@@ -655,6 +694,10 @@ func _time_up() -> void:
 	
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
+		if day_popup.visible or week_summary.visible:
+			get_viewport().set_input_as_handled()
+			return
+
 		_reset_inspection()
 
 func trigger_dev_week_report(ending: String = "") -> void:
@@ -901,18 +944,18 @@ func _build_rules_doc() -> void:
 	if rules_doc:
 		rules_doc.queue_free()
 	var fields := [
-		SheepGenerator._f("Today", "today", today, DayRules.format_date(today)),
+		SheepGenerator._f("Today", "today",today, DayRules.format_date(today)),
 	]
 	if rules.check_health:
 		fields.append(SheepGenerator._f("Vaccines", "required", rules.required_vaccines,
 			", ".join(PackedStringArray(rules.required_vaccines))))
-	var checks := ["ID on today's bookings", "Region & species match"]
-	if rules.check_health: checks.append("Vaccines present, not expired")
-	if rules.check_id_expiry: checks.append("ID not expired")
-	if rules.check_voucher: checks.append("Voucher room/nights match")
-	if rules.check_face: checks.append("ID photo matches the guest's face")
+	var checks := ["\nID on today's bookings", "Region & species match\n"]
+	if rules.check_health: checks.append("Vaccines present, not expired\n")
+	if rules.check_id_expiry: checks.append("ID not expired\n")
+	if rules.check_voucher: checks.append("Voucher room/nights match\n")
+	if rules.check_face: checks.append("ID photo matches the guest's face\n")
 	fields.append(SheepGenerator._f("Check", "info", "", "\n".join(PackedStringArray(checks))))
-	fields.append(SheepGenerator._f("Reminder", "info", "", "Right Click 2 Information to compare"))
+	fields.append(SheepGenerator._f("Reminder", "info", "", "Right Click 2 Information to compare.\n3 Wolves pass in 1 day result in TERMINATE"))
 	rules_doc = _spawn_doc({"type": "rules", "title": "RULEBOOK — DAY %d" % day,
 		"color": Color(1.0, 0.9, 0.85), "fields": fields}, false)
 	rules_doc.position = RULES_POS
